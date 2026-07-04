@@ -1,0 +1,13 @@
+{
+  "cssTheme": "Things",
+  "theme": "system",
+  "textFontFamily": "Pretendard",
+  "monospaceFontFamily": "Cascadia Code",
+  "enabledCssSnippets": [
+    "font-reset",
+    "custum-style"
+  ],
+  "baseFontSize": 14,
+  "interfaceFontFamily": "Pretendard",
+  "baseFontSizeAction": false
+}
