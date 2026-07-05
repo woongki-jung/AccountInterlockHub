@@ -5,7 +5,9 @@
     "workspace_id": "T0B6XHE1W64",
     "exec_machine": "WOONGS-WORK",
     "channels": {
-        "watch": []
+        "watch": [
+            { "id": "C0BF874CHUL", "name": "account-interlock-hub" }
+        ]
     },
     "scopes_granted": [
         "app_mentions:read",
