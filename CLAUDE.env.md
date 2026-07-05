@@ -11,13 +11,13 @@
 | 변수            | 값                              | 설명                              |
 | ------------- | ------------------------------ | ------------------------------- |
 | `<WORK_ROOT>` | `/Volumes/D/Work/ai-workgroup` | 제품 소스·자동화 작업 저장소 루트 (설치 루트와 별개) |
-- **인프라 구성 정보**
+- **인프라 구성 정보** (directing 확정 — 상세 [`docs/prd/devspec/infra.md`](docs/prd/devspec/infra.md))
 	- 개발: 로컬 개발환경
-		- 구성항목 없음. 프로젝트 초기화 시점에 갱신
+		- 별도 구축 MSSQL 서버 사용(Azure 미사용). 애플리케이션(NestJS+React) 로컬 기동. 구체 접속값은 build 시점 확정.
 	- 테스트: 테스트 서버
-		- 구성항목 없음. 프로젝트 초기화 시점에 갱신
+		- 구성항목 미정. 필요 시 갱신.
 	- 운영: 운영 서버
-		- 구성항목 없음. 프로젝트 초기화 시점에 갱신
+		- Azure App Service 단일 인스턴스(NestJS가 API+React 정적 서빙) + Azure MSSQL 서비스. 구체 App Service·DB 식별자는 build/배포 준비 시 추가.
 
 - **QA 실행 스크립트 루트**: `<WORK_ROOT>/tests/automation/` — UI 자동화 스크립트(`*.ps1`·`*.py`)·UI 트리 덤프 위치.
 
