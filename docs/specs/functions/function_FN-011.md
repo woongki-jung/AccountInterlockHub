@@ -89,4 +89,3 @@ function FN-011_runRetentionBatch (
 
 - 삭제 대상 선정은 완료·미완료 두 갈래를 모두 포함하고 한 트랜잭션 흐름에서 처리한다. 조건절이 곧 멱등 가드이므로 재실행 시 중복 삭제가 발생하지 않는다(OPS-003-02).
 - 완료/미완료 필터 인덱스(IX_STATUS_RETENTION_CONFIRMED·PENDING)를 활용해 범위 삭제 지역성을 높인다([ENT-004](../datas/data_ENT-004.md)). 배치 결과는 별도 상태 테이블에 저장하지 않고 감사 로그 detail 로만 남긴다.
-</content>

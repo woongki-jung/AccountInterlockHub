@@ -81,7 +81,7 @@
 | [AUTH-002](../policies/policy_AUTH.md#auth-002-관리자-세션-관리) | 1 진입 | validate | 401 EX-AUTH-002 |
 | [SEC-004](../policies/policy_SEC.md#sec-004-입력-검증주입-방어) | 2 목록 조회 | validate | 400 EX-SEC-004 |
 | [SEC-005](../policies/policy_SEC.md#sec-005-민감값-마스킹) | 3 응답 변환 | mask | 설정 데이터 노출, 개인정보 미포함 |
-| [OPS-002](../policies/policy_OPS.md#ops-002-감사-로그) | BR-104 삭제 | audit | 감사 로그 기록 |
+| [OPS-002](../policies/policy_OPS.md#ops-002-감사-로그) | BR-103 활성 전환·BR-104 삭제 | audit | 감사 로그 기록 |
 
 ### 예외 사항
 

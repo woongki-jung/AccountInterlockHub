@@ -84,4 +84,3 @@ function FN-001_guardAdminIp (
 
 - 가드는 관리자 라우트 진입점에 두고 인증 가드(FN-002·003)보다 앞단에 배치한다(SEC-001 → AUTH-001 순).
 - 프록시 환경의 원 출발지 IP 판별 방식(X-Forwarded-For 신뢰 범위 등)은 build 단계에서 확정한다. 허용 목록은 운영 구성값으로 주입한다.
-</content>

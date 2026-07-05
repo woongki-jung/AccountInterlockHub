@@ -83,4 +83,3 @@ function FN-013_writeAudit (
 
 - 감사 로그는 애플리케이션 로그와 분리 가능한 채널로 남기고, 기록 직전 FN-010 마스킹을 일괄 적용한다. append-only 특성상 수정하지 않으며, 대량 기록 환경의 파티셔닝·아카이브는 build 검토한다([ENT-006](../datas/data_ENT-006.md)).
 - 기록은 best-effort 로 처리해 감사 실패가 업무 처리를 차단하지 않게 한다. 보존 초과분 삭제 배치·PROC 는 MVP 미정의이며 도입 시 시각 인덱스·삭제 PROC 를 함께 채번한다.
-</content>

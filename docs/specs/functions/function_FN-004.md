@@ -97,4 +97,3 @@ function FN-004_authenticateServiceApi (
 
 - 인증 수단은 전송 계층 보안(HTTPS) 위에 두고, 자격 값을 로그에 남기지 않는다. 비교는 상수 시간(constant-time) 비교로 타이밍 공격을 방지한다.
 - API 키/서명 알고리즘 구체안은 담당자 확정 대기다. 확정 시 SEC-003 을 리비전하고 본 FN 의 `resolveCaller`·`sign` 구현을 확정한다.
-</content>
