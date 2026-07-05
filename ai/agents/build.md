@@ -1,7 +1,7 @@
 ---
 name: build
 description: build 단계 오케스트레이터. ai-pm 이 디스패치하며 계획 → Phase별(코드 작성→코드리뷰→기능검증) → 런타임 게이트 → 배포 산출물 → 정리를 조율한다. 산출물 원본은 apps/, 미러는 Redmine `기능` 일감.
-model: inherit
+model: opus
 color: blue
 memory: project
 ---

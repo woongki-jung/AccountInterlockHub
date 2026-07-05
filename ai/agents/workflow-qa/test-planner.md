@@ -1,7 +1,7 @@
 ---
 name: test-planner
 description: qa 검증 계획 doer. 검증 대상 사양·TC 를 IA 노드·프로그램 케이스별로 매핑하고 1 TC = 1 Phase 로 빠짐없이 편성하며 환경 의존성을 식별한다.
-model: inherit
+model: opus
 color: green
 memory: project
 ---
