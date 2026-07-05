@@ -18,7 +18,7 @@
 | 화면 경로 | `/admin/configs/:id` |
 | 접근 권한 | IP 허용([SEC-001](../policies/policy_SEC.md#sec-001-관리자-경로-ip-접근-제한)) + 인증 세션([AUTH-001](../policies/policy_AUTH.md#auth-001-관리자-로그인-인증)·[AUTH-002](../policies/policy_AUTH.md#auth-002-관리자-세션-관리)) |
 | 관련 서비스 | [SVC-002](../services/service_SVC-002.md) 연동 구성 조회·목록·활성/삭제 |
-| 트리거 PROC | PROC-102(상세 조회·활성 전환·삭제) |
+| 트리거 PROC | PROC-102(상세 조회) · PROC-105(활성 전환) · PROC-106(삭제) |
 | 선행 화면 | SCR-002(행 클릭) · SCR-003(저장 성공 후) |
 | 관련 IA 항목 | ADM-02 |
 
@@ -49,12 +49,12 @@
 | 인터랙션 | 대상 요소 | 동작 | 호출 API(FN) | 트리거 PROC | 결과 |
 |----------|-----------|------|-------------|-------------|------|
 | 페이지 mount | (자동) | 구성 상세 조회 | GET /api/admin/configs/:id([FN-001](../functions/function_FN-001.md)·FN-003·FN-010) | PROC-102 | `Card` 렌더링 / 대상 없음 / Error |
-| 클릭 | 활성 `Toggle` | 활성/비활성 전환 | PATCH /api/admin/configs/:id/active(FN-001·FN-003·FN-013) | PROC-102 | 성공 `Toast` + `Badge` 갱신 |
-| 클릭 | 삭제 버튼 | 삭제 확인 `Modal` → 확정 | DELETE /api/admin/configs/:id(FN-001·FN-003·FN-013) | PROC-102 | 성공 `Toast` + SCR-002 이동 |
+| 클릭 | 활성 `Toggle` | 활성/비활성 전환 | PATCH /api/admin/configs/:id/active(FN-001·FN-003·FN-013) | PROC-105 | 성공 `Toast` + `Badge` 갱신 |
+| 클릭 | 삭제 버튼 | 삭제 확인 `Modal` → 확정 | DELETE /api/admin/configs/:id(FN-001·FN-003·FN-013) | PROC-106 | 성공 `Toast` + SCR-002 이동 |
 | 클릭 | 편집 버튼 | 편집 화면 이동 | (없음) | (네비게이션) | SCR-003(편집) 이동 |
 | 클릭 | 목록 버튼 | 목록 이동 | (없음) | (네비게이션) | SCR-002 이동 |
 
-> 활성 전환·삭제는 모두 SVC-002(PROC-102) 범위(BR-103·BR-104). 확인 `Modal` 열기 자체는 클라이언트 UI 이며 확정 클릭이 PROC-102 를 트리거한다.
+> 활성 전환·삭제는 모두 SVC-002 범위(활성 전환=PROC-105·BR-103, 삭제=PROC-106·BR-104). 확인 `Modal` 열기 자체는 클라이언트 UI 이며 확정 클릭이 PROC-106 을 트리거한다.
 
 ### 화면 상태 전이
 
@@ -84,7 +84,7 @@
 | 이동 대상 | 트리거 | 조건 | 트리거 PROC |
 |-----------|--------|------|-------------|
 | SCR-003 편집 폼 | 편집 클릭 | 대상 구성 존재 | (네비게이션, 편집 진입 로드는 SCR-003 mount 시 PROC-102) |
-| SCR-002 목록 | 목록 클릭 / 삭제 성공 | 없음 / DELETE 200 | (네비게이션) / PROC-102(삭제) |
+| SCR-002 목록 | 목록 클릭 / 삭제 성공 | 없음 / DELETE 200 | (네비게이션) / PROC-106(삭제) |
 
 ### 구현 가이드
 

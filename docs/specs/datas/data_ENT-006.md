@@ -19,7 +19,7 @@
 | 관련 서비스 | 전 SVC(공통) |
 | 보존 정책 | 최소 1년 보존(OPS-002-03, 기본안). 무저장 원칙 대상 아님(개인정보 미포함). 보존 삭제 수단은 build/운영 확정 |
 | 개인정보 여부 | 비해당 (회원 키·개인정보 배제·마스킹 — OPS-002-02·SEC-005) |
-| CRUD 수행 PROC | C: PROC-101·PROC-103·PROC-104·PROC-203·PROC-301·PROC-402 / R·U·D: MVP 미정의(append-only, 읽기·보존 삭제 PROC 후속) |
+| CRUD 수행 PROC | C: PROC-101·PROC-103·PROC-104·PROC-105·PROC-106·PROC-203·PROC-301·PROC-402 / R·U·D: MVP 미정의(append-only, 읽기·보존 삭제 PROC 후속) |
 | 관련 IA 항목 | 공통 |
 
 ### 속성 정의

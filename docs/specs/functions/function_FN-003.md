@@ -17,10 +17,12 @@
 | 기능명 | 관리자 세션 관리·검증 |
 | 분류 | POL |
 | 사용 서비스 | SVC-001, SVC-002, SVC-003 |
-| 호출 PROC | PROC-103 |
+| 호출 PROC | PROC-101, PROC-102, PROC-103, PROC-105, PROC-106 |
 | 연관 정책 | [AUTH-002](../policies/policy_AUTH.md#auth-002-관리자-세션-관리)(01·02·03), [AUTH-001-01](../policies/policy_AUTH.md#auth-001-관리자-로그인-인증) |
 | 참조 데이터 | [MDL-104](../datas/model_admin.md) 관리자 세션(앱 세션·무 ENT), [MDL-401](../datas/model_common.md) 감사 로그 |
 | 관련 IA 항목 | ADM-03 |
+
+> 세션 검증 가드(verifySession)는 로그인·세션 관리(PROC-103)뿐 아니라 관리자 보호 요청 전반(PROC-101 등록·편집, PROC-102 조회, PROC-105 활성 전환, PROC-106 삭제)의 공통 진입 가드로 재사용된다.
 
 ### 시그니처
 

@@ -17,7 +17,7 @@
 | 기능명 | 감사 로그 기록 |
 | 분류 | CRS |
 | 사용 서비스 | 전 SVC(공통) |
-| 호출 PROC | PROC-101, PROC-103, PROC-104, PROC-203, PROC-301, PROC-402 |
+| 호출 PROC | PROC-101, PROC-103, PROC-104, PROC-105, PROC-106, PROC-203, PROC-301, PROC-402 |
 | 연관 정책 | [OPS-002](../policies/policy_OPS.md#ops-002-감사-로그)(01·02·03), [SEC-005](../policies/policy_SEC.md#sec-005-민감값-마스킹), [DATA-001-03](../policies/policy_DATA.md#data-001-회원-키-무저장개인정보-최소화) |
 | 참조 데이터 | [ENT-006](../datas/data_ENT-006.md) 감사 로그, [MDL-401](../datas/model_common.md) 감사 로그 항목 |
 | 관련 IA 항목 | 공통 |

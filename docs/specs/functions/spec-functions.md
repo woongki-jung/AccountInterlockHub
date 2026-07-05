@@ -26,7 +26,7 @@
 | FN-002 | 관리자 로그인 인증·계정 잠금 | POL | AUTH-001·003 | PROC-103 | SVC-003 | [function_FN-002.md](function_FN-002.md) |
 | FN-003 | 관리자 세션 관리·검증 | POL | AUTH-002 | PROC-103 | SVC-001·002·003 | [function_FN-003.md](function_FN-003.md) |
 | FN-004 | 서비스 대면 API 인증 | POL | SEC-003 | PROC-301 | SVC-006 | [function_FN-004.md](function_FN-004.md) |
-| FN-005 | 공통 입력 검증·주입 방어 | POL | SEC-004 | PROC-101·201·301 | SVC-001·002·004·006 | [function_FN-005.md](function_FN-005.md) |
+| FN-005 | 공통 입력 검증·주입 방어 | POL | SEC-004 | PROC-101·102·201·301 | SVC-001·002·004·006 | [function_FN-005.md](function_FN-005.md) |
 | FN-006 | 연동 구성 입력 검증·고유성 | POL | BIZ-001 | PROC-101 | SVC-001 | [function_FN-006.md](function_FN-006.md) |
 | FN-007 | 요청 키값 발급·검증 | POL | DATA-002 | PROC-201·301 | SVC-004·006 | [function_FN-007.md](function_FN-007.md) |
 | FN-008 | 사용자 동의 처리 | POL | BIZ-002 | PROC-201·202 | SVC-004 | [function_FN-008.md](function_FN-008.md) |
@@ -34,7 +34,7 @@
 | FN-010 | 민감값 마스킹·응답 필드 선별 | DAT | SEC-005·DATA-001-03 | PROC-102·203·301 | SVC-002·005·006 | [function_FN-010.md](function_FN-010.md) |
 | FN-011 | 보관 만료 대상 선정·삭제 배치 | DAT | DATA-004·OPS-003 | PROC-402 | SVC-007 | [function_FN-011.md](function_FN-011.md) |
 | FN-012 | 서비스 B 전달 | EXT | BIZ-003·SEC-002·DATA-001-01 | PROC-203 | SVC-005 | [function_FN-012.md](function_FN-012.md) |
-| FN-013 | 감사 로그 기록 | CRS | OPS-002 | PROC-101·103·104·203·301·402 | 전 SVC | [function_FN-013.md](function_FN-013.md) |
+| FN-013 | 감사 로그 기록 | CRS | OPS-002 | PROC-101·103·104·105·106·203·301·402 | 전 SVC | [function_FN-013.md](function_FN-013.md) |
 | FN-014 | 요청 제한 (Rate Limiting) | CRS | OPS-001 | PROC-201·301 | SVC-004·006 | [function_FN-014.md](function_FN-014.md) |
 | FN-015 | 공통 응답·에러 엔벨로프 | CRS | (공통) | 전 API PROC | 전 SVC | [function_FN-015.md](function_FN-015.md) |
 
@@ -50,8 +50,8 @@
 | /api/admin/configs | POST | IP+세션 | PROC-101 | MDL-101 → MDL-101 | FN-001, FN-003, FN-005, FN-006, FN-013 |
 | /api/admin/configs/:id | GET | IP+세션 | PROC-102 | id → MDL-101 | FN-001, FN-003, FN-010 |
 | /api/admin/configs/:id | PUT | IP+세션 | PROC-101 | MDL-101 → MDL-101 | FN-001, FN-003, FN-005, FN-006, FN-013 |
-| /api/admin/configs/:id/active | PATCH | IP+세션 | PROC-102 | isActive → 결과 | FN-001, FN-003, FN-013 |
-| /api/admin/configs/:id | DELETE | IP+세션 | PROC-102 | id → 결과 | FN-001, FN-003, FN-013 |
+| /api/admin/configs/:id/active | PATCH | IP+세션 | PROC-105 | isActive → 결과 | FN-001, FN-003, FN-013 |
+| /api/admin/configs/:id | DELETE | IP+세션 | PROC-106 | id → 결과 | FN-001, FN-003, FN-013 |
 | /interlock/entry | GET | Public(서비스 A 진입) | PROC-201 | MDL-201 → MDL-202 | FN-014, FN-005, FN-007, FN-013 |
 | /api/consent/:requestKey | GET | 요청키(진입 컨텍스트) | PROC-201 | requestKey → 동의 항목 | FN-005, FN-007, FN-008 |
 | /api/consent/:requestKey | POST | 요청키(진입 컨텍스트) | PROC-202 | MDL-203 → 200 | FN-005, FN-008, FN-012, FN-009, FN-013 |

@@ -19,7 +19,7 @@
 | 관련 서비스 | SVC-001, SVC-002, SVC-004, SVC-005 |
 | 보존 정책 | 무기한(설정 데이터). 소프트 삭제(deleted_at). 개인정보 아님 |
 | 개인정보 여부 | 비해당 (설정 데이터 — 서비스 A/B 주소는 마스킹 대상 아님, EXC-SEC-05) |
-| CRUD 수행 PROC | C: PROC-101 / R: PROC-102·PROC-201·PROC-203 / U: PROC-101·PROC-102 / D: PROC-102(소프트) |
+| CRUD 수행 PROC | C: PROC-101 / R: PROC-102·PROC-201·PROC-203 / U: PROC-101·PROC-105 / D: PROC-106(소프트) |
 | 관련 IA 항목 | ADM-01, ADM-02 |
 
 ### 속성 정의
@@ -64,8 +64,8 @@
 ### 데이터 생명주기
 
 - **생성 조건**: PROC-101(연동 구성 등록·편집) · "DB 접근·출력 생성" 단계에서 신규 등록 시 INSERT. 필수·URL·동의 항목·고유성 검증 통과가 선행(BIZ-001).
-- **수정 조건**: PROC-101 편집 시 config_name·URL·method·자식 항목 UPDATE(updated_at/by 갱신). PROC-102 · "활성/비활성 전환"(BR-103) 시 is_active UPDATE.
-- **삭제/보관 조건**: PROC-102 · "삭제"(BR-104) 시 deleted_at 설정(소프트 삭제). 물리 삭제는 수행하지 않으며 감사 로그(OPS-002)에 기록한다.
+- **수정 조건**: PROC-101 편집 시 config_name·URL·method·자식 항목 UPDATE(updated_at/by 갱신). PROC-105 · "활성/비활성 전환"(BR-103) 시 is_active UPDATE.
+- **삭제/보관 조건**: PROC-106 · "삭제"(BR-104) 시 deleted_at 설정(소프트 삭제). 물리 삭제는 수행하지 않으며 감사 로그(OPS-002)에 기록한다.
 
 ### 연관 정책 (policy)
 
@@ -76,7 +76,7 @@
 | BIZ-001-03 | config_code 고유성 | DB 무결성(UQ_CONFIG_CODE 필터 유니크) + 응용 사전 조회 |
 | SEC-004-01/02 | 전 입력 컬럼 길이·형식·주입 방어 | 응용 검증(DTO) + 파라미터 바인딩 |
 | EXC-SEC-05 | service_a/b URL 마스킹 예외 | 마스킹 제외(설정 데이터) |
-| OPS-002-01 | 등록·수정·삭제 감사 | 감사(PROC-101·PROC-102) |
+| OPS-002-01 | 등록·수정·삭제 감사 | 감사(PROC-101 등록·편집·PROC-105 활성 전환·PROC-106 삭제) |
 
 ### 구현 가이드
 

@@ -19,7 +19,7 @@
 | 분류 | 공통(COM) |
 | 사용 서비스 | 전 SVC(SVC-001·003·005·006·007 등) |
 | 매핑 엔터티 | ENT-006 |
-| 사용 PROC | PROC-101, PROC-103, PROC-104, PROC-203, PROC-301, PROC-402 |
+| 사용 PROC | PROC-101, PROC-103, PROC-104, PROC-105, PROC-106, PROC-203, PROC-301, PROC-402 |
 | 용도 | 도메인 모델(기록) |
 | 관련 IA 항목 | 공통 |
 
