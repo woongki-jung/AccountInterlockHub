@@ -1,0 +1,12 @@
+{
+  "name": "accountinterlockhub",
+  "version": "0.1.0",
+  "private": true,
+  "description": "에이전트 기반 업무 수행 워크스페이스. ai-pm 이 Slack 으로 담당자와 협업하며 업무를 오케스트레이션하고, 작업은 Redmine 이슈로 추적한다.",
+  "scripts": {
+    "start:ai-pm": "node --env-file=ai/bots/ai-pm/_slack/.env ai/bots/ai-pm/_slack/app.js"
+  },
+  "dependencies": {
+    "@slack/bolt": "^4.0.0"
+  }
+}

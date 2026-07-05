@@ -109,8 +109,8 @@
 ### C. 워크스페이스 파일 기입
 
 - **토큰 입력** — `ai/bots/ai-pm/_slack/.env.example` 을 같은 폴더 `.env` 로 복사(git 비관리)하고 `SLACK_APP_TOKEN`·`SLACK_BOT_TOKEN` 기입. (선택) 전용 Redmine 정체성을 쓰면 `REDMINE_BASE_URL`·`REDMINE_API_KEY` 도 — 세션 래퍼가 세션에 주입한다.
-- **`config.json` 갱신** — `ai/bots/ai-pm/_slack/config.json` 의 `app_id`·`workspace_id` 를 실값으로, `channels.watch` 에 감시 채널 기입.
-- **봇 정의 갱신** — `ai/bots/ai-pm/ai-pm.md` frontmatter 의 app id·bot user id·workspace 기입(bot user id 는 앱 설치 후 `auth.test` 또는 봇 프로필에서 확인).
+- **`config.json` 갱신** — `ai/bots/ai-pm/_slack/config.json` 의 `app_id`·`workspace_id` 를 실값으로, `exec_machine` 에 봇 실행 장비의 MachineName(`$env:COMPUTERNAME`)을, `channels.watch` 에 감시 채널 기입.
+- **봇 정의 갱신** — `ai/bots/ai-pm/ai-pm.md` frontmatter 의 app id·bot user id·workspace·exec machine 기입(bot user id 는 앱 설치 후 `auth.test` 또는 봇 프로필에서 확인).
 - **채널 초대** — 감시할 채널마다 `/invite @ai-pm`.
 
 토큰을 메시지·로그·커밋 어디에도 노출하지 않는다. `.env` 는 `.gitignore` 로 커밋이 차단되어 있다.
@@ -153,4 +153,5 @@
 - §2 의 `CLAUDE.local.md` 생성 — git 비관리라 PC 마다 필요(§준비 상태 플래그·§준비 체크리스트 포함).
 - §3 의 접속 정보 기입(`CLAUDE.local.md` 재생성분)·MCP 서버 등록 — PC 로컬. 공용 서비스·프로젝트는 그대로라 재구축·재생성 불필요.
 - §4-C 의 `.env` 토큰 파일 — git 비관리. 앱은 재생성 불필요, 기존 토큰 재사용.
+- §4-C 의 실행 장비 지정 — 봇 실행 장비를 그 PC 로 옮기면 `config.json` 의 `exec_machine` 과 봇 정의 frontmatter 를 새 MachineName 으로 갱신·커밋한다(git 관리 — 전 PC 에 공유되어 이전 장비의 기동이 차단된다). 옮기지 않으면 그대로 둔다([`ai-pm.md`](ai-pm.md) §운영 모델).
 - §6 의 도구 설치·MCP 등록·연결 검증 — PC 로컬(식별자 수집 결과는 문서로 공유되므로 재수집 불필요).

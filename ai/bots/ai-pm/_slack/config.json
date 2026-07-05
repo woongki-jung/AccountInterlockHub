@@ -3,6 +3,7 @@
     "slack_display_name": "ai-pm",
     "app_id": "A0BFYSDR9PA",
     "workspace_id": "T0B6XHE1W64",
+    "exec_machine": "WOONGS-WORK",
     "channels": {
         "watch": []
     },

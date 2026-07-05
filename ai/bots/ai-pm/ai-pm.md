@@ -7,6 +7,7 @@ slack-bot user id: U0BEY9GDDFV
 slack-app id: A0BFYSDR9PA
 slack-workspace: T0B6XHE1W64
 exec path: ai/bots/ai-pm/
+exec machine: WOONGS-WORK
 ---
 # ai-pm
 

@@ -3,6 +3,8 @@
   ai-pm 단일 세션 래퍼 — Slack 런타임 기동·워치독 감시 + 세션 자동 재기동.
 
 .DESCRIPTION
+  0. config.json 의 exec_machine(지정 실행 장비)과 이 PC 의 MachineName 을 대조해 불일치하면 기동을 중단한다
+     (복제 워크스페이스가 있는 다른 PC 의 중복 기동 방지 — ai/strategies/ai-pm.md §운영 모델).
   1. ai/bots/ai-pm/_slack/.env 에서 Redmine 자격(있으면)을 세션 env 로 주입한다(자식 Redmine MCP 가 그 정체성으로 작동).
   2. runtime.log / runtime.err.log 가 10MB 를 넘으면 .1 로 회전한 뒤(append 유지),
      Slack 런타임(app.js)이 떠 있지 않으면 백그라운드로 1개 띄운다. 판별은 app.js 절대 경로 기준.
@@ -38,6 +40,19 @@ $watchdogLog = Join-Path $sessionDir 'watchdog.log'
 
 New-Item -ItemType Directory -Force -Path $sessionDir | Out-Null
 Remove-Item -Path $restartFlag, $stopFlag -Force -ErrorAction SilentlyContinue
+
+# --- 실행 장비 검증 — config.json exec_machine(단일 출처)과 이 PC 의 MachineName 대조. 불일치면 기동 중단. ---
+$configJson  = Join-Path $slackDir 'config.json'
+$execMachine = $null
+if (Test-Path $configJson) {
+  try { $execMachine = (Get-Content $configJson -Raw | ConvertFrom-Json).exec_machine } catch {}
+}
+if (-not $execMachine) {
+  throw "[ai-pm-session] config.json 에 exec_machine(지정 실행 장비) 미지정 — ai/strategies/ai-pm.md §운영 모델 참조."
+}
+if ($env:COMPUTERNAME -ne $execMachine) {
+  throw "[ai-pm-session] 실행 장비 불일치 — 지정: $execMachine / 현재: $env:COMPUTERNAME. ai-pm 은 지정 실행 장비에서만 기동한다."
+}
 
 if (-not (Test-Path $envFile)) {
   throw "[ai-pm-session] $envFile 없음 — .env.example 를 .env 로 복사하고 Slack 토큰을 채우세요."

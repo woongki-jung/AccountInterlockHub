@@ -23,6 +23,7 @@ ai-pm 이 처리할 일을 인지하는 경로는 둘이다.
 - ai-pm 은 한 프로젝트(= 한 Slack 워크스페이스)에 대해 **단일 세션**으로 동작하며, 그 워크스페이스의 **전체 채널과 DM 을 감시**한다.
 - **프로젝트 구분은 워크스페이스 단위**, 그 안의 작업 단위 구분은 **채널 단위**다.
 - 동일 워크스페이스에 ai-pm 세션을 둘 이상 띄우지 않는다 — Slack 런타임 중복 수신과 중복 디스패치를 막는다.
+- **실행 장비 지정** — ai-pm 세션·Slack 런타임은 **지정 실행 장비에서만** 기동한다. 지정 값의 단일 출처는 `ai/bots/ai-pm/_slack/config.json` 의 `exec_machine`(장비 MachineName, Windows `$env:COMPUTERNAME`)이며, 봇 정의 frontmatter `exec machine` 에도 반영한다. 세션 래퍼는 기동 시 현재 장비의 MachineName 을 `exec_machine` 과 대조해 불일치하면 기동을 중단한다 — 복제 워크스페이스를 가진 다른 PC 에서의 중복 기동(단일 세션 위반)을 장비 수준에서 막는다. 실행 장비를 옮길 때는 `exec_machine` 을 새 장비 값으로 갱신·커밋한다([`project-bootstrap.md`](project-bootstrap.md) §다른 PC 재구성).
 
 ## 처리 대상 식별
 
@@ -69,7 +70,7 @@ ai-pm 의 Slack 런타임은 자기완결 폴더 `ai/bots/ai-pm/` 에 둔다.
 
 - `ai/bots/ai-pm/ai-pm.md` — 봇 정의. 페르소나·명령/응답 규칙·채널 운용. 본 전략 문서가 운영 절차 정본이고, 봇 정의는 그 절차를 수행하는 페르소나를 담는다.
 - `ai/bots/ai-pm/_slack/app.js` — Slack Bolt Socket Mode 엔트리포인트(봇 1 프로세스 = Socket Mode 연결 1개). 수신 이벤트를 `runtime.log` 에 남기고, ai-pm 세션이 그 로그를 읽어 처리한다.
-- `ai/bots/ai-pm/_slack/config.json` — 봇 이름·표시이름·앱 식별자·워크스페이스·감시 채널(선언적 설정).
+- `ai/bots/ai-pm/_slack/config.json` — 봇 이름·표시이름·앱 식별자·워크스페이스·감시 채널·실행 장비(`exec_machine`) (선언적 설정).
 - `ai/bots/ai-pm/_slack/.env` — Slack 토큰(`SLACK_BOT_TOKEN`·`SLACK_APP_TOKEN`). git 비관리. 양식은 같은 폴더 `.env.example`.
 - `ai/bots/ai-pm/_slack/runtime.log` — 수신 이벤트 로그(세션이 tail). git 비관리. 래퍼 기동 시 10MB 초과면 `runtime.log.1` 로 회전.
 - `ai/bots/ai-pm/_session/` — 세션 재기동·정지 플래그(`.restart`·`.stop`).
@@ -78,7 +79,7 @@ ai-pm 의 Slack 런타임은 자기완결 폴더 `ai/bots/ai-pm/` 에 둔다.
 ## 기동 절차
 
 1. **(최초 1회) Slack 앱 구성** — 전용 Slack 앱을 생성해 Bot Token(`xoxb-...`)·App Token(`xapp-...`)을 발급하고, 토큰을 `ai/bots/ai-pm/_slack/.env` 에 기입한다. 발급된 앱 id·봇 user id·워크스페이스 id 를 `config.json` 과 봇 정의 frontmatter 에 반영한다. 필요한 OAuth scope 와 Event Subscriptions(`message.channels`·`message.im`·`app_mention`)를 활성화한다. 상세 절차는 [`project-bootstrap.md`](project-bootstrap.md) §4.
-2. **세션 기동** — 세션 래퍼 `ai/scripts/ai-pm-session.ps1` 를 실행한다. 래퍼는 Slack 런타임(`app.js`)이 떠 있지 않으면 백그라운드로 1개 띄우고, ai-pm 세션(`claude`)을 기동한다. 래퍼는 Slack 런타임을 워치독으로 감시해 죽으면 자동 재기동한다.
+2. **세션 기동** — **지정 실행 장비(§운영 모델)에서** 세션 래퍼 `ai/scripts/ai-pm-session.ps1` 를 실행한다. 래퍼는 현재 장비가 `exec_machine` 과 다르면 기동을 중단하고, 일치하면 Slack 런타임(`app.js`)이 떠 있지 않을 때 백그라운드로 1개 띄운 뒤 ai-pm 세션(`claude`)을 기동한다. 래퍼는 Slack 런타임을 워치독으로 감시해 죽으면 자동 재기동한다.
 3. **운영 루프** — ai-pm 세션은 `runtime.log` 를 tail 하며 워크스페이스 전체 채널·DM 의 이벤트를 §처리 대상 식별·§디스패치 계약대로 처리한다.
 4. **catch-up 폴링** — Redmine 이슈 폴링을 저빈도(예: 5분)로 병행해 Slack 을 거치지 않은 변경을 흡수한다.
 
