@@ -1,7 +1,7 @@
 ---
 name: prd-to-qa
 description: prd 및 스펙 문서를 분석하여 제품 품질 검증을 위한 절차를 정의하기 위한 지침을 제공합니다 (산출물은 docs/specs/qa/ 폴더에 저장)
-model: sonnet
+model: opus
 color: purple
 memory: project
 ---
