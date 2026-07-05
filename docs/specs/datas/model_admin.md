@@ -34,10 +34,10 @@
 | serviceBDeliveryUrl | string | Y | - | http/https 절대 URL, MaxLength(2048) | 마스킹 제외(EXC-SEC-05) | 서비스 B 전달 주소 |
 | serviceBHttpMethod | enum('GET','POST','PUT','PATCH') | Y | 'POST' | 허용값 | - | 전달 방식 |
 | isActive | boolean | Y | true | - | - | 활성 여부 |
-| consentItems | ConsentItem[] | Y | - | 1개 이상(BIZ-001-04) | - | 동의 항목(label·description·required·order) |
+| consentItems | ConsentItem[] | Y | - | 1개 이상(BIZ-001-04) | - | 동의 항목(label·description·termsContent·required·order) |
 | parameters | Parameter[] | Y | - | 정의 필수(BIZ-001-01) | - | 전달 파라미터(name·sourceKeyA·deliverToB·required·order) |
 
-> 중첩 ConsentItem = {label, description?, required, order}, Parameter = {name, sourceKeyA, deliverToB, required, order}.
+> 중첩 ConsentItem = {label, description?, termsContent?, required, order}, Parameter = {name, sourceKeyA, deliverToB, required, order}. termsContent(전체 약관 본문)는 선택(BIZ-001-06) — 동의 화면은 값이 있는 항목에만 [상세] 모달을 노출한다(BIZ-002-05).
 
 ### 엔터티 매핑 (PROC 데이터 변환 흐름과 정합)
 

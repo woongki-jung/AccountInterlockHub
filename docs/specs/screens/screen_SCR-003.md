@@ -25,7 +25,8 @@
 ### 레이아웃 구성
 
 - 관리자 셸 + 본문 컨테이너(최대 폭 1120px). 상단 제목("연동 구성 등록" / "연동 구성 편집") + 하단 저장·취소 `Button`.
-- 섹션 순서: (1) 기본 정보(구성 코드·구성명·활성 여부) → (2) 서비스 A 진입(호출 주소) → (3) 전달 파라미터 정의(`RepeatableRows`) → (4) 사용자 동의 항목(`RepeatableRows`) → (5) 서비스 B 전달(전달 주소·HTTP 메서드).
+- 섹션 순서: (1) 기본 정보(구성 코드·구성명·활성 여부) → (2) 서비스 A 진입(호출 주소) → (3) 전달 파라미터 정의(`RepeatableRows`) → (4) 사용자 동의 항목(`RepeatableRows`, 각 행 라벨·설명·약관 컨텐츠·필수) → (5) 서비스 B 전달(전달 주소·HTTP 메서드).
+- 동의 항목 각 반복 행은 라벨·설명·필수 입력에 더해 '약관 컨텐츠'(전체 약관 본문) 여러 줄 입력(textarea)을 둔다. 선택 입력이며(BIZ-001-06), 입력하면 사용자 동의 화면(SCR-005)에서 해당 항목에 [상세] 버튼이 노출된다(BIZ-002-05).
 - 반응형: desktop 2컬럼(라벨-입력), mobile 1컬럼. 반복 행은 mobile 에서 필드 세로 스택.
 
 ### 데이터 표시
@@ -38,7 +39,7 @@
 | 서비스 B 전달 주소 | MDL-101 | serviceBDeliveryUrl | URL 입력 | 마스킹 없음(EXC-SEC-05) |
 | 전달 방식 | MDL-101 | serviceBHttpMethod | Select(GET/POST/PUT/PATCH) | 마스킹 없음 |
 | 활성 여부 | MDL-101 | isActive | Toggle | 마스킹 없음 |
-| 동의 항목(행) | MDL-101 | consentItems[] {label·description·required·order} | 반복 행 | 마스킹 없음 |
+| 동의 항목(행) | MDL-101 | consentItems[] {label·description·termsContent·required·order} | 반복 행(약관 컨텐츠=textarea) | 마스킹 없음(설정 메타) |
 | 전달 파라미터(행) | MDL-101 | parameters[] {name·sourceKeyA·deliverToB·required·order} | 반복 행 | 마스킹 없음 |
 
 > 편집 진입 시 상세(MDL-101)를 GET /api/admin/configs/:id 로 로드해 폼에 프리필한다. 회원 키·처리 상태 필드는 본 모델에 없다(설정 데이터 전용).
@@ -81,6 +82,7 @@
 | 전달 방식 | select | MDL-101.serviceBHttpMethod | Y | `['GET','POST','PUT','PATCH'].includes(value)` | "전달 방식을 선택해주세요." |
 | 동의 항목 라벨(행) | text input | MDL-101.consentItems[].label | Y | `value.trim().length > 0 && value.length <= 200` | "동의 항목 라벨을 입력해주세요." |
 | 동의 항목 설명(행) | text input | MDL-101.consentItems[].description | N | `value.length <= 1000` | "설명이 너무 깁니다(최대 1000자)." |
+| 동의 항목 약관 컨텐츠(행) | textarea | MDL-101.consentItems[].termsContent | N | 선택 입력, 본문 크기는 요청 상한(1MB) 내(BIZ-001-06) | "약관 본문이 너무 깁니다." |
 | 동의 항목 필수(행) | checkbox | MDL-101.consentItems[].required | N | (boolean) | (해당 없음) |
 | 동의 항목 목록 | RepeatableRows | MDL-101.consentItems | Y | `consentItems.length >= 1` (BIZ-001-04) | "동의 항목을 1개 이상 등록해주세요." |
 | 파라미터명(행) | text input | MDL-101.parameters[].name | Y | `value.trim().length > 0 && value.length <= 100` | "파라미터명을 입력해주세요." |

@@ -66,7 +66,7 @@
 | `RepeatableRows` | 행 추가·삭제·순서 | 동의 항목·전달 파라미터 동적 입력. 각 행은 필드 그룹+삭제 버튼, 하단 "행 추가" 버튼 |
 | `Table` | 헤더·행·행 액션·정렬 | 목록 표시. 행 hover 강조, 행 클릭=상세 이동. 헤더 배경 `color-bg-subtle` |
 | `Card` | 제목·본문·액션 | 상세·동의 화면의 정보 묶음. `shadow-sm`, `radius-md` |
-| `Modal` | 확인·경고 | 삭제 확인 등 파괴적 액션 확인. 배경 스크림, ESC·배경 클릭 닫기, 포커스 트랩 |
+| `Modal` | 확인·경고 / 콘텐츠(약관 상세) | 확인·경고: 삭제 확인 등 파괴적 액션 확인(danger·secondary 액션). 콘텐츠: 제목+스크롤 본문(`max-height` 내 `overflow-y:auto`)+하단 액션. 공통: 배경 스크림, ESC·배경 클릭 닫기, 포커스 트랩. 약관 상세 변형은 하단 [동의](primary)·[닫기](secondary)를 두며 [동의]=호출 항목 동의 처리 후 닫기·[닫기]=닫기만(SCR-005·BIZ-002-05·EXC-BIZ-08) |
 | `Toast` | success·error·info | 저장·삭제·전환 결과 알림. 4초 자동 소멸, `aria-live=polite` |
 | `Badge` | active(초록)·inactive(회색)·성공·거부·실패 | 활성 여부·처리 결과 상태 표기 |
 | `Banner` | info·warning·error | 화면 상단 안내(세션 만료·개인정보 경고·전달 실패 안내) |

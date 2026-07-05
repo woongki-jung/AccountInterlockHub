@@ -40,7 +40,10 @@ h1{font-size:22px;line-height:30px;font-weight:700;margin:0 0 24px}
 label{display:block;font-size:14px;line-height:20px;font-weight:500;margin-bottom:6px}
 label .req{color:var(--danger);margin-left:2px}
 input[type=text],input[type=url],select{width:100%;height:40px;padding:10px 14px;font-size:15px;border:1px solid var(--border);border-radius:var(--r-md);background:#fff;color:var(--text)}
-input:focus,select:focus{outline:2px solid var(--primary);outline-offset:2px;border-color:var(--primary)}
+input:focus,select:focus,textarea:focus{outline:2px solid var(--primary);outline-offset:2px;border-color:var(--primary)}
+textarea.terms{width:100%;min-height:64px;padding:10px 14px;font-size:14px;line-height:20px;border:1px solid var(--border);border-radius:var(--r-md);background:#fff;color:var(--text);resize:vertical;font-family:inherit}
+.consent-terms{margin-top:12px}
+.consent-terms label .opt{color:var(--muted);font-weight:400;font-size:13px;margin-left:4px}
 input[readonly]{background:var(--disabled);color:var(--muted);cursor:not-allowed}
 .hint{font-size:13px;color:var(--muted);margin-top:6px}
 .cap-err{font-size:13px;color:var(--danger);margin-top:6px;display:none}
@@ -222,6 +225,12 @@ body[data-err="format"] .banner-err{display:flex}
             <label class="chkline"><input type="checkbox" checked> 필수</label>
             <button class="rmbtn" title="행 삭제" onclick="removeRow(this)">✕</button>
           </div>
+          <div class="consent-terms">
+            <label>약관 컨텐츠 <span class="opt">(선택 · 전체 약관 본문 — 입력 시 동의 화면에 [상세] 노출)</span></label>
+            <textarea class="terms" placeholder="전체 약관 본문을 입력하세요(선택).">제1조(목적) 본 약관은 결제 연동을 위하여 주문·결제 식별 정보를 서비스 B에 제공하는 데 필요한 사항을 정합니다.
+제2조(제공 항목) 주문번호, 결제수단 식별자, 결제금액 등 최소 항목.
+제3조(보유 기간) 처리 완료 후 관련 법령이 정한 기간까지 보관합니다.</textarea>
+          </div>
         </div>
         <div class="rrow">
           <div class="rgrid consent">
@@ -229,6 +238,10 @@ body[data-err="format"] .banner-err{display:flex}
             <div class="field" style="margin:0"><label>설명</label><input type="text" value="이벤트·혜택 안내에 활용합니다." placeholder="보조 설명(선택)"></div>
             <label class="chkline"><input type="checkbox"> 필수</label>
             <button class="rmbtn" title="행 삭제" onclick="removeRow(this)">✕</button>
+          </div>
+          <div class="consent-terms">
+            <label>약관 컨텐츠 <span class="opt">(선택 · 전체 약관 본문 — 입력 시 동의 화면에 [상세] 노출)</span></label>
+            <textarea class="terms" placeholder="전체 약관 본문을 입력하세요(선택). 미입력 시 동의 화면에서 [상세] 버튼이 표시되지 않습니다."></textarea>
           </div>
         </div>
       </div>
@@ -294,7 +307,7 @@ function addParam(){
 function addConsent(){
   var wrap=document.getElementById('consentRows');
   var d=document.createElement('div');d.className='rrow';
-  d.innerHTML='<div class="rgrid consent"><div class="field" style="margin:0"><label>동의 항목 라벨 <span class="req">*</span></label><input type="text" placeholder="라벨"></div><div class="field" style="margin:0"><label>설명</label><input type="text" placeholder="보조 설명(선택)"></div><label class="chkline"><input type="checkbox"> 필수</label><button class="rmbtn" onclick="removeRow(this)">✕</button></div>';
+  d.innerHTML='<div class="rgrid consent"><div class="field" style="margin:0"><label>동의 항목 라벨 <span class="req">*</span></label><input type="text" placeholder="라벨"></div><div class="field" style="margin:0"><label>설명</label><input type="text" placeholder="보조 설명(선택)"></div><label class="chkline"><input type="checkbox"> 필수</label><button class="rmbtn" onclick="removeRow(this)">✕</button></div><div class="consent-terms"><label>약관 컨텐츠 <span class="opt">(선택 · 전체 약관 본문 — 입력 시 동의 화면에 [상세] 노출)</span></label><textarea class="terms" placeholder="전체 약관 본문을 입력하세요(선택)."></textarea></div>';
   wrap.appendChild(d);
 }
 function removeRow(btn){btn.closest('.rrow').remove();}

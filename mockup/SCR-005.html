@@ -33,10 +33,24 @@ h1{font-size:22px;line-height:30px;font-weight:700;margin:0 0 8px}
 .citem:last-child{border-bottom:none}
 .citem input[type=checkbox]{width:20px;height:20px;margin-top:2px;accent-color:var(--primary);flex:none}
 .citem .body{flex:1}
-.citem .lab{font-size:15px;font-weight:500}
+.citem .top{display:flex;align-items:flex-start;gap:8px}
+.citem .lab{font-size:15px;font-weight:500;flex:1}
 .citem .lab .req{color:var(--danger);margin-left:4px;font-size:13px}
 .citem .opt{color:var(--muted);font-weight:400;font-size:13px;margin-left:4px}
 .citem .desc{font-size:13px;line-height:18px;color:var(--muted);margin-top:4px}
+.detail-btn{flex:none;background:transparent;border:1px solid var(--border);color:var(--primary);border-radius:var(--r-sm);padding:3px 9px;font-size:12px;font-weight:500;cursor:pointer;line-height:16px;min-height:26px}
+.detail-btn:hover{background:var(--primary-weak);border-color:var(--primary)}
+/* 약관 상세 모달 (콘텐츠 변형) */
+.scrim{display:none;position:fixed;inset:0;background:rgba(17,24,39,.45);z-index:60;align-items:center;justify-content:center;padding:16px}
+.scrim.show{display:flex}
+.modal{background:#fff;border-radius:var(--r-lg);box-shadow:var(--sh-md);max-width:440px;width:100%;max-height:80vh;display:flex;flex-direction:column;padding:24px}
+.modal h2{font-size:18px;font-weight:600;margin:0 0 12px}
+.modal .terms-body{overflow-y:auto;font-size:14px;line-height:21px;color:var(--text);white-space:pre-wrap;border:1px solid var(--border);border-radius:var(--r-md);padding:14px;background:var(--subtle);margin-bottom:20px;flex:1 1 auto}
+.modal .mactions{display:flex;justify-content:flex-end;gap:8px;flex:none}
+.mbtn{height:40px;padding:0 16px;border-radius:var(--r-md);font-size:15px;font-weight:500;border:1px solid transparent;cursor:pointer}
+.mbtn-primary{background:var(--primary);color:#fff}
+.mbtn-primary:hover{background:var(--primary-hover)}
+.mbtn-secondary{background:#fff;color:var(--text);border:1px solid var(--border)}
 .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:44px;padding:0 14px;border-radius:var(--r-md);font-size:15px;font-weight:500;border:1px solid transparent;cursor:pointer;line-height:1;width:100%}
 .btn-primary{background:var(--primary);color:#fff}
 .btn-primary:hover{background:var(--primary-hover)}
@@ -85,23 +99,32 @@ body[data-state="submitting"] .btnrow button{pointer-events:none;opacity:.7}
 
       <div class="consent-list" id="clist">
         <label class="citem">
-          <input type="checkbox" data-req="1" onchange="syncAgree()">
+          <input type="checkbox" id="c0" data-req="1" onchange="syncAgree()">
           <span class="body">
-            <span class="lab">결제 정보 제공 동의 <span class="req">(필수)</span></span>
+            <span class="top">
+              <span class="lab">결제 정보 제공 동의 <span class="req">(필수)</span></span>
+              <button type="button" class="detail-btn" onclick="event.preventDefault();event.stopPropagation();openTerms('c0')">상세</button>
+            </span>
             <span class="desc">주문·결제 식별 정보를 서비스 B로 전달합니다.</span>
           </span>
         </label>
         <label class="citem">
-          <input type="checkbox" data-req="1" onchange="syncAgree()">
+          <input type="checkbox" id="c1" data-req="1" onchange="syncAgree()">
           <span class="body">
-            <span class="lab">개인정보 제3자 제공 동의 <span class="req">(필수)</span></span>
+            <span class="top">
+              <span class="lab">개인정보 제3자 제공 동의 <span class="req">(필수)</span></span>
+              <button type="button" class="detail-btn" onclick="event.preventDefault();event.stopPropagation();openTerms('c1')">상세</button>
+            </span>
             <span class="desc">연동 처리에 필요한 최소 식별 정보를 연동 대상에 제공합니다.</span>
           </span>
         </label>
         <label class="citem">
-          <input type="checkbox" onchange="syncAgree()">
+          <input type="checkbox" id="c2" onchange="syncAgree()">
           <span class="body">
-            <span class="lab">마케팅 활용 동의 <span class="opt">(선택)</span></span>
+            <span class="top">
+              <span class="lab">마케팅 활용 동의 <span class="opt">(선택)</span></span>
+              <!-- 약관 컨텐츠 미설정 항목: [상세] 버튼 미노출 (BIZ-002-05) -->
+            </span>
             <span class="desc">이벤트·혜택 안내에 활용합니다.</span>
           </span>
         </label>
@@ -146,11 +169,45 @@ body[data-state="submitting"] .btnrow button{pointer-events:none;opacity:.7}
   </div>
 </div>
 
+<!-- 약관 상세 모달 (콘텐츠 변형: 제목 + 스크롤 본문 + [동의]/[닫기]) -->
+<div class="scrim" id="termsScrim">
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="termsTitle">
+    <h2 id="termsTitle">약관 상세</h2>
+    <div class="terms-body" id="termsBody">약관 본문</div>
+    <div class="mactions">
+      <button type="button" class="mbtn mbtn-secondary" onclick="closeTerms()">닫기</button>
+      <button type="button" class="mbtn mbtn-primary" onclick="agreeTerms()">동의</button>
+    </div>
+  </div>
+</div>
+
 <script>
+// 동의 항목별 약관 컨텐츠(전체 약관 본문) — 값이 있는 항목만 [상세] 노출
+var TERMS={
+  c0:{title:'결제 정보 제공 동의',body:'[결제 정보 제공 동의]\n\n제1조(목적) 본 약관은 서비스 A 이용자가 결제 연동을 위하여 주문·결제 식별 정보를 서비스 B에 제공하는 데 필요한 사항을 정합니다.\n\n제2조(제공 항목) 주문번호, 결제수단 식별자, 결제금액 등 연동 처리에 필요한 최소 항목.\n\n제3조(이용 목적) 결제 연동 처리 및 처리 결과 확인.\n\n제4조(보유 기간) 처리 완료 후 관련 법령이 정한 기간까지 보관하며, 목적 달성 시 지체 없이 파기합니다.\n\n※ 본 문구는 목업용 예시 본문입니다.'},
+  c1:{title:'개인정보 제3자 제공 동의',body:'[개인정보 제3자 제공 동의]\n\n1. 제공받는 자: 서비스 B 운영사\n2. 제공 항목: 연동 처리에 필요한 최소 식별 정보\n3. 제공 목적: 서비스 A↔B 계정 연동 실행\n4. 보유·이용 기간: 연동 목적 달성 시까지\n\n귀하는 위 동의를 거부할 권리가 있으며, 거부 시 연동 서비스 이용이 제한될 수 있습니다.\n\n※ 본 문구는 목업용 예시 본문입니다.'}
+  // c2(마케팅 활용 동의): 약관 컨텐츠 미설정 → [상세] 버튼 없음
+};
+var termsCurrent=null;
 function setState(s){
   document.body.dataset.state=s;
   document.querySelectorAll('.mock-bar button').forEach(function(b){b.classList.toggle('active',b.dataset.s===s)});
 }
+function openTerms(id){
+  var t=TERMS[id];if(!t)return;
+  termsCurrent=id;
+  document.getElementById('termsTitle').textContent=t.title;
+  document.getElementById('termsBody').textContent=t.body;
+  document.getElementById('termsScrim').classList.add('show');
+}
+function closeTerms(){document.getElementById('termsScrim').classList.remove('show');termsCurrent=null;}
+function agreeTerms(){
+  // [동의] = 해당 항목 체크(동의) 후 모달 닫기 (EXC-BIZ-08, 서버 호출 없음)
+  if(termsCurrent){var cb=document.getElementById(termsCurrent);if(cb){cb.checked=true;syncAgree();}}
+  closeTerms();
+}
+document.getElementById('termsScrim').addEventListener('click',function(e){if(e.target===this)closeTerms();});
+document.addEventListener('keydown',function(e){if(e.key==='Escape')closeTerms();});
 function syncAgree(){
   var reqs=document.querySelectorAll('#clist input[data-req="1"]');
   var all=Array.prototype.every.call(reqs,function(c){return c.checked});

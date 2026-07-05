@@ -45,7 +45,7 @@
 | 입력 | entry | MDL-201 | Y | configCode·memberKey(무저장)·parameters |
 | 입력 | requestKey | string(UUID v4) | N | 동의 항목 조회 시(발급된 키) |
 | 출력 | requestKey | MDL-202 | - | 진입 응답으로 서비스 A 반환 |
-| 출력 | consentItems | ConsentItem[] | - | 구성 소속 동의 항목(display_order 오름차순) |
+| 출력 | consentItems | ConsentItem[] | - | 구성 소속 동의 항목(label·description·termsContent·required·order, display_order 오름차순) |
 
 ### 연관 데이터 및 외부 호출
 
@@ -76,7 +76,12 @@ F1. 동의 화면 mount → 항목 조회   (SCR-005)
 F2. 항목 응답 → 렌더
   onSuccess(res→{ data: ConsentItem[] }):
     Checkbox 목록 렌더(각 항목 label·description·required 표시, order 정렬)
+    항목별: if (item.termsContent 존재) → 라벨 우측에 [상세] 버튼 렌더(BIZ-002-05)
     동의 버튼 활성 조건 계산: requiredItems.every(checked)
+  onDetailClick(item):     // 클라이언트 전용, 서버 호출 없음
+    약관 상세 Modal 열기(제목=item.label, 본문=item.termsContent, [동의]/[닫기])
+    [동의] → checked[item.order]=true; 모달 닫기; 동의 버튼 활성 재계산   // EXC-BIZ-08
+    [닫기] → 모달 닫기(체크 불변)
   onError(err):
     if (err.code=='EX-DATA-002') → Banner "요청이 올바르지 않습니다."(만료·불일치)
     else if (err.code=='EX-OPS-001') → Banner "잠시 후 다시 시도해주세요."
@@ -108,11 +113,11 @@ B1b. 동의 화면 데이터 구성   (GET /api/consent/:requestKey, SCR-005)
     if (ctx is null) → 400 EX-DATA-002 (만료·미존재)
     config = SELECT id FROM TBL_INTERLOCK_CONFIG
              WHERE config_code = :ctx.configCode AND is_active = 1 AND deleted_at IS NULL;
-    items = SELECT item_label, item_description, is_required, display_order
+    items = SELECT item_label, item_description, terms_content, is_required, display_order
             FROM TBL_INTERLOCK_CONSENT_ITEM
-            WHERE config_id = :config.id ORDER BY display_order;   -- IX_CONSENT_CONFIG, 구성 외 노출 금지
-  응답: FN-015_ok(items)
-  정책 적용 지점: OPS-001(요청 제한), DATA-002(키 발급), DATA-001(무저장), BIZ-002-01(구성 소속 항목)
+            WHERE config_id = :config.id ORDER BY display_order;   -- IX_CONSENT_CONFIG, 구성 외 노출 금지, 약관 컨텐츠 포함
+  응답: FN-015_ok(items)   -- ConsentItem[] = {label, description?, termsContent?, required, order}
+  정책 적용 지점: OPS-001(요청 제한), DATA-002(키 발급), DATA-001(무저장), BIZ-002-01(구성 소속 항목), BIZ-002-05(약관 컨텐츠 포함)
 ```
 
 #### 데이터 변환 흐름
@@ -122,7 +127,7 @@ B1b. 동의 화면 데이터 구성   (GET /api/consent/:requestKey, SCR-005)
 | 요청→도메인 | BE 컨트롤러 | MDL-201(서비스 A) | EntryRequest | FN-005 검증, 활성 구성 참조 확인(저장 아님) |
 | 도메인→메모리 | BE(컨텍스트) | EntryRequest | entryContext | 요청 키값 키로 비영속 저장(memberKey 무저장) |
 | 도메인→응답 | BE 컨트롤러 | 발급 키·동의 항목 | MDL-202 / ConsentItem[] | UUID 반환·display_order 정렬 |
-| 응답→FE | FE 어댑터 | 동의 항목 DTO | Checkbox 모델 | 라벨·필수 표식 매핑 |
+| 응답→FE | FE 어댑터 | 동의 항목 DTO | Checkbox 모델 | 라벨·필수 표식 매핑, 약관 컨텐츠 있으면 [상세]→약관 모달 바인딩 |
 
 #### 단계 통합 흐름
 
@@ -133,7 +138,7 @@ B1b. 동의 화면 데이터 구성   (GET /api/consent/:requestKey, SCR-005)
 | 3 | BE | 진입 응답 | requestKey | 서비스 A 로 requestKey 반환 | (서비스 A 리다이렉트) |
 | 4 | FE | 동의 화면 mount | requestKey(경로) | GET /api/consent/:requestKey | 조회 요청 |
 | 5 | BE | 동의 항목 구성 | 조회 요청 | FN-008 컨텍스트·구성 소속 항목 조회 | ConsentItem[] |
-| 6 | FE | 항목 렌더 | ConsentItem[] | Checkbox 렌더·동의 버튼 조건 계산 | (UI 갱신) |
+| 6 | FE | 항목 렌더 | ConsentItem[] | Checkbox 렌더·동의 버튼 조건 계산·약관 있으면 [상세]→약관 모달 | (UI 갱신) |
 
 ### 분기 및 예외 흐름
 
@@ -163,4 +168,5 @@ B1b. 동의 화면 데이터 구성   (GET /api/consent/:requestKey, SCR-005)
 
 - 요청 키값은 표준 UUID v4 로 발급하고 예측 가능한 시퀀스·타임스탬프 노출식 식별자를 쓰지 않는다. 진입 컨텍스트(회원 키 포함)는 비영속 메모리에만 두고 DB 영속화를 금지한다.
 - 동의 화면은 해당 구성에 설정된 동의 항목만 노출한다(구성 외 노출 금지). 진입 컨텍스트 저장 수단(단일 인메모리/공유 캐시)·TTL 은 build 확정한다.
+- 동의 항목 조회 응답에 약관 컨텐츠(terms_content)를 포함한다. [상세] 버튼·약관 모달 표시와 모달 [동의]/[닫기] 처리는 클라이언트(SCR-005)에서 수행하며 서버 호출을 추가하지 않는다(BIZ-002-05·EXC-BIZ-08). 약관 컨텐츠가 없는 항목은 [상세] 버튼을 렌더하지 않는다.
 - 회원 키는 로그·응답에 원문 노출하지 않고 마스킹한다(FN-010). 요청 제한은 사용자 진입은 출발지 IP 기준으로 카운트한다.

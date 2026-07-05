@@ -79,6 +79,8 @@ tbody tr:last-child td{border-bottom:none}
 .modal{background:#fff;border-radius:var(--r-lg);box-shadow:var(--sh-lg);max-width:420px;width:100%;padding:24px}
 .modal h2{font-size:18px;font-weight:600;margin:0 0 8px}
 .modal p{color:var(--muted);font-size:14px;margin:0 0 20px}
+.modal.terms-modal{max-width:480px;max-height:80vh;display:flex;flex-direction:column}
+.modal .terms-body{overflow-y:auto;font-size:14px;line-height:21px;color:var(--text);white-space:pre-wrap;border:1px solid var(--border);border-radius:var(--r-md);padding:14px;background:var(--subtle);margin:0 0 20px;flex:1 1 auto}
 .modal .mactions{display:flex;justify-content:flex-end;gap:8px}
 .toast{position:fixed;left:50%;bottom:32px;transform:translateX(-50%);background:#111827;color:#fff;padding:12px 18px;border-radius:var(--r-md);font-size:14px;box-shadow:var(--sh-md);display:none;align-items:center;gap:8px;z-index:70}
 .toast.show{display:flex}
@@ -169,10 +171,10 @@ body[data-state="loaded"] .head-actions,body[data-state="loaded"] .head-badge{di
       <h2>동의 항목 (2)</h2>
       <div class="tablewrap">
         <table>
-          <thead><tr><th>순서</th><th>라벨</th><th>설명</th><th>필수</th></tr></thead>
+          <thead><tr><th>순서</th><th>라벨</th><th>설명</th><th>필수</th><th>약관 컨텐츠</th></tr></thead>
           <tbody>
-            <tr><td>1</td><td>결제 정보 제공 동의</td><td>주문·결제 식별 정보를 서비스 B로 전달합니다.</td><td><span class="pill req">필수</span></td></tr>
-            <tr><td>2</td><td>마케팅 활용 동의</td><td>이벤트·혜택 안내에 활용합니다.</td><td><span class="pill no">선택</span></td></tr>
+            <tr><td>1</td><td>결제 정보 제공 동의</td><td>주문·결제 식별 정보를 서비스 B로 전달합니다.</td><td><span class="pill req">필수</span></td><td><span class="pill">설정됨</span> <button class="btn btn-sm btn-secondary" onclick="openTerms('결제 정보 제공 동의')">약관 보기</button></td></tr>
+            <tr><td>2</td><td>마케팅 활용 동의</td><td>이벤트·혜택 안내에 활용합니다.</td><td><span class="pill no">선택</span></td><td><span class="pill no">없음</span></td></tr>
           </tbody>
         </table>
       </div>
@@ -228,6 +230,17 @@ body[data-state="loaded"] .head-actions,body[data-state="loaded"] .head-badge{di
   </div>
 </div>
 
+<!-- 약관 컨텐츠 열람 모달 (콘텐츠 변형: 관리자 상세는 열람 전용) -->
+<div class="scrim" id="termsScrim">
+  <div class="modal terms-modal" role="dialog" aria-modal="true" aria-labelledby="termsTitle">
+    <h2 id="termsTitle">약관 컨텐츠</h2>
+    <div class="terms-body" id="termsBody">약관 본문</div>
+    <div class="mactions">
+      <button class="btn btn-secondary" onclick="closeTerms()">닫기</button>
+    </div>
+  </div>
+</div>
+
 <div class="toast ok" id="toast">상태가 변경되었습니다</div>
 
 <script>
@@ -239,8 +252,13 @@ function openModal(){document.getElementById('scrim').classList.add('show')}
 function closeModal(){document.getElementById('scrim').classList.remove('show')}
 function doDelete(){closeModal();var t=document.getElementById('toast');t.textContent='삭제되었습니다';t.classList.add('show');setTimeout(function(){location.href='SCR-002.html'},900)}
 var tt;function toast(msg){var t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');clearTimeout(tt);tt=setTimeout(function(){t.classList.remove('show')},2500)}
+// 약관 컨텐츠 열람(관리자 상세는 열람 전용 — 저장된 전체 약관 본문 확인)
+var TERMS={'결제 정보 제공 동의':'[결제 정보 제공 동의]\n\n제1조(목적) 본 약관은 결제 연동을 위하여 주문·결제 식별 정보를 서비스 B에 제공하는 데 필요한 사항을 정합니다.\n제2조(제공 항목) 주문번호, 결제수단 식별자, 결제금액 등 최소 항목.\n제3조(보유 기간) 처리 완료 후 관련 법령이 정한 기간까지 보관합니다.\n\n※ 본 문구는 목업용 예시 본문입니다.'};
+function openTerms(label){var t=TERMS[label]||'(약관 컨텐츠 없음)';document.getElementById('termsTitle').textContent=label+' — 약관 컨텐츠';document.getElementById('termsBody').textContent=t;document.getElementById('termsScrim').classList.add('show')}
+function closeTerms(){document.getElementById('termsScrim').classList.remove('show')}
 document.getElementById('scrim').addEventListener('click',function(e){if(e.target===this)closeModal()});
-document.addEventListener('keydown',function(e){if(e.key==='Escape')closeModal()});
+document.getElementById('termsScrim').addEventListener('click',function(e){if(e.target===this)closeTerms()});
+document.addEventListener('keydown',function(e){if(e.key==='Escape'){closeModal();closeTerms();}});
 </script>
 </body>
 </html>

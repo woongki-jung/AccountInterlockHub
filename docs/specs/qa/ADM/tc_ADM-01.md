@@ -131,3 +131,24 @@
 | 단계 | 실행 | 입력 | 기대 결과 | 매핑 PROC |
 |--|--|--|--|--|
 | 1 | PUT /configs/:id | 자기 자신 config_code 유지 | 200 저장 성공(고유성 위반 아님) | B2 (selfId 제외) |
+
+### ADM-01_015 동의 항목 약관 컨텐츠 입력·영속화
+- **유형/우선순위/자동화**: Positive · 높음 · 자동(INTG)
+- **검증 대상**: ENT-002.terms_content·MDL-101.consentItems·SCR-003 | **PROC/분기**: PROC-101 / BIZ-001-06
+
+| 단계 | 실행 | 입력 | 기대 결과 | 매핑 PROC |
+|--|--|--|--|--|
+| 1 | SCR-003 동의 항목 행에 약관 컨텐츠(전체 약관 본문) 입력 후 저장 | consentItems[0].termsContent="본 약관은 …(다행 본문)" | FE 변환·요청 DTO 에 termsContent 포함 | F1 |
+| 2 | POST/PUT /api/admin/configs | MDL-101(consentItems 약관 포함) | 200 저장 성공 | B2·B3 |
+
+- **데이터 검증**: `SELECT` ENT-002 해당 행 terms_content 저장 값 == 입력 본문(교체 편집 시에도 재삽입 유지). 다른 항목 terms_content 는 영향 없음.
+
+### ADM-01_016 약관 컨텐츠 미입력 허용(선택)
+- **유형/우선순위/자동화**: Positive(경계) · 보통 · 자동 | **PROC/분기**: PROC-101 / BIZ-001-06(선택·비차단)
+- **정책 근거**: 약관 컨텐츠는 선택 입력이며 미입력을 허용한다(기본안, EXC-BIZ-07 담당자 확인).
+
+| 단계 | 실행 | 입력 | 기대 결과 | 매핑 PROC |
+|--|--|--|--|--|
+| 1 | POST /configs | consentItems[0].termsContent 미입력(공란/null) | 200 저장 성공(차단 없음) | B2·B3 |
+
+- **데이터 검증**: ENT-002.terms_content NULL 저장. 동의 항목 자체 검증(BIZ-001-04, 1개 이상)은 별개로 통과. USR-01 에서 해당 항목 [상세] 미노출(BIZ-002-05, tc_USR-01_020).

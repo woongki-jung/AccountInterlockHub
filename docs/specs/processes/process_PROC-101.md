@@ -84,7 +84,8 @@ F1. 저장 제출 트리거 → FE 검증 → 요청 DTO 변환   (SCR-003)
       serviceAEntryUrl: trim(...), serviceBDeliveryUrl: trim(...),
       serviceBHttpMethod: form.serviceBHttpMethod, isActive: form.isActive,
       consentItems: form.consentItems.map((c,i)=>({ label:trim(c.label),
-        description:c.description||null, required:!!c.required, order:i })),
+        description:c.description||null, termsContent:c.termsContent||null,   // 약관 컨텐츠(선택)
+        required:!!c.required, order:i })),
       parameters: form.parameters.map((p,i)=>({ name:trim(p.name),
         sourceKeyA:trim(p.sourceKeyA), deliverToB:p.deliverToB!==false,
         required:!!p.required, order:i }))
@@ -149,8 +150,8 @@ B3. 트랜잭션 영속화   (부모+자식 원자적)
       DELETE FROM TBL_INTERLOCK_PARAMETER    WHERE config_id=:configId;
     for (c in consentItems):
       INSERT INTO TBL_INTERLOCK_CONSENT_ITEM
-        (id, config_id, item_label, item_description, is_required, display_order)
-      VALUES (NEWID, :configId, :c.label, :c.description, :c.required, :c.order);
+        (id, config_id, item_label, item_description, terms_content, is_required, display_order)
+      VALUES (NEWID, :configId, :c.label, :c.description, :c.termsContent, :c.required, :c.order);
     for (p in parameters):
       INSERT INTO TBL_INTERLOCK_PARAMETER
         (id, config_id, param_name, source_key_a, deliver_to_b, is_required, display_order)
@@ -220,3 +221,4 @@ B4. 커밋 후 감사 → 응답 변환
 - 부모·자식은 반드시 하나의 트랜잭션에서 처리하고, 편집은 자식 전량 교체(delete-and-reinsert) 또는 증분 갱신 중 build 택일하되 부모 updated_at/by 를 함께 갱신한다.
 - config_code 는 편집 시 변경을 막아 고유성·참조 안정성을 지킨다. 고유성은 저장 직전 조회 + 필터 유니크 이중 방어로 확인한다.
 - 모든 검증은 FE 에 의존하지 않고 FN-005·FN-006 로 서버 재수행한다. DB 접근은 파라미터 바인딩만 사용한다(SEC-004-02).
+- 동의 항목의 약관 컨텐츠(terms_content)는 선택 입력이라 미입력(NULL)을 허용하고 필수·형식 차단을 두지 않는다(BIZ-001-06). 부모 구성·다른 자식과 같은 트랜잭션에서 영속화하며 편집 교체 시에도 함께 재삽입한다.

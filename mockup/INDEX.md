@@ -43,9 +43,9 @@
 |-----|------|--------------------------|---------------|
 | SCR-001 | 관리자 로그인 | Initial · Loading · 세션만료 안내 · 인증실패(401) · 계정잠금(423) · IP차단(403) | Card · TextField · Banner · Button(primary) |
 | SCR-002 | 연동 구성 목록 | Initial(Skeleton) · Loaded · Empty · Error | AdminNav · Table · Badge · Toggle · Modal(삭제) · Toast · EmptyState |
-| SCR-003 | 등록·편집 폼 | 폼 · 편집 로드(Skeleton) · Submitting / 오류: 검증(422)·중복(409)·형식(400·413) · 모드: 등록/편집 | TextField · Select · Toggle · RepeatableRows(파라미터·동의) · Banner(개인정보 경고) · Toast |
-| SCR-004 | 연동 구성 상세 | Initial(Skeleton) · Loaded · 대상 없음 · Error | Card · Badge · Toggle · Table(파라미터·동의) · Modal(삭제) · Toast |
-| SCR-005 | 사용자 이용 동의 | Initial(Skeleton) · Loaded · Submitting · 키/컨텍스트 오류(400) · 요청제한(429) | Card · Checkbox 목록 · Button(primary/secondary) · Banner |
+| SCR-003 | 등록·편집 폼 | 폼 · 편집 로드(Skeleton) · Submitting / 오류: 검증(422)·중복(409)·형식(400·413) · 모드: 등록/편집 | TextField · Select · Toggle · RepeatableRows(파라미터·동의: 라벨·설명·약관 컨텐츠 textarea·필수) · Banner(개인정보 경고) · Toast |
+| SCR-004 | 연동 구성 상세 | Initial(Skeleton) · Loaded · 대상 없음 · Error | Card · Badge · Toggle · Table(파라미터·동의: 약관 유무 열) · Modal(삭제·약관 열람) · Toast |
+| SCR-005 | 사용자 이용 동의 | Initial(Skeleton) · Loaded · Submitting · 키/컨텍스트 오류(400) · 요청제한(429) | Card · Checkbox 목록([상세] 버튼) · Button(primary/secondary) · Modal(약관 상세: [동의]/[닫기]) · Banner |
 | SCR-006 | 동의 결과 | 동의완료(success) · 거부종료(info) · 전달실패(502) · Fallback(직접 진입) | Card · Badge · Banner |
 
 ## 반영한 디자인

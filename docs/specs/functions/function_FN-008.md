@@ -18,7 +18,7 @@
 | 분류 | POL |
 | 사용 서비스 | SVC-004 |
 | 호출 PROC | PROC-201(화면 구성), PROC-202(동의/거부) |
-| 연관 정책 | [BIZ-002](../policies/policy_BIZ.md#biz-002-사용자-동의-처리)(01·02·03·04) |
+| 연관 정책 | [BIZ-002](../policies/policy_BIZ.md#biz-002-사용자-동의-처리)(01·02·03·04·05) |
 | 참조 데이터 | [ENT-002](../datas/data_ENT-002.md) 동의 항목, [MDL-203](../datas/model_user.md) 동의 결과, [MDL-301](../datas/model_api.md) 처리 상태 |
 | 관련 IA 항목 | USR-01 |
 
@@ -54,10 +54,10 @@ function FN-008_processDecision (
    if (ctx is null)                              → throw InvalidKeyFormatError (400, EX-DATA-002)
 2. config = SELECT id FROM TBL_INTERLOCK_CONFIG
             WHERE config_code = :ctx.configCode AND is_active = 1 AND deleted_at IS NULL;
-3. items = SELECT item_label, item_description, is_required, display_order
+3. items = SELECT item_label, item_description, terms_content, is_required, display_order
            FROM TBL_INTERLOCK_CONSENT_ITEM
-           WHERE config_id = :config.id ORDER BY display_order;   // 구성 외 노출 금지
-4. return items
+           WHERE config_id = :config.id ORDER BY display_order;   // 구성 외 노출 금지, 약관 컨텐츠 포함
+4. return items          // ConsentItem[] = {label, description?, termsContent?, required, order}
 
 동의/거부 — processDecision, POL BIZ-002-02/03/04 (validate·transform)
 1. ctx = entryContextStore.get(decision.requestKey)
@@ -114,4 +114,5 @@ function FN-008_processDecision (
 ### 구현 가이드
 
 - 동의 화면은 구성에 설정된 동의 항목만 노출한다(구성 외 노출 금지). 결과 검증은 서버가 진입 컨텍스트의 구성 매칭 근거로 수행한다.
+- 동의 항목 조회 응답에 각 항목의 약관 컨텐츠(terms_content)를 포함해 내려보낸다(BIZ-002-05). 값이 있는 항목만 화면(SCR-005)이 [상세] 버튼·약관 모달을 렌더하며, 모달의 [동의]/[닫기] 는 클라이언트 상태 조작으로 별도 서버 호출을 만들지 않는다(EXC-BIZ-08).
 - 거부는 오류가 아닌 200 정상 종료로 처리하고 상태 1건(실패·미전달)을 남긴다. 처리 완료 후 진입 컨텍스트(회원 키 포함)를 메모리에서 폐기한다(무저장).
