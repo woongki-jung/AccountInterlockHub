@@ -80,6 +80,6 @@
 
 ### 구현 가이드
 
-- id 는 uuid PK(기본값 gen_random_uuid())로 둔다. PostgreSQL 은 힙 저장이므로 랜덤 UUID PK 의 물리 배치·인덱스 지역성 튜닝은 build 에서 확정한다. config_code UNIQUE 는 부분 인덱스(partial index)로 소프트 삭제와 양립시킨다.
+- id 는 uuid PK(기본값 gen_random_uuid())로 확정한다 — 본 엔터티는 소규모 마스터(구성 수십~수백 건 규모)라 랜덤 UUID PK 의 B-tree 삽입 분산 영향이 무시 가능해 추가 물리 튜닝(fillfactor·파티셔닝 등)을 두지 않는다(공통 근거 [`spec-datas.md`](spec-datas.md) §PostgreSQL 물리 설계·운영 전제). config_code UNIQUE 는 부분 인덱스(partial index)로 소프트 삭제와 양립시킨다.
 - URL·필수·고유성 검증은 화면에 의존하지 않고 서버단(PROC-101)에서 재수행한다. 자식(ENT-002·ENT-003)은 부모 구성과 동일 트랜잭션에서 등록·편집한다.
 - 편집 시 자식 항목은 전량 교체(delete-and-reinsert) 또는 증분 갱신 중 build 단계에서 택일하되, 부모 updated_at/by 를 함께 갱신한다.

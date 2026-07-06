@@ -47,7 +47,7 @@
 
 | 인덱스명 | 대상 컬럼 | 유형 | 카디널리티 추정 | 조회 패턴 (인용 PROC) |
 |----------|-----------|------|-----------------|----------------------|
-| PK_PROCESS_STATUS | request_key | PK·UNIQUE(b-tree) | 높음 | PROC-301 상태 조회·갱신(WHERE request_key=?), PROC-401 INSERT 중복 방지 |
+| PK_PROCESS_STATUS | request_key | PK(b-tree) | 높음 | PROC-301 상태 조회·갱신(WHERE request_key=?), PROC-401 INSERT 중복 방지 |
 | IX_STATUS_RETENTION_PENDING | processed_at | BTREE(부분: WHERE is_result_confirmed = false) | 중간 | PROC-402 미완료 삭제 대상 선정(WHERE is_result_confirmed=false AND processed_at < 기준, DATA-004-02) |
 | IX_STATUS_RETENTION_CONFIRMED | result_confirmed_at | BTREE(부분: WHERE is_result_confirmed = true) | 중간 | PROC-402 완료 삭제 대상 선정(WHERE is_result_confirmed=true AND result_confirmed_at < 기준, DATA-004-01) |
 
@@ -72,6 +72,9 @@
 
 ### 구현 가이드
 
-- request_key 는 랜덤 UUID v4 이므로 PK 를 b-tree 로 둔다. PostgreSQL 은 힙 저장이므로 배치 범위 삭제(PROC-402)의 지역성은 processed_at·result_confirmed_at 부분 인덱스로 뒷받침한다. 추가 물리 배치(대량 삭제용 파티셔닝 등)는 build 에서 확정한다.
-- 배치 삭제는 완료·미완료 두 조건을 한 트랜잭션 흐름에서 처리하고 멱등하게 설계한다(OPS-003-02). 삭제된 요청 키값 조회는 PROC-301 에서 404 EX-DATA-003 으로 응답(EXC-DATA-04).
-- **주의**: config_id·created_at 은 후행 정책(DATA-003-01)의 명시 4항목 목록에는 없으나 무저장 원칙 위배가 아닌 비개인 운영 컬럼이다. spec 교차검증에서 DATA-003 명시 항목을 config 참조·생성 감사 포함으로 리비전 정합할 것(§담당자 확정 대기 연계).
+- **PK 전략(확정)**: request_key 는 UUID v4 를 유지한다 — 시간순 UUID(uuidv7 등) 미채택. 예측 불가성이 불투명 키의 보안 속성이며(DATA-002), PostgreSQL 16 은 네이티브 uuidv7() 이 없다. 랜덤 키의 B-tree 삽입 분산(페이지 분할·점유율 저하)은 사실이나 90일 하드 삭제(DATA-004)로 테이블·인덱스 크기가 유계라 수용한다 — 공통 근거는 [`spec-datas.md`](spec-datas.md) §PostgreSQL 물리 설계·운영 전제.
+- **시간 파티셔닝 미채택(확정)**: ① PostgreSQL 파티션 테이블은 PK/UNIQUE 에 파티션 키 포함을 강제해 request_key 단독 전역 유니크(PROC-401 중복 방지·API-01 단건 조회 계약)를 DB 레벨로 강제할 수 없게 되고, ② 삭제 자격이 두 시각 컬럼(완료=result_confirmed_at, 미완료=processed_at)에 분산돼 단일 range 키로 표현할 수 없으며, ③ 일 배치의 1회 삭제량은 하루치 만료분으로 유계라 DELETE 로 충분하다. 일 삭제 대상이 수십만 행을 상시 초과하면 파티셔닝을 재평가한다(재검토 트리거).
+- **청크 DELETE + autovacuum(확정)**: PROC-402 는 두 부분 인덱스로 대상을 선정하고 청크 단위 반복 삭제(예: `DELETE ... WHERE ctid IN (SELECT ctid ... LIMIT n)`, 청크 기본 5,000행)로 단일 트랜잭션 크기·잠금을 상한한다. dead tuple 회수는 autovacuum 위임 — 본 테이블은 스토리지 파라미터 `autovacuum_vacuum_scale_factor = 0.05`(기본안)로 하향해 삭제·갱신 후 회수를 앞당긴다.
+- **fillfactor 미채택(확정)**: 행당 1회 갱신(PROC-301 결과 확인)이 있으나 갱신 컬럼(is_result_confirmed·result_confirmed_at)이 두 부분 인덱스의 키·술어에 걸려 HOT 갱신이 성립하지 않는다 — fillfactor 하향의 실익이 없어 기본값(100)을 유지한다.
+- 배치 삭제는 완료·미완료 두 조건을 한 배치 실행 흐름에서 처리하고 청크 단위 커밋으로 멱등하게 설계한다(OPS-003-02) — 중단·재실행 시 잔여 대상만 다시 삭제된다. 삭제된 요청 키값 조회는 PROC-301 에서 404 EX-DATA-003 으로 응답(EXC-DATA-04).
+- config_id·created_at 은 DATA-003-01 명시 4항목 외의 비개인 운영 컬럼으로, [`policy_DATA.md`](../policies/policy_DATA.md) **EXC-DATA-06** 이 저장을 명시 허용한다(무저장 원칙 위배 아님 — 리비전 정합 반영 완료).

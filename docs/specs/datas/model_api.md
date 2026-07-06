@@ -34,7 +34,7 @@
 | processedAt | string(ISO8601) | Y | - | - | - | 처리 일시 |
 | resultConfirmedAt | string(ISO8601) \| null | N | null | 확인 여부와 정합(CHECK) | - | 결과 확인 일시 |
 
-> 회원 키·개인식별 속성은 두지 않는다(DATA-001-02·DATA-003-01). configId 는 비개인 운영 참조다(§spec-datas.md 담당자 확정 대기 — DATA-003 명시 항목 리비전 연계).
+> 회원 키·개인식별 속성은 두지 않는다(DATA-001-02·DATA-003-01). configId 는 비개인 운영 참조로, [`policy_DATA.md`](../policies/policy_DATA.md) **EXC-DATA-06** 이 비개인 운영 컬럼(config_id·created_at) 저장을 명시 허용한다(정합 반영 완료).
 
 ### 엔터티 매핑
 

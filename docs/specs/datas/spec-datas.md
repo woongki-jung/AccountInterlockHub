@@ -56,7 +56,7 @@
 | IX_CONFIG_LIST | ENT-001 | is_active, created_at DESC (부분) | BTREE | 낮음~중간 | PROC-102 목록·필터·정렬 |
 | IX_CONSENT_CONFIG | ENT-002 | config_id, display_order | BTREE | 중간 | PROC-201 동의 화면·PROC-101·102 |
 | IX_PARAM_CONFIG | ENT-003 | config_id, display_order | BTREE | 중간 | PROC-201·PROC-203·PROC-101·102 |
-| PK_PROCESS_STATUS | ENT-004 | request_key | UNIQUE(b-tree) | 높음 | PROC-301 조회·갱신·PROC-401 |
+| PK_PROCESS_STATUS | ENT-004 | request_key | PK(b-tree) | 높음 | PROC-301 조회·갱신·PROC-401 |
 | IX_STATUS_RETENTION_PENDING | ENT-004 | processed_at (부분 미확인) | BTREE | 중간 | PROC-402 미완료 삭제(DATA-004-02) |
 | IX_STATUS_RETENTION_CONFIRMED | ENT-004 | result_confirmed_at (부분 확인) | BTREE | 중간 | PROC-402 완료 삭제(DATA-004-01) |
 | UQ_ADMIN_USERNAME | ENT-005 | username | UNIQUE | 높음 | PROC-103 로그인 조회 |
@@ -64,6 +64,17 @@
 
 - **인덱스 신설 기준 준수**: 모든 신설 인덱스는 조건절·정렬·조인·유니크에 쓰는 PROC 가 1개 이상 실재한다. ENT-004.config_id·ENT-006 시각/유형 인덱스는 사용 PROC 0건이라 신설하지 않고 후속 PROC 확정 시 도입한다.
 - **부분 인덱스 활용**: 소프트 삭제(ENT-001)·상태 분기(ENT-004)는 PostgreSQL 부분 인덱스(partial index, WHERE 절)로 선택도·크기를 최적화한다.
+- **커버링(INCLUDE) 미채택**: ENT-004 는 PK 단건 조회 직후 갱신이 따르는 고변경 패턴(PROC-301)이라 가시성 맵이 자주 무효화돼 index-only scan 의 실익이 없다 — INCLUDE 컬럼을 두지 않는다.
+- **BRIN 미채택(현행)**: 현행 조회 패턴은 등가·부분 범위 조회라 부분 B-tree 가 적합하다. BRIN 은 ENT-006 보존 삭제 도입 시의 후보로만 남긴다([`data_ENT-006.md`](data_ENT-006.md) §구현 가이드).
+
+## PostgreSQL 물리 설계·운영 전제
+
+spec 수준에서 확정하는 물리 설계 결정과 운영 전제다. 엔터티별 상세(수치·삭제 설계)는 각 ENT 문서 §구현 가이드가 갖는다.
+
+- **힙 저장 전제**: PostgreSQL 테이블은 힙 저장이며 클러스터드 인덱스가 없다 — 물리 저장 순서를 설계 근거로 삼지 않고, 순서 보장은 인덱스와 ORDER BY 로만 확보한다.
+- **UUID v4 PK 유지(확정)**: 불투명 키(DATA-002)의 예측 불가성은 보안 속성이라 시간순 UUID(uuidv7 등)로 바꾸지 않는다 — 타임스탬프 노출·랜덤 비트 축소에 더해 정책(DATA-002)·API 계약·TC(UUID v4 형식 검증) 연쇄 변경을 유발하며, PostgreSQL 16 은 네이티브 uuidv7() 미지원(Azure Database for PostgreSQL 확장 제약 포함). 랜덤 삽입 분산(페이지 분할·점유율 저하)은 ENT-004 가 90일 하드 삭제로 크기 유계, 그 외 uuid PK 엔터티(ENT-001·002·003·005)는 소규모 마스터라 수용한다. B-tree deduplication(PG13+)이 갱신에 따른 버전 팽창을 완화한다.
+- **대량 삭제·autovacuum**: ENT-004 보존 삭제는 시간 파티셔닝 없이 청크 DELETE 로 확정한다(배제 근거·청크 수치·재검토 트리거는 [`data_ENT-004.md`](data_ENT-004.md) §구현 가이드). dead tuple 회수는 autovacuum 위임 — 고변경 테이블(ENT-004)만 테이블 단위 스토리지 파라미터를 하향 조정하고 나머지는 전역 기본값을 쓴다.
+- **통계 관리**: ANALYZE 는 autovacuum(autoanalyze)에 위임하고 수동 ANALYZE 를 상시 운영 절차로 두지 않는다. 배치 대량 삭제 직후 플랜 열화가 관측될 때에 한해 대상 테이블 ANALYZE 를 운영 수단으로 사용한다.
 
 ## ENT ↔ MDL 매핑 요약
 
@@ -80,8 +91,7 @@
 
 ## 담당자 확정 대기·보류
 
-- **DATA-003 명시 항목 정합(리비전 제안)**: ENT-004 는 정책 지침에 따라 config_id(구성 참조)·created_at(생성 감사)를 포함한다. DATA-003-01 의 명시 저장 항목 목록은 4항목+요청 키값만 열거하므로, 교차검증 시 "비개인 운영 컬럼(구성 참조·생성 감사) 포함"으로 리비전 정합이 필요하다(무저장 원칙 위배 아님).
-- **감사 로그 보존 삭제 수단(OPS-002-03)**: 1년 보존 초과분 삭제 배치·PROC 는 MVP 미정의. 도입 시 ENT-006 에 시각 인덱스·삭제 PROC 를 함께 채번한다.
+- **감사 로그 보존 삭제 수단(OPS-002-03)**: 1년 보존 초과분 삭제 배치·PROC 는 MVP 미정의. 도입 시 spec 리비전으로 삭제 PROC·시각 인덱스를 함께 채번한다 — 물리 방향(occurred_at BRIN 또는 월별 range 파티셔닝)은 확정([`data_ENT-006.md`](data_ENT-006.md) §구현 가이드).
 - **관리자 계정 프로비저닝**: ENT-005 INSERT 는 운영 수동 절차로, 별도 화면·PROC 미정의(SVC-003·Q1). 계정 관리 기능 확정 시 CRUD PROC 채번.
 - **활성/비활성 상태 모델(ENT-001.is_active)**: 기본 활성 여부·전환 규칙은 담당자 확정 대기(SVC-002).
 - **기본안 수치(정책 연계)**: 보관 90일(DATA-004)·잠금 임계치(AUTH-003)·해시 알고리즘·본문 상한(SEC-004) 등은 정책 기본안을 따르며 확정 시 관련 컬럼·CHECK 를 리비전한다.

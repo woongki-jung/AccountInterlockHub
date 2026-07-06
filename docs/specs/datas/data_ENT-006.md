@@ -17,7 +17,7 @@
 | 물리 테이블명 | TBL_AUDIT_LOG |
 | 분류 | 이력(append-only) |
 | 관련 서비스 | 전 SVC(공통) |
-| 보존 정책 | 최소 1년 보존(OPS-002-03, 기본안). 무저장 원칙 대상 아님(개인정보 미포함). 보존 삭제 수단은 build/운영 확정 |
+| 보존 정책 | 최소 1년 보존(OPS-002-03, 기본안). 무저장 원칙 대상 아님(개인정보 미포함). 보존 삭제 수단은 MVP 미정의 — 도입 시 spec 리비전으로 채번 |
 | 개인정보 여부 | 비해당 (회원 키·개인정보 배제·마스킹 — OPS-002-02·SEC-005) |
 | CRUD 수행 PROC | C: PROC-101·PROC-103·PROC-104·PROC-105·PROC-106·PROC-203·PROC-301·PROC-402 / R·U·D: MVP 미정의(append-only, 읽기·보존 삭제 PROC 후속) |
 | 관련 IA 항목 | 공통 |
@@ -57,7 +57,7 @@
 
 - **생성 조건**: 각 PROC 의 "커밋 후 감사 로그"·"차단 후 감사 로그"·"인증 실패 감사 로그"·"배치 종료 감사 로그" 단계에서 INSERT — PROC-101(구성 변경), PROC-103(로그인·잠금), PROC-104(IP 차단), PROC-105(활성 전환), PROC-106(삭제), PROC-203(전달 실패), PROC-301(API 인증 실패), PROC-402(배치 실행)(OPS-002-01).
 - **수정 조건**: 없음(append-only, 불변 기록).
-- **삭제/보관 조건**: 최소 1년 보존(OPS-002-03). MVP 는 자동 삭제 배치를 정의하지 않으며(처리 상태 배치 PROC-402 와 별개), 보존 초과분 삭제 수단은 build/운영에서 확정한다(§담당자 확정 대기).
+- **삭제/보관 조건**: 최소 1년 보존(OPS-002-03). MVP 는 자동 삭제 배치를 정의하지 않으며(처리 상태 배치 PROC-402 와 별개), 도입 시 spec 리비전으로 삭제 배치·PROC 를 채번한다(방향은 §구현 가이드, 대기 관리는 [`spec-datas.md`](spec-datas.md) §담당자 확정 대기).
 
 ### 연관 정책 (policy)
 
@@ -72,4 +72,5 @@
 ### 구현 가이드
 
 - 감사 로그는 애플리케이션 로그와 분리 가능한 채널로 남기고, 기록 직전 SEC-005 마스킹을 일괄 적용한다. event_type·actor_type·result 코드값은 애플리케이션 상수로 통일한다.
-- append-only 특성상 id 를 bigint 식별자(GENERATED ALWAYS AS IDENTITY) PK 로 두어 삽입 순서를 보장한다. PostgreSQL 힙은 append 삽입이라 별도 클러스터드 인덱스 없이 시간 순서가 유지된다. 대량 기록 환경에서는 파티셔닝·아카이브를 build 단계에서 검토한다.
+- id 는 bigint GENERATED ALWAYS AS IDENTITY PK — 단조 증가 키라 B-tree 최우측 append 삽입으로 PostgreSQL 에 이미 최적인 패턴이다. 힙의 물리 저장 순서는 보장 대상이 아니므로 시간 순 조회가 필요하면 ORDER BY id(또는 occurred_at)로 논리적으로 보장한다.
+- 보존 삭제(OPS-002-03) 도입 시 1순위 후보는 **occurred_at BRIN 인덱스 또는 월별 range 파티셔닝**이다(spec 방향 확정) — append-only 라 occurred_at 과 물리 저장 순서의 상관도가 1에 가까워 BRIN 이 최소 비용으로 유효하다. 사용 PROC 확정 전에는 어떤 인덱스도 신설하지 않는다(사용 PROC 0건 금지 규칙 유지).

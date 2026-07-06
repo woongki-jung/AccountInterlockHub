@@ -48,13 +48,20 @@ function FN-011_runRetentionBatch (
                        detail:'retention start' })
 
 2. 삭제 대상 선정·삭제 — DATA-004-01/02/03·OPS-003-02 (validate·transform, BR-401)
-   // 완료 건: 결과 확인 일시 + 90일 경과
-   deletedConfirmed = DELETE FROM TBL_INTERLOCK_PROCESS_STATUS
-       WHERE is_result_confirmed = true AND result_confirmed_at < :threshold;   // 하드 삭제
-   // 미완료 건: 처리 일시 + 90일 경과(무기한 누적 방지)
-   deletedPending = DELETE FROM TBL_INTERLOCK_PROCESS_STATUS
-       WHERE is_result_confirmed = false AND processed_at < :threshold;
-   // 두 갈래를 한 배치 흐름에서 처리, 조건절 자체가 멱등(재실행 시 이미 삭제분 미해당)
+   // 완료 건: 결과 확인 일시 + 90일 경과 — 부분 인덱스 IX_STATUS_RETENTION_CONFIRMED 로 선정
+   deletedConfirmed = 0
+   repeat                                      // 청크 DELETE — 청크마다 트랜잭션 커밋(ENT-004 확정)
+     n = DELETE FROM TBL_INTERLOCK_PROCESS_STATUS
+         WHERE ctid IN (SELECT ctid FROM TBL_INTERLOCK_PROCESS_STATUS
+                        WHERE is_result_confirmed = true AND result_confirmed_at < :threshold
+                        LIMIT :chunkSize);      // 하드 삭제, chunkSize 내부 상수(기본 5,000행, ENT-004)
+     COMMIT; deletedConfirmed += n
+   until n = 0
+   // 미완료 건: 처리 일시 + 90일 경과(무기한 누적 방지) — IX_STATUS_RETENTION_PENDING 활용
+   deletedPending = 동일 청크 루프
+       (WHERE is_result_confirmed = false AND processed_at < :threshold)
+   // 두 갈래를 한 배치 실행 흐름에서 처리. 조건절이 곧 멱등 가드 + 청크 단위 커밋 —
+   // 중단·재실행 시 이미 커밋된 삭제분은 미해당, 잔여 대상만 다시 삭제(OPS-003-02)
 
 3. 결과 집계 — OPS-003-03 (audit)
    result = { targetCount: deletedConfirmed + deletedPending,
@@ -67,7 +74,7 @@ function FN-011_runRetentionBatch (
    return result   // 상태 테이블 미저장, 감사 로그로만 기록
 ```
 
-> 삭제는 하드 삭제로 수행하고 소프트 삭제(보관 플래그)를 사용하지 않는다(DATA-004-03). 실패 시 트랜잭션 롤백 후 다음 주기 재시도로 흡수한다(OPS-003-03). 삭제된 요청 키값 조회는 FN-009 에서 404(EX-DATA-003)로 응답한다(정합).
+> 삭제는 하드 삭제로 수행하고 소프트 삭제(보관 플래그)를 사용하지 않는다(DATA-004-03). 실패 시 진행 중 청크만 롤백되고 이미 커밋된 청크의 삭제는 유지된다 — 잔여 대상은 다음 주기 재시도로 흡수한다(OPS-003-03). 삭제된 요청 키값 조회는 FN-009 에서 404(EX-DATA-003)로 응답한다(정합).
 
 ### API 인터페이스
 
@@ -77,7 +84,7 @@ function FN-011_runRetentionBatch (
 
 | HTTP status | EX 코드 | 발생 조건 | 사용자 메시지 | 개발자 노트 |
 |-------------|---------|-----------|---------------|-------------|
-| (내부) | - | 삭제 트랜잭션 오류·중단 | (사용자 미노출) | 롤백 후 다음 주기 재시도(OPS-003-03), 실패 감사 |
+| (내부) | - | 삭제 트랜잭션 오류·중단 | (사용자 미노출) | 진행 청크만 롤백(커밋 청크 유지), 잔여분은 다음 주기 재시도(OPS-003-03), 실패 감사 |
 
 ### 의존 기능
 
@@ -87,5 +94,5 @@ function FN-011_runRetentionBatch (
 
 ### 구현 가이드
 
-- 삭제 대상 선정은 완료·미완료 두 갈래를 모두 포함하고 한 트랜잭션 흐름에서 처리한다. 조건절이 곧 멱등 가드이므로 재실행 시 중복 삭제가 발생하지 않는다(OPS-003-02).
-- 완료/미완료 부분 인덱스(IX_STATUS_RETENTION_CONFIRMED·PENDING)를 활용해 범위 삭제 지역성을 높인다([ENT-004](../datas/data_ENT-004.md)). 배치 결과는 별도 상태 테이블에 저장하지 않고 감사 로그 detail 로만 남긴다.
+- 삭제는 완료·미완료 두 갈래를 한 배치 실행 흐름에서 처리하되, 청크 단위 반복 삭제(`ctid IN ... LIMIT`)와 청크마다 커밋으로 단일 트랜잭션 크기·잠금을 상한한다 — 청크 수치(기본 5,000행)·패턴·근거는 [ENT-004](../datas/data_ENT-004.md) §구현 가이드 확정을 따른다. 조건절이 곧 멱등 가드이므로 중단·재실행 시 이미 커밋된 삭제분은 미해당하고 잔여 대상만 다시 삭제된다(OPS-003-02).
+- 삭제 대상 선정은 완료/미완료 부분 인덱스(IX_STATUS_RETENTION_CONFIRMED·PENDING)로 수행한다. PostgreSQL 힙에는 클러스터드 인덱스가 없어 물리 저장 지역성을 삭제 성능 근거로 삼지 않으며, 삭제 후 공간 회수는 autovacuum 에 위임한다(테이블 단위 scale_factor 하향 — [ENT-004](../datas/data_ENT-004.md)). 배치 결과는 별도 상태 테이블에 저장하지 않고 감사 로그 detail 로만 남긴다.
