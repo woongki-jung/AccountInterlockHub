@@ -50,6 +50,7 @@ docker exec -e SECRET_KEY_BASE_DUMMY=1 redmine bin/rails runner /tmp/<script>.rb
 - **생성**: 정확한 트래커·상태 제어가 필요하므로 `redmine_request` POST `/issues.json` 본문 `{"issue":{"project_id","tracker_id","status_id","assigned_to_id","category_id","fixed_version_id","parent_issue_id"(하위 이슈),"description",...}}` 를 쓴다(MCP `create_issue` 는 트래커·상태를 무시 — §도구 함정).
 - **연관 추가**: POST `/issues/<id>/relations.json` `{"relation":{"issue_to_id":<대상 이슈>,"relation_type":"relates"}}` — build·qa 일감 → 참조 `사양` 일감.
 - **노트·상태·담당자 변경**: MCP `update_issue`(`notes`·`status_id`·`assigned_to_id`) 또는 `redmine_request` PUT `/issues/<id>.json`.
+- **첨부(업로드·삭제)**: 2단계 REST — ① `POST /uploads.json?filename=<이름>`(Content-Type `application/octet-stream`, 파일 바이너리 본문) → 반환 `token`, ② `PUT /issues/<id>.json` 본문 `{"issue":{"uploads":[{"token":<토큰>,"filename":<이름>,"content_type":<MIME>}]}}`. 기존 첨부 삭제는 `DELETE /attachments/<id>.json`. MCP `redmine_request` 는 JSON 본문만 보내므로 바이너리 업로드는 REST(curl 등) 직접 호출로 수행한다.
 
 ## 저장 쿼리 (보드 뷰)
 
