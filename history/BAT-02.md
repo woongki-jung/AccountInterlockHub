@@ -4,6 +4,7 @@
 
 | 일시 (KST) | 단계 | 산출물·결과 | 관련 일감 | 상태 |
 |---|---|---|---|---|
+| 2026-07-07 06:20 | spec | 보관 배치 확대 — DATA-006 신설(연동이력 90일 삭제, 기산점 W4 확정: 콜백 수신 건=수신 일시·미수신 건=연동 요청 일시)·OPS-003 개정(적용 범위 처리상태+연동이력, 정책명 '보관 배치 실행') | `accountinterlockhub#25` | 🚧 |
 | 2026-07-06 22:01 | spec ⓒ | (공통 반영) PostgreSQL 최적화 재정의 — common.md | `accountinterlockhub#24` | ℹ️ |
 | 2026-07-06 17:10 | spec ⓒ | (공통 반영) DB 표기 PostgreSQL 정합화 — common.md | `accountinterlockhub#24` | ℹ️ |
 | 2026-07-06 03:20 | spec | DATA-004·OPS-003·SVC-007·FN-011·PROC-402·TC BAT-02 | `accountinterlockhub#24` | 🚧 |

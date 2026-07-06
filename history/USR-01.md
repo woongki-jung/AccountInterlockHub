@@ -4,6 +4,8 @@
 
 | 일시 (KST) | 단계 | 산출물·결과 | 관련 일감 | 상태 |
 |---|---|---|---|---|
+| 2026-07-07 06:20 | spec | 진입 시 연동이력 기록 개시 — BIZ-004-01(지정 구성 진입 시 이력 1건 생성: 키값·구성·요청 키값·요청 일시)·BIZ-004-02(지정 파라미터 값 누락·공백 시 진입 거부 400 EX-BIZ-007, 기본안) | `accountinterlockhub#25` | 🚧 |
+| 2026-07-07 06:20 | spec ⓒ | (공통 반영) 키값 용어 정의(W3)·DATA-001-01 개정(연동이력 예외) — common.md | `accountinterlockhub#25` | ℹ️ |
 | 2026-07-06 17:10 | spec ⓒ | (공통 반영) DB 표기 PostgreSQL 정합화 — common.md | `accountinterlockhub#24` | ℹ️ |
 | 2026-07-06 04:05 | spec | 동의 약관 상세/모달 반영 — BIZ-002-05·ENT-002.terms_content·FN-008·SCR-005([상세]+약관모달)·PROC-201·TC USR-01(_018~020)·목업 SCR-005 | `accountinterlockhub#24` | 🚧 |
 | 2026-07-06 03:20 | spec | BIZ-002·DATA-002·SVC-004·FN-007/008·SCR-005·PROC-201/202·TC USR-01 | `accountinterlockhub#24` | 🚧 |

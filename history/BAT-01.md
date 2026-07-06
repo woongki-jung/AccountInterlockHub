@@ -4,6 +4,8 @@
 
 | 일시 (KST) | 단계 | 산출물·결과 | 관련 일감 | 상태 |
 |---|---|---|---|---|
+| 2026-07-07 06:20 | spec | 처리상태·연동이력 이중 추적 관계(W5) — BIZ-004-06(완료 콜백은 처리상태 4항목 불변경)·DATA-005-04(연동이력이 요청 키값 참조로 처리상태 건과 연결, 요청 1건당 이력 최대 1건) | `accountinterlockhub#25` | 🚧 |
+| 2026-07-07 06:20 | spec ⓒ | (공통 반영) 키값 용어 정의(W3)·DATA-001-01 개정(연동이력 예외) — common.md | `accountinterlockhub#25` | ℹ️ |
 | 2026-07-06 22:01 | spec ⓒ | (공통 반영) PostgreSQL 최적화 재정의 — common.md | `accountinterlockhub#24` | ℹ️ |
 | 2026-07-06 17:10 | spec ⓒ | (공통 반영) DB 표기 PostgreSQL 정합화 — common.md | `accountinterlockhub#24` | ℹ️ |
 | 2026-07-06 03:20 | spec | DATA-003·ENT-004·SVC-005·FN-009·PROC-401·TC BAT-01 | `accountinterlockhub#24` | 🚧 |
