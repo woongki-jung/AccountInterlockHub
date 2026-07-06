@@ -35,9 +35,10 @@
 | serviceBHttpMethod | enum('GET','POST','PUT','PATCH') | Y | 'POST' | 허용값 | - | 전달 방식 |
 | isActive | boolean | Y | true | - | - | 활성 여부 |
 | consentItems | ConsentItem[] | Y | - | 1개 이상(BIZ-001-04) | - | 동의 항목(label·description·termsContent·required·order) |
-| parameters | Parameter[] | Y | - | 정의 필수(BIZ-001-01) | - | 전달 파라미터(name·sourceKeyA·deliverToB·required·order) |
+| parameters | Parameter[] | Y | - | 정의 필수(BIZ-001-01). isUserKey=true 항목 최대 1개(BIZ-001-07) | - | 전달 파라미터(name·sourceKeyA·deliverToB·required·order·isUserKey) |
 
-> 중첩 ConsentItem = {label, description?, termsContent?, required, order}, Parameter = {name, sourceKeyA, deliverToB, required, order}. termsContent(전체 약관 본문)는 선택(BIZ-001-06) — 동의 화면은 값이 있는 항목에만 [상세] 모달을 노출한다(BIZ-002-05).
+> 중첩 ConsentItem = {label, description?, termsContent?, required, order}, Parameter = {name, sourceKeyA, deliverToB, required, order, isUserKey}. termsContent(전체 약관 본문)는 선택(BIZ-001-06) — 동의 화면은 값이 있는 항목에만 [상세] 모달을 노출한다(BIZ-002-05).
+> isUserKey(사용자 키값 파라미터 지정)는 선택 입력이다 — 전 항목 false(미지정)를 허용하고, true 는 구성당 최대 1개만 허용한다(BIZ-001-07). 항목에 붙는 플래그라 "실재하는 파라미터만 지정"이 구조적으로 보장된다. 지정 여부가 연동이력·완료 확인·완료 콜백 대상 여부를 결정한다(BIZ-004-05).
 
 ### 엔터티 매핑 (PROC 데이터 변환 흐름과 정합)
 
@@ -48,6 +49,7 @@
 | serviceBHttpMethod | ENT-001 | service_b_http_method | 도메인→ENT | 허용값 매핑 |
 | consentItems | ENT-002 | (행 N) | 도메인→ENT / ENT→도메인 | 부모 config_id 로 자식 교체·조회 |
 | parameters | ENT-003 | (행 N) | 도메인→ENT / ENT→도메인 | 부모 config_id 로 자식 교체·조회 |
+| parameters[].isUserKey | ENT-001 | user_key_param_id | 도메인→ENT / ENT→도메인 | isUserKey=true 항목의 저장 행 id 를 부모 user_key_param_id 로 설정(참조 저장 — 값 복제 금지). 조회 시 user_key_param_id 매칭 항목에 true 복원 |
 
 ### 사용처
 
@@ -61,6 +63,7 @@
 
 - 요청 DTO·응답 DTO·도메인 모델을 분리하되 속성 명명을 통일(camelCase)한다. 자식(consentItems·parameters)은 부모와 동일 트랜잭션에서 영속화한다.
 - 회원 키·처리 상태 필드를 본 모델에 두지 않는다(설정 데이터 전용).
+- isUserKey 지정의 영속화(자식 저장 → 부모 user_key_param_id 설정)는 동일 트랜잭션에서 수행한다 — 전량 교체 시 순서 제약은 [`data_ENT-001.md`](data_ENT-001.md) §구현 가이드. isUserKey=true 항목이 2개 이상이거나, 편집 제출에서 지정 항목이 삭제되고 지정 해제가 없으면 422 EX-BIZ-001 로 거부한다(BIZ-001-07).
 
 ---
 
