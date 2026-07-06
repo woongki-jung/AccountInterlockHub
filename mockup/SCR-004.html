@@ -16,7 +16,14 @@
 *{box-sizing:border-box}
 body{margin:0;font-family:system-ui,-apple-system,"Segoe UI",sans-serif;color:var(--text);background:var(--subtle);font-size:15px;line-height:22px}
 a{color:var(--primary);text-decoration:none}
-.mock-bar{position:sticky;top:0;z-index:50;display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding:8px 16px;background:#111827;color:#fff;font-size:13px}
+.mock-chrome{position:sticky;top:0;z-index:60}
+.mock-nav{display:flex;flex-wrap:wrap;align-items:center;gap:4px 6px;padding:7px 16px;background:#0B1220;border-bottom:1px solid #374151;font-size:13px}
+.mock-nav a{color:#D1D5DB;text-decoration:none;padding:3px 9px;border-radius:4px;border:1px solid transparent;line-height:18px}
+.mock-nav a:hover{background:#374151;color:#fff}
+.mock-nav a.mn-home{color:#fff;font-weight:600}
+.mock-nav a.current{background:#2563EB;border-color:#2563EB;color:#fff}
+.mock-nav .mn-grp{color:#6B7280;font-size:11px;letter-spacing:.04em;margin-left:8px;text-transform:uppercase}
+.mock-bar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding:8px 16px;background:#111827;color:#fff;font-size:13px}
 .mock-bar .lbl{color:#9CA3AF}
 .mock-bar button{background:#374151;color:#fff;border:1px solid #4B5563;border-radius:4px;padding:4px 10px;font-size:13px;cursor:pointer}
 .mock-bar button.active{background:var(--primary);border-color:var(--primary)}
@@ -96,6 +103,19 @@ body[data-state="loaded"] .head-actions,body[data-state="loaded"] .head-badge{di
 </head>
 <body data-state="loaded">
 
+<div class="mock-chrome">
+<nav class="mock-nav">
+  <a class="mn-home" href="index.html">🗂 목업 인덱스</a>
+  <span class="mn-grp">관리자</span>
+  <a href="SCR-001.html" data-scr>로그인</a>
+  <a href="SCR-002.html" data-scr>구성 목록</a>
+  <a href="SCR-003.html" data-scr>등록·편집</a>
+  <a href="SCR-004.html" data-scr>구성 상세</a>
+  <span class="mn-grp">사용자</span>
+  <a href="SCR-005.html" data-scr>이용 동의</a>
+  <a href="SCR-006.html" data-scr>동의 결과</a>
+</nav>
+<script>(function(){var f=(location.pathname.split('/').pop()||'index.html').toLowerCase();document.querySelectorAll('.mock-nav a[data-scr]').forEach(function(a){if(a.getAttribute('href').toLowerCase()===f)a.classList.add('current');});})();</script>
 <div class="mock-bar">
   <span class="lbl">상태 시연:</span>
   <button data-s="loaded" class="active" onclick="setState('loaded')">정상(Loaded)</button>
@@ -104,6 +124,7 @@ body[data-state="loaded"] .head-actions,body[data-state="loaded"] .head-badge{di
   <button data-s="error" onclick="setState('error')">Error</button>
   <span class="tag">SCR-004 · /admin/configs/:id</span>
 </div>
+</div><!-- /mock-chrome -->
 
 <div class="nav">
   <span class="logo">AccountInterlockHub</span>
