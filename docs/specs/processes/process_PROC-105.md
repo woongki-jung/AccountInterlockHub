@@ -92,11 +92,11 @@ B1. 진입 가드 → 인증 → 입력 검증   [BR-103]
   입력 검증: id UUID 형식·isActive boolean (위반 → 400 EX-SEC-004)
 
 B2. 대상 존재 확인·전환 (단건 트랜잭션)
-  BEGIN TRAN;
+  BEGIN;
     UPDATE TBL_INTERLOCK_CONFIG
-      SET is_active = :isActive, updated_at = SYSUTCDATETIME(), updated_by = :session.username
+      SET is_active = :isActive, updated_at = now(), updated_by = :session.username
     WHERE id = :id AND deleted_at IS NULL;
-    affected = @@ROWCOUNT;
+    affected = ROW_COUNT;
   COMMIT;
   if (affected == 0) → 200 { data: null } (대상 없음/이미 삭제, 오류 아님)
 
@@ -144,7 +144,7 @@ B3. 커밋 후 감사 → 응답
 
 - **정상 결과**: ENT-001 is_active 갱신, CONFIG_ACTIVATE/DEACTIVATE 감사 1건, { id, isActive } 응답. 활성 구성만 PROC-201·203 소비 대상.
 - **실패 결과**: EX-AUTH-001/002·EX-SEC-004·EX-FN-999 엔벨로프. 대상 없음은 200 data:null.
-- **후속 트리거**: 없음. 비활성 전환 시 이후 PROC-201 진입에서 해당 구성 조회 제외(is_active=1 조건).
+- **후속 트리거**: 없음. 비활성 전환 시 이후 PROC-201 진입에서 해당 구성 조회 제외(is_active=true 조건).
 
 ### 의존 프로세스
 

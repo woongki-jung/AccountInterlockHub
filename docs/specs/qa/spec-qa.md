@@ -30,7 +30,7 @@
 ## 2. 테스트 환경 요약
 
 - **애플리케이션**: 단일 App Service(NestJS TypeScript). NestJS 가 API + React(TS) 정적 빌드 서빙 + 스케줄 배치를 함께 제공한다. 실행 절차·환경변수는 [`../../prd/devspec/infra.md`](../../prd/devspec/infra.md) 원본 참조(민감값 미기재).
-- **DB**: MSSQL. 개발·로컬은 별도 MSSQL 서버. 초기화 = 마이그레이션(테이블·인덱스·CHECK) + 시드 스크립트(§3) 투입.
+- **DB**: PostgreSQL. 개발·로컬은 별도 PostgreSQL 서버. 초기화 = 마이그레이션(테이블·인덱스·CHECK) + 시드 스크립트(§3) 투입.
 - **외부 시스템 모킹**: 서비스 B 전달 대상은 목 엔드포인트(200 성공 / 5xx 실패 / 타임아웃)로 구성한다. 서비스 A 진입(`/interlock/entry`)은 목 클라이언트로 요청 키값 발급을 유발한다.
 - **관리자 IP 게이트**: 허용/차단 IP 쌍을 운영 구성값으로 주입해 통과·차단을 검증한다(dev 비활성 시에도 로그인 인증 유지).
 - **판정 전제**: 결과 판정 5종(🟢 Pass / 🔵 Pass-Mock / 🟣 Pass-Static / 🔴 Fail / 🟠 Block)은 [`../../strategies/qa-execution.md`](../../strategies/qa-execution.md) 정본을 따른다. 본 TC 사양은 그 기대값을 정의한다.
@@ -41,15 +41,15 @@ TC 가 요구하는 사전 데이터다. 시드 수단 4종: **SQL**(대량·상
 
 | 항목 | 최소 수량 | 저장 위치 | 시드 수단 | 확인 방법(재검증) | 비고(검증 TC) |
 |------|:--:|------|------|------|------|
-| 관리자 계정(활성) | 1 | TBL_ADMIN_ACCOUNT | SQL/운영 스크립트 | `SELECT username,is_active,failed_login_count,locked_until` → is_active=1·count=0·locked_until NULL | ADM-03_001 |
+| 관리자 계정(활성) | 1 | TBL_ADMIN_ACCOUNT | SQL/운영 스크립트 | `SELECT username,is_active,failed_login_count,locked_until` → is_active=true·count=0·locked_until NULL | ADM-03_001 |
 | 관리자 계정(잠금) | 1 | TBL_ADMIN_ACCOUNT | SQL | failed_login_count=5·locked_until>now 확인 | ADM-03_005 |
-| 연동 구성(활성+동의항목+파라미터) | 1 | TBL_INTERLOCK_CONFIG(+002·003) | UI(등록 TC)/SQL | is_active=1·deleted_at NULL, 자식 COUNT(동의≥1·파라미터≥1) | ADM-01·USR-01 |
-| 연동 구성(비활성) | 1 | TBL_INTERLOCK_CONFIG | SQL | is_active=0·deleted_at NULL | ADM-02_007·USR-01_003 |
+| 연동 구성(활성+동의항목+파라미터) | 1 | TBL_INTERLOCK_CONFIG(+002·003) | UI(등록 TC)/SQL | is_active=true·deleted_at NULL, 자식 COUNT(동의≥1·파라미터≥1) | ADM-01·USR-01 |
+| 연동 구성(비활성) | 1 | TBL_INTERLOCK_CONFIG | SQL | is_active=false·deleted_at NULL | ADM-02_007·USR-01_003 |
 | 연동 구성(삭제됨) | 1 | TBL_INTERLOCK_CONFIG | SQL | deleted_at NOT NULL, 목록·상세 제외 | ADM-02_004·012 |
-| 처리상태(완료·신규) | 1 | TBL_INTERLOCK_PROCESS_STATUS | SQL/API | is_result_confirmed=1·result_confirmed_at 최근·CHECK 정합 | API-01_002 |
-| 처리상태(완료·90일 경과) | 1 | 〃 | SQL | is_result_confirmed=1 AND result_confirmed_at < now-90d | BAT-02_001·003 |
-| 처리상태(미완료·신규) | 1 | 〃 | SQL/API | is_result_confirmed=0·result_confirmed_at NULL·processed_at 최근 | API-01_001·BAT-02 |
-| 처리상태(미완료·90일 경과) | 1 | 〃 | SQL | is_result_confirmed=0 AND processed_at < now-90d | BAT-02_002·004 |
+| 처리상태(완료·신규) | 1 | TBL_INTERLOCK_PROCESS_STATUS | SQL/API | is_result_confirmed=true·result_confirmed_at 최근·CHECK 정합 | API-01_002 |
+| 처리상태(완료·90일 경과) | 1 | 〃 | SQL | is_result_confirmed=true AND result_confirmed_at < now-90d | BAT-02_001·003 |
+| 처리상태(미완료·신규) | 1 | 〃 | SQL/API | is_result_confirmed=false·result_confirmed_at NULL·processed_at 최근 | API-01_001·BAT-02 |
+| 처리상태(미완료·90일 경과) | 1 | 〃 | SQL | is_result_confirmed=false AND processed_at < now-90d | BAT-02_002·004 |
 | 서비스 A 진입 목 | 1 | 외부(목 클라이언트) | API/파일 | `/interlock/entry` 200 + requestKey UUID v4 발급 | USR-01_001 |
 | 서비스 B 목(200 성공) | 1 | 외부 목 서버 | API | 목 수신 로그에 전달 페이로드 200 수신 기록 | USR-02_001·006 |
 | 서비스 B 목(실패/타임아웃) | 1 | 외부 목 서버 | API | 5xx 반환 또는 타임아웃 재현 | USR-02_003·005 |

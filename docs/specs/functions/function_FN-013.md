@@ -54,7 +54,7 @@ function FN-013_writeAudit (
 2. 기록 — POL OPS-002-01/02 (audit)
    INSERT INTO TBL_AUDIT_LOG
        (event_type, actor_type, actor_id, target, result, detail, occurred_at)
-   VALUES (:eventType, :actorType, :actorId, :target, :result, :detail, SYSUTCDATETIME());
+   VALUES (:eventType, :actorType, :actorId, :target, :result, :detail, now());
    // append-only, 수정 없음
 
 3. 실패 처리 — best-effort

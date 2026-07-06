@@ -54,7 +54,7 @@
 ### 실행 제약사항
 
 - **트랜잭션 경계**: 단건 UPDATE 트랜잭션(소프트 삭제).
-- **동시성 제어**: id 행 단위 UPDATE. 멱등(이미 삭제된 대상 재요청 시 "대상 없음"). config_code 는 소프트 삭제 후 필터 유니크로 재사용 허용(BIZ-001-03·EXC-BIZ-02).
+- **동시성 제어**: id 행 단위 UPDATE. 멱등(이미 삭제된 대상 재요청 시 "대상 없음"). config_code 는 소프트 삭제 후 부분 유니크로 재사용 허용(BIZ-001-03·EXC-BIZ-02).
 - **성능 요구**: 관리자 저빈도 단건. 별도 임계치 없음.
 - **보안 요구**: IP+세션, 삭제 감사(OPS-002, 되돌릴 수 없어 추적 필수). 처리 상태(ENT-004)는 독립 생명주기로 연쇄 삭제하지 않는다(CASCADE 금지).
 
@@ -91,12 +91,12 @@ B1. 진입 가드 → 인증 → 입력 검증   [BR-104]
   입력 검증: id UUID 형식 (위반 → 400 EX-SEC-004)
 
 B2. 소프트 삭제 (단건 트랜잭션)
-  BEGIN TRAN;
+  BEGIN;
     UPDATE TBL_INTERLOCK_CONFIG
-      SET deleted_at = SYSUTCDATETIME(), updated_at = SYSUTCDATETIME(),
+      SET deleted_at = now(), updated_at = now(),
           updated_by = :session.username
     WHERE id = :id AND deleted_at IS NULL;   // 물리 삭제 아님, 자식 CASCADE 미발생
-    affected = @@ROWCOUNT;
+    affected = ROW_COUNT;
   COMMIT;
   if (affected == 0) → 200 { data: null } (대상 없음/이미 삭제, 오류 아님)
 
@@ -153,5 +153,5 @@ B3. 커밋 후 감사 → 응답
 ### 구현 가이드
 
 - 삭제는 소프트 삭제(deleted_at)로만 수행하고 물리 삭제·자식 CASCADE 를 발생시키지 않는다. 되돌릴 수 없으므로 FE 에서 확인 `Modal` 을 강제한다.
-- 소프트 삭제된 config_code 는 필터 유니크(deleted_at IS NULL)로 재사용을 허용한다. 처리 상태(ENT-004)는 배치(PROC-402)가 독립 하드 삭제하므로 본 프로세스가 연쇄 삭제하지 않는다.
+- 소프트 삭제된 config_code 는 부분 유니크(deleted_at IS NULL)로 재사용을 허용한다. 처리 상태(ENT-004)는 배치(PROC-402)가 독립 하드 삭제하므로 본 프로세스가 연쇄 삭제하지 않는다.
 - **참조 정합**: SCR-002/004 의 삭제 인터랙션과 SVC-002 BR-104 는 본 PROC-106 을 인용해야 한다(기존 PROC-102 인용 정정 대상).

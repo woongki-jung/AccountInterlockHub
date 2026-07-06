@@ -56,7 +56,7 @@ function FN-009_confirmResult (
 2. INSERT INTO TBL_INTERLOCK_PROCESS_STATUS
        (request_key, config_id, is_success, is_result_confirmed,
         processed_at, result_confirmed_at, created_at)
-   VALUES (:requestKey, :configId, :isSuccess, 0, :processedAt, NULL, SYSUTCDATETIME());
+   VALUES (:requestKey, :configId, :isSuccess, false, :processedAt, NULL, now());
    // 성공·실패·거부 모두 1건(EXC-DATA-03·EXC-BIZ-06)
 3. return status(isResultConfirmed=false)
 
@@ -71,8 +71,8 @@ function FN-009_confirmResult (
 1. status = findByKey(requestKey)                 // 미존재는 404 전파
 2. if (status.isResultConfirmed == false)          // 최초 조회만 갱신
         UPDATE TBL_INTERLOCK_PROCESS_STATUS
-        SET is_result_confirmed = 1, result_confirmed_at = :now
-        WHERE request_key = :requestKey AND is_result_confirmed = 0;   // 멱등 가드
+        SET is_result_confirmed = true, result_confirmed_at = :now
+        WHERE request_key = :requestKey AND is_result_confirmed = false;   // 멱등 가드
         status.isResultConfirmed = true; status.resultConfirmedAt = now
 3. return status                                    // 재조회는 갱신 없이 현재 상태
 ```
@@ -97,4 +97,4 @@ function FN-009_confirmResult (
 ### 구현 가이드
 
 - 요청 키값을 조회 키(PK)로 두고, 4개 상태 항목 외 개인정보성 컬럼을 스키마에서 원천 배제한다(스키마 상세는 [ENT-004](../datas/data_ENT-004.md)). DB 접근은 파라미터 바인딩만 사용한다(SEC-004-02).
-- 결과 확인 갱신은 최초 조회 성공 시 1회 수행하도록 조건절 가드(is_result_confirmed=0)로 멱등하게 설계한다(BR-301). 삭제된 키 조회는 404 로 응답한다(FN-011 배치 삭제와 정합).
+- 결과 확인 갱신은 최초 조회 성공 시 1회 수행하도록 조건절 가드(is_result_confirmed=false)로 멱등하게 설계한다(BR-301). 삭제된 키 조회는 404 로 응답한다(FN-011 배치 삭제와 정합).

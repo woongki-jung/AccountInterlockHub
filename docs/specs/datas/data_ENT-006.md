@@ -26,14 +26,14 @@
 
 | 속성명 | 데이터 타입 | 길이/precision | NULL | 기본값 | CHECK 제약 | 키 | 설명 |
 |--------|-----------|----------------|------|--------|-----------|----|------|
-| id | BIGINT | - | NOT NULL | IDENTITY(1,1) | - | PK | 로그 순번(append 순서, 클러스터) |
-| event_type | NVARCHAR | 50 | NOT NULL | - | LEN(event_type) > 0 | - | 이벤트 유형 코드(예: LOGIN_SUCCESS·CONFIG_CREATE·IP_BLOCK·API_AUTH_FAIL·DELIVERY_FAIL·BATCH_RUN) |
-| actor_type | NVARCHAR | 20 | NOT NULL | - | IN ('ADMIN','SERVICE','SYSTEM','BATCH') | - | 행위자 유형 |
-| actor_id | NVARCHAR | 64 | NULL | NULL | - | - | 행위자 식별(관리자 username 또는 서비스 식별. SYSTEM·BATCH 는 NULL). 소프트 참조(ENT-005.username) |
-| target | NVARCHAR | 200 | NULL | NULL | - | - | 대상 식별(구성 코드·요청 키값(마스킹) 등) |
-| result | NVARCHAR | 20 | NOT NULL | - | IN ('SUCCESS','FAIL','BLOCKED','INFO') | - | 처리 결과 |
-| detail | NVARCHAR | 1000 | NULL | NULL | - | - | 부가 상세(SEC-005 마스킹 적용, 회원 키·개인정보 배제) |
-| occurred_at | DATETIME2 | 3 | NOT NULL | SYSUTCDATETIME() | - | - | 이벤트 발생 시각 |
+| id | bigint | - | NOT NULL | GENERATED ALWAYS AS IDENTITY | - | PK | 로그 순번(append 순서) |
+| event_type | varchar | 50 | NOT NULL | - | length(event_type) > 0 | - | 이벤트 유형 코드(예: LOGIN_SUCCESS·CONFIG_CREATE·IP_BLOCK·API_AUTH_FAIL·DELIVERY_FAIL·BATCH_RUN) |
+| actor_type | varchar | 20 | NOT NULL | - | IN ('ADMIN','SERVICE','SYSTEM','BATCH') | - | 행위자 유형 |
+| actor_id | varchar | 64 | NULL | NULL | - | - | 행위자 식별(관리자 username 또는 서비스 식별. SYSTEM·BATCH 는 NULL). 소프트 참조(ENT-005.username) |
+| target | varchar | 200 | NULL | NULL | - | - | 대상 식별(구성 코드·요청 키값(마스킹) 등) |
+| result | varchar | 20 | NOT NULL | - | IN ('SUCCESS','FAIL','BLOCKED','INFO') | - | 처리 결과 |
+| detail | varchar | 1000 | NULL | NULL | - | - | 부가 상세(SEC-005 마스킹 적용, 회원 키·개인정보 배제) |
+| occurred_at | timestamptz | 3 | NOT NULL | now() | - | - | 이벤트 발생 시각 |
 
 > event_type 은 코드값이며 확장 가능하므로 CHECK 목록으로 고정하지 않고 애플리케이션 상수로 관리한다. actor_id·target·detail 은 기록 전 SEC-005 마스킹을 거친다(회원 키·자격 앞2·뒤2만 노출).
 
@@ -49,7 +49,7 @@
 
 | 인덱스명 | 대상 컬럼 | 유형 | 카디널리티 추정 | 조회 패턴 (인용 PROC) |
 |----------|-----------|------|-----------------|----------------------|
-| PK_AUDIT_LOG | id | PK(CLUSTERED, IDENTITY) | 높음 | append-only 삽입 순서. 전 감사 기록 PROC 의 INSERT 대상 |
+| PK_AUDIT_LOG | id | PK(b-tree, identity) | 높음 | append-only 삽입 순서. 전 감사 기록 PROC 의 INSERT 대상 |
 
 > 시각·유형·행위자 기준 조회/보존 삭제 인덱스(예: IX_AUDIT_OCCURRED(occurred_at))는 이를 SELECT/DELETE 하는 PROC 가 MVP 에 없어 신설하지 않는다(사용 PROC 0건 금지). 감사 조회·1년 보존 삭제 PROC 확정 시 함께 신설한다.
 
@@ -72,4 +72,4 @@
 ### 구현 가이드
 
 - 감사 로그는 애플리케이션 로그와 분리 가능한 채널로 남기고, 기록 직전 SEC-005 마스킹을 일괄 적용한다. event_type·actor_type·result 코드값은 애플리케이션 상수로 통일한다.
-- append-only 특성상 id 를 CLUSTERED IDENTITY 로 두어 삽입 성능·시간 순서를 확보한다. 대량 기록 환경에서는 파티셔닝·아카이브를 build 단계에서 검토한다.
+- append-only 특성상 id 를 bigint 식별자(GENERATED ALWAYS AS IDENTITY) PK 로 두어 삽입 순서를 보장한다. PostgreSQL 힙은 append 삽입이라 별도 클러스터드 인덱스 없이 시간 순서가 유지된다. 대량 기록 환경에서는 파티셔닝·아카이브를 build 단계에서 검토한다.

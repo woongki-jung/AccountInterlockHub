@@ -54,7 +54,7 @@ function FN-002_validatePasswordComplexity (
 1. 계정 조회 — AUTH-001-01 (validate)
    SELECT id, username, password_hash, is_active, failed_login_count, locked_until
    FROM TBL_ADMIN_ACCOUNT WHERE username = :username;
-   if (row is null OR is_active = 0)
+   if (row is null OR is_active = false)
         FN-002_recordFailAudit(username, 'LOGIN_FAIL')   // 존재 여부 비노출
         → throw InvalidCredentialError (401, EX-AUTH-001)
 

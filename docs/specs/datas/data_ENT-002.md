@@ -26,12 +26,12 @@
 
 | 속성명 | 데이터 타입 | 길이/precision | NULL | 기본값 | CHECK 제약 | 키 | 설명 |
 |--------|-----------|----------------|------|--------|-----------|----|------|
-| id | UNIQUEIDENTIFIER | - | NOT NULL | NEWSEQUENTIALID() | - | PK | 동의 항목 고유 식별자 |
-| config_id | UNIQUEIDENTIFIER | - | NOT NULL | - | - | FK | 소속 연동 구성(ENT-001.id) |
-| item_label | NVARCHAR | 200 | NOT NULL | - | LEN(item_label) > 0 | - | 동의 항목 라벨(화면 노출 문구) |
-| item_description | NVARCHAR | 1000 | NULL | NULL | - | - | 동의 항목 설명(보조 문구) |
-| terms_content | NVARCHAR | MAX | NULL | NULL | - | - | 전체 약관 본문(약관 컨텐츠, 선택). NULL·빈 문자열이면 동의 화면 [상세] 미노출(BIZ-002-05) |
-| is_required | BIT | - | NOT NULL | 0 | - | - | 필수 동의 여부 |
+| id | uuid | - | NOT NULL | gen_random_uuid() | - | PK | 동의 항목 고유 식별자 |
+| config_id | uuid | - | NOT NULL | - | - | FK | 소속 연동 구성(ENT-001.id) |
+| item_label | varchar | 200 | NOT NULL | - | length(item_label) > 0 | - | 동의 항목 라벨(화면 노출 문구) |
+| item_description | varchar | 1000 | NULL | NULL | - | - | 동의 항목 설명(보조 문구) |
+| terms_content | text | - | NULL | NULL | - | - | 전체 약관 본문(약관 컨텐츠, 선택). NULL·빈 문자열이면 동의 화면 [상세] 미노출(BIZ-002-05) |
+| is_required | boolean | - | NOT NULL | false | - | - | 필수 동의 여부 |
 | display_order | INT | - | NOT NULL | 0 | display_order >= 0 | - | 화면 표시 순서(오름차순) |
 
 ### 관계 정의
@@ -63,11 +63,11 @@
 | BIZ-001-06 | terms_content 선택 입력·크기 상한 | 응용 검증(선택·비차단, 크기 SEC-004-03) |
 | BIZ-002-01 | 구성 소속 항목만 노출 | 응용 조회 제한(PROC-201 WHERE config_id) |
 | BIZ-002-05 | terms_content 유무로 [상세] 노출 제어 | 응용 렌더(PROC-201 응답 포함·SCR-005 표시) |
-| SEC-004-01 | item_label·설명·약관 컨텐츠 길이·형식 | 응용 검증(DTO) + NOT NULL·LEN |
+| SEC-004-01 | item_label·설명·약관 컨텐츠 길이·형식 | 응용 검증(DTO) + NOT NULL·length |
 | DATA-001 | 개인정보 컬럼 부재(약관 컨텐츠는 설정 메타) | 스키마 설계(정의 메타만 보관) |
 
 ### 구현 가이드
 
 - 동의 항목은 부모 구성과 하나의 트랜잭션에서 등록·편집한다. 화면 렌더는 display_order 오름차순으로 정렬해 노출한다.
-- terms_content 는 긴 본문을 담을 수 있어 NVARCHAR(MAX) 로 두며, 선택 입력이라 NULL 을 허용한다. 값이 없으면(NULL·공백) 동의 화면에서 [상세] 버튼을 렌더하지 않는다(BIZ-002-05). 약관 컨텐츠는 항목 정의 메타(설정 데이터)로 마스킹·개인정보 대상이 아니다. 항목당 약관 1건(행 내 본문 1개)을 전제로 하며, 다건 약관·버전 이력은 본 MVP 범위 밖이다(담당자 확정 대기).
+- terms_content 는 긴 본문을 담을 수 있어 text 로 두며, 선택 입력이라 NULL 을 허용한다. 값이 없으면(NULL·공백) 동의 화면에서 [상세] 버튼을 렌더하지 않는다(BIZ-002-05). 약관 컨텐츠는 항목 정의 메타(설정 데이터)로 마스킹·개인정보 대상이 아니다. 항목당 약관 1건(행 내 본문 1개)을 전제로 하며, 다건 약관·버전 이력은 본 MVP 범위 밖이다(담당자 확정 대기).
 - 사용자의 동의/거부 "결과"는 본 테이블에 저장하지 않는다 — 결과는 처리 상태(ENT-004.is_success)에만 반영한다(BIZ-002-04·Q3, 개인식별 증빙 원장 미저장).

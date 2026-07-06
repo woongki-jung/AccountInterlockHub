@@ -57,7 +57,7 @@
 
 - **트랜잭션 경계**: 없음(단순 SELECT, 자동 커밋). 락 미사용.
 - **동시성 제어**: 조회 전용으로 경합 없음. 삭제된 구성(deleted_at)은 목록·상세 모두 제외.
-- **성능 요구**: IX_CONFIG_LIST(is_active, created_at DESC) 필터 인덱스 활용. 페이지네이션 규약은 build 확정(MVP 활성 필터·생성일 정렬 기본).
+- **성능 요구**: IX_CONFIG_LIST(is_active, created_at DESC) 부분 인덱스 활용. 페이지네이션 규약은 build 확정(MVP 활성 필터·생성일 정렬 기본).
 - **보안 요구**: IP+세션. 응답은 설정 데이터만(회원 키·처리 상태 배제). 서비스 A/B URL 은 마스킹 예외(EXC-SEC-05).
 
 ### 로직 실행 순서
@@ -112,7 +112,7 @@ B2. 목록 조회 (GET /api/admin/configs)
     AND (:active IS NULL OR c.is_active = :active)
     AND (:keyword IS NULL OR c.config_code LIKE :kw OR c.config_name LIKE :kw)  -- :kw='%'+keyword+'%'
   ORDER BY c.created_at DESC;                                     -- IX_CONFIG_LIST
-  -- 페이지네이션(OFFSET/FETCH) 규약은 build 확정
+  -- 페이지네이션(LIMIT/OFFSET) 규약은 build 확정
   → rows → MDL-102[]
 
 B3. 상세 조회 (GET /api/admin/configs/:id)

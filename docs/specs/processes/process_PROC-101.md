@@ -56,7 +56,7 @@
 ### 실행 제약사항
 
 - **트랜잭션 경계**: 단일 트랜잭션 — 부모 ENT-001 + 자식 ENT-002·ENT-003 를 원자적으로 커밋. 실패 시 전체 롤백.
-- **동시성 제어**: 고유성 사전 조회 후 INSERT 사이 경합은 UQ_CONFIG_CODE 필터 유니크가 최종 방어(중복 시 409 EX-BIZ-002). 편집은 대상 행 UPDATE.
+- **동시성 제어**: 고유성 사전 조회 후 INSERT 사이 경합은 UQ_CONFIG_CODE 부분 유니크가 최종 방어(중복 시 409 EX-BIZ-002). 편집은 대상 행 UPDATE.
 - **성능 요구**: 관리자 저빈도 요청, 단건 트랜잭션. 별도 임계치 없음.
 - **보안 요구**: IP+세션 인증, 입력 재검증(화면 검증 비의존), 등록·수정·삭제 감사(OPS-002). 회원 키·처리 상태 컬럼 부재(설정 데이터).
 
@@ -131,19 +131,19 @@ B2. 구성 검증·고유성 — FN-006_validateConfig(config, mode, selfId)   [
     if (parameters 에 개인정보 직접 수신 항목) FN-013_writeAudit(CONFIG_PII_WARN, INFO)
 
 B3. 트랜잭션 영속화   (부모+자식 원자적)
-  BEGIN TRAN ISOLATION LEVEL READ COMMITTED;
+  BEGIN ISOLATION LEVEL READ COMMITTED;
     if (mode=='CREATE'):
       INSERT INTO TBL_INTERLOCK_CONFIG
         (id, config_code, config_name, service_a_entry_url, service_b_delivery_url,
          service_b_http_method, is_active, created_at, created_by)
-      VALUES (NEWID형, :configCode, :configName, :aUrl, :bUrl, :method,
-              :isActive, SYSUTCDATETIME(), :session.username)
+      VALUES (gen_random_uuid(), :configCode, :configName, :aUrl, :bUrl, :method,
+              :isActive, now(), :session.username)
       → configId = 삽입 id;
     else:  // EDIT
       UPDATE TBL_INTERLOCK_CONFIG
         SET config_name=:configName, service_a_entry_url=:aUrl,
             service_b_delivery_url=:bUrl, service_b_http_method=:method,
-            is_active=:isActive, updated_at=SYSUTCDATETIME(), updated_by=:session.username
+            is_active=:isActive, updated_at=now(), updated_by=:session.username
       WHERE id=:selfId AND deleted_at IS NULL;   // config_code 불변
       → configId = :selfId;
       DELETE FROM TBL_INTERLOCK_CONSENT_ITEM WHERE config_id=:configId;   // 자식 교체
@@ -151,11 +151,11 @@ B3. 트랜잭션 영속화   (부모+자식 원자적)
     for (c in consentItems):
       INSERT INTO TBL_INTERLOCK_CONSENT_ITEM
         (id, config_id, item_label, item_description, terms_content, is_required, display_order)
-      VALUES (NEWID, :configId, :c.label, :c.description, :c.termsContent, :c.required, :c.order);
+      VALUES (gen_random_uuid(), :configId, :c.label, :c.description, :c.termsContent, :c.required, :c.order);
     for (p in parameters):
       INSERT INTO TBL_INTERLOCK_PARAMETER
         (id, config_id, param_name, source_key_a, deliver_to_b, is_required, display_order)
-      VALUES (NEWID, :configId, :p.name, :p.sourceKeyA, :p.deliverToB, :p.required, :p.order);
+      VALUES (gen_random_uuid(), :configId, :p.name, :p.sourceKeyA, :p.deliverToB, :p.required, :p.order);
   COMMIT;   // 무결성 위반·중복 예외 시 ROLLBACK → 409 EX-BIZ-002 / 500 EX-FN-999
 
 B4. 커밋 후 감사 → 응답 변환
@@ -219,6 +219,6 @@ B4. 커밋 후 감사 → 응답 변환
 ### 구현 가이드
 
 - 부모·자식은 반드시 하나의 트랜잭션에서 처리하고, 편집은 자식 전량 교체(delete-and-reinsert) 또는 증분 갱신 중 build 택일하되 부모 updated_at/by 를 함께 갱신한다.
-- config_code 는 편집 시 변경을 막아 고유성·참조 안정성을 지킨다. 고유성은 저장 직전 조회 + 필터 유니크 이중 방어로 확인한다.
+- config_code 는 편집 시 변경을 막아 고유성·참조 안정성을 지킨다. 고유성은 저장 직전 조회 + 부분 유니크 이중 방어로 확인한다.
 - 모든 검증은 FE 에 의존하지 않고 FN-005·FN-006 로 서버 재수행한다. DB 접근은 파라미터 바인딩만 사용한다(SEC-004-02).
 - 동의 항목의 약관 컨텐츠(terms_content)는 선택 입력이라 미입력(NULL)을 허용하고 필수·형식 차단을 두지 않는다(BIZ-001-06). 부모 구성·다른 자식과 같은 트랜잭션에서 영속화하며 편집 교체 시에도 함께 재삽입한다.

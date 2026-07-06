@@ -15,7 +15,7 @@
 | 단계 | 실행 | 입력 | 기대 결과 | 매핑 PROC |
 |--|--|--|--|--|
 | 1 | 배치 기동 | now·retentionDays=90 | threshold 산출·BATCH_RUN 기동 감사 | B1 |
-| 2 | 완료 건 삭제 | — | is_result_confirmed=1 AND result_confirmed_at<threshold 하드 삭제 | B2 (DATA-004-01) |
+| 2 | 완료 건 삭제 | — | is_result_confirmed=true AND result_confirmed_at<threshold 하드 삭제 | B2 (DATA-004-01) |
 
 - **데이터 검증**: 경과 완료 건 물리 행 제거, 미경과 완료 건 잔존.
 
@@ -24,7 +24,7 @@
 
 | 단계 | 실행 | 입력 | 기대 결과 | 매핑 PROC |
 |--|--|--|--|--|
-| 1 | 미완료 건 삭제 | threshold | is_result_confirmed=0 AND processed_at<threshold 하드 삭제 | B2 (DATA-004-02) |
+| 1 | 미완료 건 삭제 | threshold | is_result_confirmed=false AND processed_at<threshold 하드 삭제 | B2 (DATA-004-02) |
 
 - **데이터 검증**: 무기한 누적 방지 — 경과 미완료 건 제거.
 

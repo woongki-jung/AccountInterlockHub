@@ -54,8 +54,8 @@
 
 ### 실행 제약사항
 
-- **트랜잭션 경계**: 결과 확인 갱신은 조건절 가드(is_result_confirmed=0) 단건 UPDATE 트랜잭션. 조회는 단순 SELECT.
-- **동시성 제어**: 결과 확인 갱신은 WHERE is_result_confirmed=0 멱등 가드로 최초 1회만 반영(BR-301). 재조회는 갱신 없이 현재 상태.
+- **트랜잭션 경계**: 결과 확인 갱신은 조건절 가드(is_result_confirmed=false) 단건 UPDATE 트랜잭션. 조회는 단순 SELECT.
+- **동시성 제어**: 결과 확인 갱신은 WHERE is_result_confirmed=false 멱등 가드로 최초 1회만 반영(BR-301). 재조회는 갱신 없이 현재 상태.
 - **성능 요구**: 요청 제한 분당 60회 초과 시 429(FN-014). PK(request_key) 단건 조회.
 - **보안 요구**: API 인증(SEC-003), 응답 4항목만·마스킹(SEC-005-02), 인증 실패 감사 시 요청 키값 마스킹(FN-010). 회원 키 응답 배제.
 
@@ -97,9 +97,9 @@ B4. 상태 조회 — FN-009_findByKey(requestKey)  (DATA-003-03 진입)
 B5. 결과 확인 갱신 — PROC-401 / FN-009_confirmResult(requestKey, now)  (BR-301, 멱등)
   if (row.is_result_confirmed == 0):     // 최초 조회만 갱신
         UPDATE TBL_INTERLOCK_PROCESS_STATUS
-          SET is_result_confirmed = 1, result_confirmed_at = :now
-        WHERE request_key = :requestKey AND is_result_confirmed = 0;   // 멱등 가드
-        row.is_result_confirmed = 1; row.result_confirmed_at = now
+          SET is_result_confirmed = true, result_confirmed_at = :now
+        WHERE request_key = :requestKey AND is_result_confirmed = false;   // 멱등 가드
+        row.is_result_confirmed = true; row.result_confirmed_at = now
   // 재조회는 갱신 없이 현재 상태
 
 B6. 응답 변환 — FN-010_selectStatusResponse(status)  (SEC-005-02)
@@ -115,7 +115,7 @@ B6. 응답 변환 — FN-010_selectStatusResponse(status)  (SEC-005-02)
 |----------|----------|----------|----------|-----------|
 | 요청→도메인 | BE 컨트롤러 | 헤더+requestKey | 인증 주체·조회 키 | FN-004 인증·FN-007 형식 검증 |
 | ENT→도메인 | BE 리포지토리 | ENT-004 행 | MDL-301 | 직접 매핑·NULL(result_confirmed_at) 처리 |
-| 도메인→ENT | BE(PROC-401) | 최초 조회 | ENT-004 UPDATE | is_result_confirmed=1·result_confirmed_at |
+| 도메인→ENT | BE(PROC-401) | 최초 조회 | ENT-004 UPDATE | is_result_confirmed=true·result_confirmed_at |
 | 도메인→응답 | BE 컨트롤러 | MDL-301 | MDL-302 | 4항목 선별·configId·회원 키 배제·ISO8601 |
 
 #### 단계 통합 흐름
@@ -156,6 +156,6 @@ B6. 응답 변환 — FN-010_selectStatusResponse(status)  (SEC-005-02)
 
 ### 구현 가이드
 
-- 조회 응답 DTO 에 회원 키·configId 필드를 두지 않고, 마스킹은 응답 DTO 변환·로그 포맷터 계층에서 일괄 적용한다(FN-010). 결과 확인 갱신은 최초 조회 성공 시 1회만 수행하도록 조건절 가드(is_result_confirmed=0)로 멱등하게 설계한다.
+- 조회 응답 DTO 에 회원 키·configId 필드를 두지 않고, 마스킹은 응답 DTO 변환·로그 포맷터 계층에서 일괄 적용한다(FN-010). 결과 확인 갱신은 최초 조회 성공 시 1회만 수행하도록 조건절 가드(is_result_confirmed=false)로 멱등하게 설계한다.
 - 형식은 맞으나 미존재(만료 삭제 포함)인 요청 키값은 404 EX-DATA-003 으로 응답한다(PROC-402 배치 삭제와 정합). 삭제 사실 자체는 보관하지 않는다.
 - 서비스 대면 API 인증 수단(API 키/서명 알고리즘)은 담당자 확정 대기이며 확정 시 SEC-003·FN-004 를 리비전한다. 자격 값은 상수 시간 비교로 검증하고 로그에 남기지 않는다.

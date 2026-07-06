@@ -57,7 +57,7 @@
 | 1 | SCR-002/004 활성 Toggle | isActive=true | PATCH 요청 | F1 |
 | 2 | PATCH /configs/:id/active | {isActive:true} | 200 {id,isActive}, Toast | B2·B3 |
 
-- **데이터 검증**: ENT-001 is_active=1·updated_at/by 갱신 + ENT-006 CONFIG_ACTIVATE 감사.
+- **데이터 검증**: ENT-001 is_active=true·updated_at/by 갱신 + ENT-006 CONFIG_ACTIVATE 감사.
 
 ### ADM-02_007 비활성 전환·진입 제외
 - **유형/우선순위/자동화**: 상태전이 · 높음 · 자동 | **PROC/분기**: PROC-105 / BR-103(비활성)
@@ -65,7 +65,7 @@
 | 단계 | 실행 | 입력 | 기대 결과 | 매핑 PROC |
 |--|--|--|--|--|
 | 1 | PATCH /configs/:id/active | {isActive:false} | 200, CONFIG_DEACTIVATE 감사 | B2·B3 |
-| 2 | 이후 서비스 A 진입(PROC-201) | 해당 config_code | 유효 활성 구성 아님 → 400 EX-SEC-004(is_active=1 조건 배제) | (연계) |
+| 2 | 이후 서비스 A 진입(PROC-201) | 해당 config_code | 유효 활성 구성 아님 → 400 EX-SEC-004(is_active=true 조건 배제) | (연계) |
 
 - **비고**: 활성 기본값·상태 모델 확정 대기(BLK-11).
 
@@ -99,7 +99,7 @@
 | 단계 | 실행 | 입력 | 기대 결과 | 매핑 PROC |
 |--|--|--|--|--|
 | 1 | DELETE /configs/:id | 대상 삭제 | deleted_at 설정 | PROC-106 B2 |
-| 2 | POST /configs | 동일 config_code 신규 등록 | 200 성공(필터 유니크로 재사용 허용) | PROC-101 B2 |
+| 2 | POST /configs | 동일 config_code 신규 등록 | 200 성공(부분 유니크로 재사용 허용) | PROC-101 B2 |
 
 ### ADM-02_012 이미 삭제 대상 재삭제(멱등)
 - **유형/우선순위/자동화**: Negative · 보통 · 자동 | **PROC/분기**: PROC-106 / BR-104(부재)

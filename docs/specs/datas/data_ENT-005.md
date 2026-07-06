@@ -27,19 +27,19 @@
 
 | 속성명 | 데이터 타입 | 길이/precision | NULL | 기본값 | CHECK 제약 | 키 | 설명 |
 |--------|-----------|----------------|------|--------|-----------|----|------|
-| id | UNIQUEIDENTIFIER | - | NOT NULL | NEWSEQUENTIALID() | - | PK | 계정 고유 식별자 |
-| username | NVARCHAR | 64 | NOT NULL | - | LEN(username) > 0 | UK | 로그인 계정 ID(AUTH-001) |
-| password_hash | NVARCHAR | 255 | NOT NULL | - | - | - | 단방향 해시(솔트 포함, AUTH-001-03). 평문·가역 저장 금지 |
-| is_active | BIT | - | NOT NULL | 1 | - | - | 계정 활성 여부(비활성 시 로그인 거부) |
+| id | uuid | - | NOT NULL | gen_random_uuid() | - | PK | 계정 고유 식별자 |
+| username | varchar | 64 | NOT NULL | - | length(username) > 0 | UK | 로그인 계정 ID(AUTH-001) |
+| password_hash | varchar | 255 | NOT NULL | - | - | - | 단방향 해시(솔트 포함, AUTH-001-03). 평문·가역 저장 금지 |
+| is_active | boolean | - | NOT NULL | true | - | - | 계정 활성 여부(비활성 시 로그인 거부) |
 | failed_login_count | INT | - | NOT NULL | 0 | failed_login_count >= 0 | - | 연속 로그인 실패 횟수(AUTH-003-01) |
-| locked_until | DATETIME2 | 3 | NULL | NULL | - | - | 계정 잠금 해제 시각(NULL=미잠금) |
-| last_login_at | DATETIME2 | 3 | NULL | NULL | - | - | 마지막 로그인 성공 시각 |
-| created_at | DATETIME2 | 3 | NOT NULL | SYSUTCDATETIME() | - | - | 생성 일시(감사) |
-| created_by | NVARCHAR | 64 | NULL | NULL | - | - | 생성자(프로비저닝 주체, 운영 절차) |
-| updated_at | DATETIME2 | 3 | NULL | NULL | - | - | 최종 수정 일시(비밀번호 변경 등) |
-| updated_by | NVARCHAR | 64 | NULL | NULL | - | - | 최종 수정자 |
+| locked_until | timestamptz | 3 | NULL | NULL | - | - | 계정 잠금 해제 시각(NULL=미잠금) |
+| last_login_at | timestamptz | 3 | NULL | NULL | - | - | 마지막 로그인 성공 시각 |
+| created_at | timestamptz | 3 | NOT NULL | now() | - | - | 생성 일시(감사) |
+| created_by | varchar | 64 | NULL | NULL | - | - | 생성자(프로비저닝 주체, 운영 절차) |
+| updated_at | timestamptz | 3 | NULL | NULL | - | - | 최종 수정 일시(비밀번호 변경 등) |
+| updated_by | varchar | 64 | NULL | NULL | - | - | 최종 수정자 |
 
-> 비밀번호는 검증된 단방향 해시 알고리즘으로 저장한다(특정 라이브러리 강제 없음). NVARCHAR(255) 는 bcrypt·argon2 등 해시 문자열 여유 길이다.
+> 비밀번호는 검증된 단방향 해시 알고리즘으로 저장한다(특정 라이브러리 강제 없음). varchar(255) 는 bcrypt·argon2 등 해시 문자열 여유 길이다.
 
 ### 관계 정의
 
@@ -60,7 +60,7 @@
 
 - **생성 조건**: MVP 범위에서 운영 수동 프로비저닝(seed·운영 스크립트)으로 INSERT. 별도 계정 관리 화면·PROC 를 강제하지 않는다(SVC-003 사용자 정의, 담당자 확정 대기).
 - **수정 조건**: PROC-103 · "로그인 시도 검증"에서 실패 시 failed_login_count 증가·locked_until 설정, 성공 시 카운트 리셋·last_login_at·잠금 해제 UPDATE. 비밀번호 변경 시 password_hash·updated_at/by UPDATE(AUTH-001-02).
-- **삭제/보관 조건**: 물리 삭제를 두지 않는다. 계정 비활성은 is_active=0 으로 처리(로그인 거부).
+- **삭제/보관 조건**: 물리 삭제를 두지 않는다. 계정 비활성은 is_active=false 로 처리(로그인 거부).
 
 ### 연관 정책 (policy)
 

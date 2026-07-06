@@ -53,7 +53,7 @@ function FN-008_processDecision (
 1. ctx = entryContextStore.get(requestKey)     // 진입 컨텍스트(FN-007)
    if (ctx is null)                              → throw InvalidKeyFormatError (400, EX-DATA-002)
 2. config = SELECT id FROM TBL_INTERLOCK_CONFIG
-            WHERE config_code = :ctx.configCode AND is_active = 1 AND deleted_at IS NULL;
+            WHERE config_code = :ctx.configCode AND is_active = true AND deleted_at IS NULL;
 3. items = SELECT item_label, item_description, terms_content, is_required, display_order
            FROM TBL_INTERLOCK_CONSENT_ITEM
            WHERE config_id = :config.id ORDER BY display_order;   // 구성 외 노출 금지, 약관 컨텐츠 포함
@@ -64,7 +64,7 @@ function FN-008_processDecision (
    if (ctx is null OR ctx.configCode != decision.configCode)      // 구성 매칭 근거 검증
         → throw InvalidKeyFormatError (400, EX-DATA-002)
 2. config = SELECT id FROM TBL_INTERLOCK_CONFIG
-            WHERE config_code = :ctx.configCode AND is_active = 1 AND deleted_at IS NULL;
+            WHERE config_code = :ctx.configCode AND is_active = true AND deleted_at IS NULL;
 3. if (decision.decision == 'REJECT')            // BIZ-002-03
         status = FN-009_saveStatus({ requestKey: decision.requestKey,
                     configId: config.id, isSuccess: false, processedAt: now })  // 미전달

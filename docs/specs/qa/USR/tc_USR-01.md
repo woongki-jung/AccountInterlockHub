@@ -77,7 +77,7 @@
 | 2 | POST /api/consent/:requestKey | — | 내부 PROC-203 전달 성공 → 200 {success:true} | B3b |
 | 3 | 결과 전이 | — | SCR-006 "연동이 완료되었습니다." | F2 |
 
-- **데이터 검증**: ENT-004 상태 1건(is_success=1) 저장(PROC-401), 컨텍스트 폐기(회원 키 무저장). 서비스 B 목 수신 확인.
+- **데이터 검증**: ENT-004 상태 1건(is_success=true) 저장(PROC-401), 컨텍스트 폐기(회원 키 무저장). 서비스 B 목 수신 확인.
 
 ### USR-01_009 거부(REJECT) 제출·정상 종료
 - **유형/우선순위/자동화**: Positive · 높음 · 자동 | **PROC/분기**: PROC-202 / BR-201(REJECT)·EXC-BIZ-03
@@ -88,7 +88,7 @@
 | 2 | POST /api/consent/:requestKey | — | 200 정상 종료(EX 아님), CONSENT_REJECT 감사 | B3a |
 | 3 | 결과 전이 | — | SCR-006 "연동이 취소되었습니다." | F2 |
 
-- **데이터 검증**: ENT-004 상태 1건(is_success=0·미전달) 저장, 서비스 B 미전달, 컨텍스트 폐기.
+- **데이터 검증**: ENT-004 상태 1건(is_success=false·미전달) 저장, 서비스 B 미전달, 컨텍스트 폐기.
 
 ### USR-01_010 구성 매칭 불일치
 - **유형/우선순위/자동화**: Negative · 높음 · 자동 | **PROC/분기**: PROC-202 / EX-DATA-002
@@ -112,7 +112,7 @@
 | 1 | POST /api/consent/:requestKey | AGREE, 서비스 B 목 실패 | 502 EX-BIZ-004(상태 1건 저장됨) | B3b(PROC-203 전파) |
 | 2 | 결과 전이 | — | SCR-006 전달실패 안내 | F2 |
 
-- **데이터 검증**: ENT-004 상태 1건(is_success=0) 저장(EXC-BIZ-06). 상세는 [tc_USR-02](tc_USR-02.md).
+- **데이터 검증**: ENT-004 상태 1건(is_success=false) 저장(EXC-BIZ-06). 상세는 [tc_USR-02](tc_USR-02.md).
 
 ### USR-01_013 동의 제출 본문 1MB 초과
 - **유형/우선순위/자동화**: Boundary · 낮음 · 자동 | **PROC/분기**: PROC-202 / EX-SEC-005

@@ -6,7 +6,7 @@
 
 ## 스택·구현 기준
 
-- FE React(TypeScript) SPA, BE NestJS(TypeScript), DB MSSQL. 사용자·관리자 웹·API·배치는 단일 App Service 하나로 배포된다.
+- FE React(TypeScript) SPA, BE NestJS(TypeScript), DB PostgreSQL. 사용자·관리자 웹·API·배치는 단일 App Service 하나로 배포된다.
 - 외부 호출(서비스 B)은 반드시 BE 를 경유한다(FN-012). FE 직접 외부 호출은 없다.
 - 사전 조회·영속화 쿼리는 대상 ENT·컬럼·조건·정렬·페이지·조인·락·트랜잭션 경계까지 SQL/ORM 의사코드로 각 PROC 문서에 명시한다.
 

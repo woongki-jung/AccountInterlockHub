@@ -50,7 +50,7 @@
 ### 연관 데이터 및 외부 호출
 
 - **호출 API**: 외부 호출 없음(발급·조회만).
-- **데이터 조회 대상**: ENT-001(활성 구성, config_code·is_active=1·deleted_at IS NULL), ENT-002(동의 항목, config_id).
+- **데이터 조회 대상**: ENT-001(활성 구성, config_code·is_active=true·deleted_at IS NULL), ENT-002(동의 항목, config_id).
 - **데이터 변경 대상(CRUD)**: 없음(무저장). 진입 컨텍스트는 비영속 메모리(entryContextStore) put. ENT-004 저장은 PROC-202/203/401 단계로 지연.
 
 ### 실행 제약사항
@@ -99,7 +99,7 @@ B1a. 진입·요청 키값 발급   (GET /interlock/entry, 서비스 A)
         크기>1MB → 413 EX-SEC-005 / 위반 → 400 EX-SEC-004
   활성 구성 참조 확인:
     SELECT id FROM TBL_INTERLOCK_CONFIG
-    WHERE config_code = :configCode AND is_active = 1 AND deleted_at IS NULL;   -- UQ_CONFIG_CODE
+    WHERE config_code = :configCode AND is_active = true AND deleted_at IS NULL;   -- UQ_CONFIG_CODE
     if (row is null) → 400 EX-SEC-004 (유효하지 않은 구성 참조)
   요청 키값 발급 — FN-007_issueRequestKey(entry):
     requestKey = uuidV4()                     // DATA-002-02 역추적 불가
@@ -112,7 +112,7 @@ B1b. 동의 화면 데이터 구성   (GET /api/consent/:requestKey, SCR-005)
     ctx = entryContextStore.get(requestKey)
     if (ctx is null) → 400 EX-DATA-002 (만료·미존재)
     config = SELECT id FROM TBL_INTERLOCK_CONFIG
-             WHERE config_code = :ctx.configCode AND is_active = 1 AND deleted_at IS NULL;
+             WHERE config_code = :ctx.configCode AND is_active = true AND deleted_at IS NULL;
     items = SELECT item_label, item_description, terms_content, is_required, display_order
             FROM TBL_INTERLOCK_CONSENT_ITEM
             WHERE config_id = :config.id ORDER BY display_order;   -- IX_CONSENT_CONFIG, 구성 외 노출 금지, 약관 컨텐츠 포함

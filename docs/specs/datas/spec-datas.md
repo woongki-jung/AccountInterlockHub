@@ -8,13 +8,13 @@
 - **최소 상태(DATA-003)**: 처리 상태(ENT-004)는 요청 키값·구성 참조·상태 4항목·생성 감사로 한정하고 개인식별 컬럼을 원천 배제한다.
 - **불투명 키(DATA-002)**: 처리 추적 기준 키는 허브 발급 불투명 UUID v4(요청 키값)다. 회원 키를 키로 쓰지 않는다.
 - **삭제 정책 이원화**: 설정·자격 데이터는 소프트 삭제(ENT-001 deleted_at)·비활성(ENT-005 is_active), 처리 상태(ENT-004)는 하드 삭제(DATA-004-03), 감사 로그(ENT-006)는 append-only.
-- **DBMS**: MSSQL 기준 타입 표기(UNIQUEIDENTIFIER·NVARCHAR(n)·DATETIME2·BIT·BIGINT). 운영 Azure MSSQL / 개발 로컬 MSSQL. 특정 ORM 강제 없음.
+- **DBMS**: PostgreSQL 기준 타입 표기(uuid·varchar(n)·text·timestamptz·boolean·bigint). 운영 Azure Database for PostgreSQL / 개발·로컬 별도 PostgreSQL 서버. 특정 ORM 강제 없음.
 - **감사·무결성**: 중요 마스터는 created_at/by·updated_at/by. FK·NOT NULL·UNIQUE·CHECK 로 DB 레벨 무결성을 적극 활용한다.
 
 ## 엔터티 코드 체계
 
 - 코드: `ENT-nnn` (마스터·트랜잭션·이력 무관 통합 순번). 물리 테이블명은 `TBL_<도메인>_<엔터티>`.
-- 컬럼: snake_case. 상태 플래그는 BIT, 시각은 DATETIME2(3, UTC 저장 권장).
+- 컬럼: snake_case. 상태 플래그는 boolean, 시각은 timestamptz(3, UTC 저장 권장).
 
 ## 엔터티 분류·목록
 
@@ -52,18 +52,18 @@
 
 | 인덱스명 | ENT | 대상 컬럼 | 유형 | 카디널리티 | 주 사용 PROC |
 |----------|-----|-----------|------|-----------|--------------|
-| UQ_CONFIG_CODE | ENT-001 | config_code (필터 deleted_at IS NULL) | UNIQUE | 높음 | PROC-101 고유성·PROC-102·PROC-201 |
-| IX_CONFIG_LIST | ENT-001 | is_active, created_at DESC (필터) | BTREE | 낮음~중간 | PROC-102 목록·필터·정렬 |
+| UQ_CONFIG_CODE | ENT-001 | config_code (부분 deleted_at IS NULL) | UNIQUE | 높음 | PROC-101 고유성·PROC-102·PROC-201 |
+| IX_CONFIG_LIST | ENT-001 | is_active, created_at DESC (부분) | BTREE | 낮음~중간 | PROC-102 목록·필터·정렬 |
 | IX_CONSENT_CONFIG | ENT-002 | config_id, display_order | BTREE | 중간 | PROC-201 동의 화면·PROC-101·102 |
 | IX_PARAM_CONFIG | ENT-003 | config_id, display_order | BTREE | 중간 | PROC-201·PROC-203·PROC-101·102 |
-| PK_PROCESS_STATUS | ENT-004 | request_key | UNIQUE(NONCLUSTERED 권장) | 높음 | PROC-301 조회·갱신·PROC-401 |
-| IX_STATUS_RETENTION_PENDING | ENT-004 | processed_at (필터 미확인) | BTREE | 중간 | PROC-402 미완료 삭제(DATA-004-02) |
-| IX_STATUS_RETENTION_CONFIRMED | ENT-004 | result_confirmed_at (필터 확인) | BTREE | 중간 | PROC-402 완료 삭제(DATA-004-01) |
+| PK_PROCESS_STATUS | ENT-004 | request_key | UNIQUE(b-tree) | 높음 | PROC-301 조회·갱신·PROC-401 |
+| IX_STATUS_RETENTION_PENDING | ENT-004 | processed_at (부분 미확인) | BTREE | 중간 | PROC-402 미완료 삭제(DATA-004-02) |
+| IX_STATUS_RETENTION_CONFIRMED | ENT-004 | result_confirmed_at (부분 확인) | BTREE | 중간 | PROC-402 완료 삭제(DATA-004-01) |
 | UQ_ADMIN_USERNAME | ENT-005 | username | UNIQUE | 높음 | PROC-103 로그인 조회 |
-| PK_AUDIT_LOG | ENT-006 | id (IDENTITY) | PK CLUSTERED | 높음 | 전 감사 기록 PROC INSERT |
+| PK_AUDIT_LOG | ENT-006 | id (identity) | PK(b-tree) | 높음 | 전 감사 기록 PROC INSERT |
 
 - **인덱스 신설 기준 준수**: 모든 신설 인덱스는 조건절·정렬·조인·유니크에 쓰는 PROC 가 1개 이상 실재한다. ENT-004.config_id·ENT-006 시각/유형 인덱스는 사용 PROC 0건이라 신설하지 않고 후속 PROC 확정 시 도입한다.
-- **필터 인덱스 활용**: 소프트 삭제(ENT-001)·상태 분기(ENT-004)는 MSSQL 필터 인덱스(WHERE 절)로 선택도·크기를 최적화한다.
+- **부분 인덱스 활용**: 소프트 삭제(ENT-001)·상태 분기(ENT-004)는 PostgreSQL 부분 인덱스(partial index, WHERE 절)로 선택도·크기를 최적화한다.
 
 ## ENT ↔ MDL 매핑 요약
 

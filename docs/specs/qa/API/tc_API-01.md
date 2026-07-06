@@ -17,14 +17,14 @@
 | 1 | GET /api/status/:requestKey | 유효 자격·미확인 상태 requestKey | 인증·제한·형식 통과 | B1~B3 |
 | 2 | 상태 조회·갱신 | — | 200 MDL-302(4항목+requestKey 에코) | B4~B6 |
 
-- **데이터 검증**: ENT-004 is_result_confirmed 0→1·result_confirmed_at=now 갱신(WHERE is_result_confirmed=0 멱등 가드). 응답에 회원 키·config_id 부재.
+- **데이터 검증**: ENT-004 is_result_confirmed false→true·result_confirmed_at=now 갱신(WHERE is_result_confirmed=false 멱등 가드). 응답에 회원 키·config_id 부재.
 
 ### API-01_002 재조회 무갱신(멱등)
 - **유형/우선순위/자동화**: 상태전이 · 높음 · 자동 | **PROC/분기**: PROC-301 / BR-301(재조회)
 
 | 단계 | 실행 | 입력 | 기대 결과 | 매핑 PROC |
 |--|--|--|--|--|
-| 1 | GET /api/status/:requestKey | 이미 확인된(is_result_confirmed=1) 상태 | 200, 갱신 없이 현재 상태 | B5 |
+| 1 | GET /api/status/:requestKey | 이미 확인된(is_result_confirmed=true) 상태 | 200, 갱신 없이 현재 상태 | B5 |
 
 - **데이터 검증**: result_confirmed_at 최초 값 불변(재갱신 없음).
 

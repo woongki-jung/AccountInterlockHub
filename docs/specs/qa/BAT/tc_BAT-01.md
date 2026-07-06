@@ -16,14 +16,14 @@
 |--|--|--|--|--|
 | 1 | FN-009_saveStatus | {requestKey,configId,isSuccess:true,processedAt} | ENT-004 1건 INSERT | B1 |
 
-- **데이터 검증**: `SELECT` 1건 — is_success=1·is_result_confirmed=0·result_confirmed_at=NULL·processed_at 기록·created_at 자동(DATA-003-01/02).
+- **데이터 검증**: `SELECT` 1건 — is_success=true·is_result_confirmed=false·result_confirmed_at=NULL·processed_at 기록·created_at 자동(DATA-003-01/02).
 
 ### BAT-01_002 상태 저장(거부)
 - **유형/우선순위/자동화**: Positive · 높음 · 자동 | **PROC/분기**: PROC-401 (호출 PROC-202 거부)
 
 | 단계 | 실행 | 입력 | 기대 결과 | 매핑 PROC |
 |--|--|--|--|--|
-| 1 | FN-009_saveStatus | isSuccess:false(거부) | ENT-004 1건(is_success=0) | B1 (EXC-DATA-03) |
+| 1 | FN-009_saveStatus | isSuccess:false(거부) | ENT-004 1건(is_success=false) | B1 (EXC-DATA-03) |
 
 - **데이터 검증**: 거부도 상태 생략 없이 1건 저장.
 
@@ -32,7 +32,7 @@
 
 | 단계 | 실행 | 입력 | 기대 결과 | 매핑 PROC |
 |--|--|--|--|--|
-| 1 | FN-009_saveStatus | isSuccess:false(전달 실패) | ENT-004 1건(is_success=0) | B1 (EXC-BIZ-06) |
+| 1 | FN-009_saveStatus | isSuccess:false(전달 실패) | ENT-004 1건(is_success=false) | B1 (EXC-BIZ-06) |
 
 - **데이터 검증**: 전달 실패(502)여도 상태 1건 반드시 저장됨.
 
@@ -50,9 +50,9 @@
 
 | 단계 | 실행 | 입력 | 기대 결과 | 매핑 PROC |
 |--|--|--|--|--|
-| 1 | INSERT | is_result_confirmed=0 AND result_confirmed_at=NULL | 통과(정합) | B1 |
-| 2 | INSERT | is_result_confirmed=1 AND result_confirmed_at=NULL(위반) | DB CHECK 거부 | B1 |
-| 3 | UPDATE | is_result_confirmed=1 AND result_confirmed_at=값 | 통과 | B2 |
+| 1 | INSERT | is_result_confirmed=false AND result_confirmed_at=NULL | 통과(정합) | B1 |
+| 2 | INSERT | is_result_confirmed=true AND result_confirmed_at=NULL(위반) | DB CHECK 거부 | B1 |
+| 3 | UPDATE | is_result_confirmed=true AND result_confirmed_at=값 | 통과 | B2 |
 
 ### BAT-01_006 PK 중복 저장 방지
 - **유형/우선순위/자동화**: Negative · 보통 · 자동 | **PROC/분기**: PROC-401 / PK_PROCESS_STATUS
@@ -66,16 +66,16 @@
 
 | 단계 | 실행 | 입력 | 기대 결과 | 매핑 PROC |
 |--|--|--|--|--|
-| 1 | FN-009_confirmResult | 미확인 상태·now | is_result_confirmed 0→1·result_confirmed_at=now | B2 |
+| 1 | FN-009_confirmResult | 미확인 상태·now | is_result_confirmed false→true·result_confirmed_at=now | B2 |
 
-- **데이터 검증**: `WHERE request_key=? AND is_result_confirmed=0` 멱등 가드로 1회만 반영.
+- **데이터 검증**: `WHERE request_key=? AND is_result_confirmed=false` 멱등 가드로 1회만 반영.
 
 ### BAT-01_008 재확인 무갱신(멱등)
 - **유형/우선순위/자동화**: 상태전이 · 보통 · 자동 | **PROC/분기**: PROC-401 / BR-301(재실행)
 
 | 단계 | 실행 | 입력 | 기대 결과 | 매핑 PROC |
 |--|--|--|--|--|
-| 1 | FN-009_confirmResult | 이미 is_result_confirmed=1 | UPDATE 미반영(멱등, result_confirmed_at 불변) | B2 |
+| 1 | FN-009_confirmResult | 이미 is_result_confirmed=true | UPDATE 미반영(멱등, result_confirmed_at 불변) | B2 |
 
 ### BAT-01_009 INSERT·UPDATE 오류
 - **유형/우선순위/자동화**: 시스템예외 · 보통 · 반자동 | **PROC/분기**: PROC-401 / EX-FN-999

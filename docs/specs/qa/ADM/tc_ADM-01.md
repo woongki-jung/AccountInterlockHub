@@ -62,7 +62,7 @@
 |--|--|--|--|--|
 | 1 | POST /configs | 기존 유효 구성과 동일 config_code | 409 EX-BIZ-002, 롤백 | B2 (BIZ-001-03) |
 
-- **데이터 검증**: 중복 config_code(deleted_at IS NULL) 존재 시 신규 INSERT 미발생. 필터 유니크 UQ_CONFIG_CODE 최종 방어.
+- **데이터 검증**: 중복 config_code(deleted_at IS NULL) 존재 시 신규 INSERT 미발생. 부분 유니크 UQ_CONFIG_CODE 최종 방어.
 
 ### ADM-01_007 구성 코드 길이 경계
 - **유형/우선순위/자동화**: Boundary · 보통 · 자동 | **PROC/분기**: PROC-101 / EX-BIZ-001·SEC-004

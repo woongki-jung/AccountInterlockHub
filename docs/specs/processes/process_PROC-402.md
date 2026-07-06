@@ -56,7 +56,7 @@
 
 - **트랜잭션 경계**: 삭제는 한 배치 흐름의 트랜잭션. 실패 시 롤백 후 다음 주기 재시도(OPS-003-03). 배치 결과는 별도 상태 테이블에 저장하지 않음.
 - **동시성 제어**: 조건절 자체가 멱등 가드 — 재실행 시 이미 삭제분 미해당(OPS-003-02). 중복 삭제·부작용 없음.
-- **성능 요구**: 완료/미완료 필터 인덱스(IX_STATUS_RETENTION_CONFIRMED·PENDING)로 범위 삭제 지역성 확보. 대량 삭제는 배치 청크 전략 build 검토.
+- **성능 요구**: 완료/미완료 부분 인덱스(IX_STATUS_RETENTION_CONFIRMED·PENDING)로 범위 삭제 지역성 확보. 대량 삭제는 배치 청크 전략 build 검토.
 - **보안 요구**: 개인정보 미취급(ENT-004 개인식별 컬럼 부재). 실행 결과 감사(OPS-003-03). 삭제 사실 자체는 미보관.
 
 ### 로직 실행 순서
@@ -73,20 +73,20 @@
 ```
 B1. 기동 — FN-011_runRetentionBatch(now, retentionDays=90)  (OPS-003-01)
   트리거: 스케줄 도래(일 1회, cron 표현식 build 확정)
-  start = now; threshold = DATEADD(day, -90, now)
+  start = now; threshold = now - INTERVAL '90 days'
   FN-013_writeAudit({ eventType:'BATCH_RUN', actorType:'BATCH', result:'INFO',
                       detail:'retention start' })
 
 B2. 삭제 대상 선정·삭제 — DATA-004-01/02/03·OPS-003-02  (BR-401)
-  BEGIN TRAN;
+  BEGIN;
     -- 완료 건: 결과 확인 일시 + 90일 경과(IX_STATUS_RETENTION_CONFIRMED)
     DELETE FROM TBL_INTERLOCK_PROCESS_STATUS
-      WHERE is_result_confirmed = 1 AND result_confirmed_at < :threshold;
-    deletedConfirmed = @@ROWCOUNT;
+      WHERE is_result_confirmed = true AND result_confirmed_at < :threshold;
+    deletedConfirmed = ROW_COUNT;
     -- 미완료 건: 처리 일시 + 90일 경과(IX_STATUS_RETENTION_PENDING, 무기한 누적 방지)
     DELETE FROM TBL_INTERLOCK_PROCESS_STATUS
-      WHERE is_result_confirmed = 0 AND processed_at < :threshold;
-    deletedPending = @@ROWCOUNT;
+      WHERE is_result_confirmed = false AND processed_at < :threshold;
+    deletedPending = ROW_COUNT;
     // 하드 삭제(소프트 삭제·보관 플래그 미사용, DATA-004-03). 조건절이 곧 멱등 가드
   COMMIT;   // 오류 시 ROLLBACK → 다음 주기 재시도(OPS-003-03)
 
@@ -114,8 +114,8 @@ B4. 반환(별도 저장 없음)
 | # | 레이어 | 단계명 | 직전 단계 출력 | 본 단계 처리 요지 | 다음 단계 입력 |
 |---|--------|--------|--------------|----------------|---------------|
 | 1 | BE | 배치 기동 | (스케줄 도래) | threshold 산출 + 기동 감사 | threshold |
-| 2 | BE | 완료 건 삭제 | threshold | is_result_confirmed=1 AND result_confirmed_at<threshold DELETE | deletedConfirmed |
-| 3 | BE | 미완료 건 삭제 | threshold | is_result_confirmed=0 AND processed_at<threshold DELETE | deletedPending |
+| 2 | BE | 완료 건 삭제 | threshold | is_result_confirmed=true AND result_confirmed_at<threshold DELETE | deletedConfirmed |
+| 3 | BE | 미완료 건 삭제 | threshold | is_result_confirmed=false AND processed_at<threshold DELETE | deletedPending |
 | 4 | BE | 결과 집계·감사 | 삭제 건수 | MDL-402 요약 + BATCH_RUN SUCCESS 감사 | 배치 결과 |
 
 ### 분기 및 예외 흐름
@@ -142,5 +142,5 @@ B4. 반환(별도 저장 없음)
 ### 구현 가이드
 
 - 삭제 대상 선정은 완료·미완료 두 갈래를 모두 포함하고 한 트랜잭션 흐름에서 처리한다. 조건절이 곧 멱등 가드이므로 재실행 시 중복 삭제가 발생하지 않는다(OPS-003-02).
-- 완료/미완료 필터 인덱스(IX_STATUS_RETENTION_CONFIRMED·PENDING)를 활용해 범위 삭제 지역성을 높인다. 배치 결과는 별도 상태 테이블에 저장하지 않고 감사 로그 detail 로만 남긴다.
+- 완료/미완료 부분 인덱스(IX_STATUS_RETENTION_CONFIRMED·PENDING)를 활용해 범위 삭제 지역성을 높인다. 배치 결과는 별도 상태 테이블에 저장하지 않고 감사 로그 detail 로만 남긴다.
 - 90일 기준·일 배치 주기·미완료 삭제 기준은 기본안이며(EXC-DATA-05) 확정 시 DATA-004·FN-011 을 리비전한다. 스케줄러 구체안(cron·청크 삭제)은 build 단계에서 확정한다.

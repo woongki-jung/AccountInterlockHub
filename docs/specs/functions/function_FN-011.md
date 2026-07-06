@@ -50,10 +50,10 @@ function FN-011_runRetentionBatch (
 2. 삭제 대상 선정·삭제 — DATA-004-01/02/03·OPS-003-02 (validate·transform, BR-401)
    // 완료 건: 결과 확인 일시 + 90일 경과
    deletedConfirmed = DELETE FROM TBL_INTERLOCK_PROCESS_STATUS
-       WHERE is_result_confirmed = 1 AND result_confirmed_at < :threshold;   // 하드 삭제
+       WHERE is_result_confirmed = true AND result_confirmed_at < :threshold;   // 하드 삭제
    // 미완료 건: 처리 일시 + 90일 경과(무기한 누적 방지)
    deletedPending = DELETE FROM TBL_INTERLOCK_PROCESS_STATUS
-       WHERE is_result_confirmed = 0 AND processed_at < :threshold;
+       WHERE is_result_confirmed = false AND processed_at < :threshold;
    // 두 갈래를 한 배치 흐름에서 처리, 조건절 자체가 멱등(재실행 시 이미 삭제분 미해당)
 
 3. 결과 집계 — OPS-003-03 (audit)
@@ -88,4 +88,4 @@ function FN-011_runRetentionBatch (
 ### 구현 가이드
 
 - 삭제 대상 선정은 완료·미완료 두 갈래를 모두 포함하고 한 트랜잭션 흐름에서 처리한다. 조건절이 곧 멱등 가드이므로 재실행 시 중복 삭제가 발생하지 않는다(OPS-003-02).
-- 완료/미완료 필터 인덱스(IX_STATUS_RETENTION_CONFIRMED·PENDING)를 활용해 범위 삭제 지역성을 높인다([ENT-004](../datas/data_ENT-004.md)). 배치 결과는 별도 상태 테이블에 저장하지 않고 감사 로그 detail 로만 남긴다.
+- 완료/미완료 부분 인덱스(IX_STATUS_RETENTION_CONFIRMED·PENDING)를 활용해 범위 삭제 지역성을 높인다([ENT-004](../datas/data_ENT-004.md)). 배치 결과는 별도 상태 테이블에 저장하지 않고 감사 로그 detail 로만 남긴다.

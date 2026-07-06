@@ -26,12 +26,12 @@
 
 | 속성명 | 데이터 타입 | 길이/precision | NULL | 기본값 | CHECK 제약 | 키 | 설명 |
 |--------|-----------|----------------|------|--------|-----------|----|------|
-| id | UNIQUEIDENTIFIER | - | NOT NULL | NEWSEQUENTIALID() | - | PK | 파라미터 정의 고유 식별자 |
-| config_id | UNIQUEIDENTIFIER | - | NOT NULL | - | - | FK | 소속 연동 구성(ENT-001.id) |
-| param_name | NVARCHAR | 100 | NOT NULL | - | LEN(param_name) > 0 | - | 파라미터명(허브·서비스 B 기준 키명) |
-| source_key_a | NVARCHAR | 100 | NOT NULL | - | LEN(source_key_a) > 0 | - | 서비스 A 진입 원천 키명(매핑 원본) |
-| deliver_to_b | BIT | - | NOT NULL | 1 | - | - | 서비스 B 전달 여부(1=전달) |
-| is_required | BIT | - | NOT NULL | 0 | - | - | 진입 시 필수 여부 |
+| id | uuid | - | NOT NULL | gen_random_uuid() | - | PK | 파라미터 정의 고유 식별자 |
+| config_id | uuid | - | NOT NULL | - | - | FK | 소속 연동 구성(ENT-001.id) |
+| param_name | varchar | 100 | NOT NULL | - | length(param_name) > 0 | - | 파라미터명(허브·서비스 B 기준 키명) |
+| source_key_a | varchar | 100 | NOT NULL | - | length(source_key_a) > 0 | - | 서비스 A 진입 원천 키명(매핑 원본) |
+| deliver_to_b | boolean | - | NOT NULL | true | - | - | 서비스 B 전달 여부(true=전달) |
+| is_required | boolean | - | NOT NULL | false | - | - | 진입 시 필수 여부 |
 | display_order | INT | - | NOT NULL | 0 | display_order >= 0 | - | 표시·처리 순서 |
 
 > 본 테이블은 파라미터의 "정의(이름·매핑·전달 여부)"만 보관한다. 진입 시 수신하는 실제 값(회원 키 포함 가능)은 어떤 컬럼에도 저장하지 않고 메모리에서 서비스 B 전달에만 사용한다(DATA-001-01).
@@ -62,10 +62,10 @@
 | BIZ-001-01 | 전달 파라미터 정의 필수 | 응용 검증(PROC-101) |
 | BIZ-001-05 | 개인정보 직접 수신 파라미터 경고(비차단) | 응용 감사(PROC-101 audit, EXC-BIZ-01) |
 | DATA-001-01 | 파라미터 실제 값 무저장 | 스키마 설계(정의 메타만) |
-| SEC-004-01 | param_name·source_key_a 형식 | 응용 검증(DTO) + NOT NULL·LEN |
+| SEC-004-01 | param_name·source_key_a 형식 | 응용 검증(DTO) + NOT NULL·length |
 | SEC-002 | 회원 키 값 무변형 전달 | 응용 처리(PROC-203, 정의만 참조) |
 
 ### 구현 가이드
 
-- 전달 페이로드 구성(PROC-203)은 deliver_to_b=1 인 파라미터만 서비스 B 로 실어 보낸다. source_key_a 는 진입 원천 키를 param_name 으로 리매핑하는 기준이다.
+- 전달 페이로드 구성(PROC-203)은 deliver_to_b=true 인 파라미터만 서비스 B 로 실어 보낸다. source_key_a 는 진입 원천 키를 param_name 으로 리매핑하는 기준이다.
 - 개인정보 직접 수신 파라미터가 정의에 포함되면 저장은 차단하지 않고 경고를 감사 로그에 남긴다(BIZ-001-05). 값 자체는 저장하지 않으므로 무저장 원칙과 양립한다.

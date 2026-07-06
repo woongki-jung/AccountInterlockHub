@@ -51,7 +51,7 @@
 ### 연관 데이터 및 외부 호출
 
 - **호출 API**: 서비스 B 전달 주소(config.serviceBDeliveryUrl) — BE 경유 아웃바운드. 메서드=config.serviceBHttpMethod, 타임아웃·재시도 2회(기본안).
-- **데이터 조회 대상**: ENT-003(전달 파라미터 정의, deliver_to_b=1), config.serviceBDeliveryUrl·method(구성 참조).
+- **데이터 조회 대상**: ENT-003(전달 파라미터 정의, deliver_to_b=true), config.serviceBDeliveryUrl·method(구성 참조).
 - **데이터 변경 대상(CRUD)**: ENT-004 INSERT(상태 1건, PROC-401 경유), ENT-006 INSERT(전달 실패·차단 감사).
 
 ### 실행 제약사항
@@ -88,7 +88,7 @@ B2. 전달 대상 결정 — BIZ-003-02
 B3. 페이로드 구성 — SEC-002·DATA-001-01 (전달 파라미터 정의 조회)
   paramDefs = SELECT param_name, source_key_a, deliver_to_b
               FROM TBL_INTERLOCK_PARAMETER
-              WHERE config_id = :config.id AND deliver_to_b = 1
+              WHERE config_id = :config.id AND deliver_to_b = true
               ORDER BY display_order;                          -- IX_PARAM_CONFIG
   payload = {                                  // MDL-204, 저장 안 함
       targetUrl, httpMethod: method,
@@ -121,7 +121,7 @@ B6. 결과 처리 — BIZ-003-03·OPS-002
 
 | 변환 지점 | 변환 위치 | 입력 형태 | 출력 형태 | 변환 규칙 |
 |----------|----------|----------|----------|-----------|
-| 도메인→응답(아웃바운드) | BE(FN-012) | ctx·config·paramDefs | MDL-204 페이로드 | source_key_a→param_name 리매핑, deliver_to_b=1만, memberKey 무변형 |
+| 도메인→응답(아웃바운드) | BE(FN-012) | ctx·config·paramDefs | MDL-204 페이로드 | source_key_a→param_name 리매핑, deliver_to_b=true만, memberKey 무변형 |
 | 응답→도메인 | BE(FN-012) | 서비스 B 응답 | isSuccess | resp.ok 판정·재시도 집계 |
 | 도메인→ENT | BE(PROC-401) | 전달 결과 | ENT-004 행 | requestKey·configId·is_success·processed_at |
 | 도메인→로그 | BE(감사) | 실패·차단 이벤트 | ENT-006 행 | requestKey 마스킹(FN-010) |
@@ -132,7 +132,7 @@ B6. 결과 처리 — BIZ-003-03·OPS-002
 |---|--------|--------|--------------|----------------|---------------|
 | 1 | BE | 사전 조건 검증 | (PROC-202 동의) | 동의 완료·상태 전이 검증(미동의 차단) | 검증 통과 |
 | 2 | BE | 전달 대상 결정 | 검증 통과 | 구성의 서비스 B 주소·메서드 확정 | 전달 대상 |
-| 3 | BE | 페이로드 구성 | 전달 대상 | deliver_to_b=1 파라미터 매핑·회원 키 무변형 | MDL-204 |
+| 3 | BE | 페이로드 구성 | 전달 대상 | deliver_to_b=true 파라미터 매핑·회원 키 무변형 | MDL-204 |
 | 4 | BE | 전달·재시도 | MDL-204 | 서비스 B 호출(최대 2회 재시도, BR-202) | isSuccess |
 | 5 | BE | 상태 저장 | isSuccess | PROC-401 상태 1건 저장 | 처리 상태 |
 | 6 | BE | 결과 처리 | 처리 상태 | 실패 시 감사·502 EX-BIZ-004 / 성공 반환 | status/502 |
@@ -150,8 +150,8 @@ B6. 결과 처리 — BIZ-003-03·OPS-002
 
 ### 실행 결과
 
-- **정상 결과**: 서비스 B 전달 성공, 처리 상태 1건(is_success=1) 저장. PROC-202 로 200 반환 → SCR-006 "연동이 완료되었습니다."
-- **실패 결과**: 재시도 2회 후 실패 → 처리 상태 1건(is_success=0) 저장 + DELIVERY_FAIL 감사 + 502 EX-BIZ-004. 미동의·구성 외 주소는 내부 차단(감사).
+- **정상 결과**: 서비스 B 전달 성공, 처리 상태 1건(is_success=true) 저장. PROC-202 로 200 반환 → SCR-006 "연동이 완료되었습니다."
+- **실패 결과**: 재시도 2회 후 실패 → 처리 상태 1건(is_success=false) 저장 + DELIVERY_FAIL 감사 + 502 EX-BIZ-004. 미동의·구성 외 주소는 내부 차단(감사).
 - **후속 트리거**: PROC-401(상태 저장). 저장된 상태는 PROC-301 조회·PROC-402 보관 대상.
 
 ### 의존 프로세스

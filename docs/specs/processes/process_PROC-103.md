@@ -104,14 +104,14 @@ B2. 자격 검증·잠금 — FN-002_authenticateAdmin(username, password, now) 
   계정 조회(AUTH-001-01):
     SELECT id, username, password_hash, is_active, failed_login_count, locked_until
     FROM TBL_ADMIN_ACCOUNT WHERE username = :username;   -- UQ_ADMIN_USERNAME
-    if (row is null OR is_active=0) → 감사(LOGIN_FAIL) → 401 EX-AUTH-001 (존재 비노출)
+    if (row is null OR is_active=false) → 감사(LOGIN_FAIL) → 401 EX-AUTH-001 (존재 비노출)
   잠금 확인(AUTH-003-01):
     if (locked_until is not null AND locked_until > now) → 감사(LOGIN_LOCKED,BLOCKED) → 423 EX-AUTH-003
   비밀번호 대조(AUTH-001-03):
     if (!hashVerify(password, password_hash)):
         newCount = failed_login_count + 1
         if (newCount >= 5):  UPDATE TBL_ADMIN_ACCOUNT
-            SET failed_login_count=:newCount, locked_until = DATEADD(minute,10,:now) WHERE id=:id;
+            SET failed_login_count=:newCount, locked_until = :now + INTERVAL '10 minutes' WHERE id=:id;
         else:                UPDATE TBL_ADMIN_ACCOUNT
             SET failed_login_count=:newCount WHERE id=:id;
         FN-013_writeAudit(LOGIN_FAIL, ADMIN, username, FAIL)   -- AUTH-003-02

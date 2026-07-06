@@ -35,7 +35,7 @@
 | 단계 | 실행 | 입력 | 기대 결과 | 매핑 PROC |
 |--|--|--|--|--|
 | 1 | POST /auth/login | 미존재 username | 401 EX-AUTH-001(존재 비노출) | B2 |
-| 2 | POST /auth/login | is_active=0 계정 | 401 EX-AUTH-001(동일 응답 형태) | B2 |
+| 2 | POST /auth/login | is_active=false 계정 | 401 EX-AUTH-001(동일 응답 형태) | B2 |
 
 ### ADM-03_004 5회 연속 실패 계정 잠금
 - **유형/우선순위/자동화**: 상태전이 · 높음 · 자동 | **PROC/분기**: PROC-103 / BR-105·EX-AUTH-003

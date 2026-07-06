@@ -124,7 +124,7 @@
 
 | 모델 속성 | 엔터티(ENT) | 엔터티 속성 | 변환 지점 | 변환 규칙 |
 |-----------|-------------|-------------|-----------|-----------|
-| decision | ENT-004 | is_success | 도메인→ENT | AGREE→전달 진행 후 결과 반영 / REJECT→is_success=0(미전달) |
+| decision | ENT-004 | is_success | 도메인→ENT | AGREE→전달 진행 후 결과 반영 / REJECT→is_success=false(미전달) |
 | requestKey | ENT-004 | request_key | 요청→도메인 | 상태 레코드 연결 키 |
 
 ### 사용처

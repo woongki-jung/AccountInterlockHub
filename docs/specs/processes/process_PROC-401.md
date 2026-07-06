@@ -55,7 +55,7 @@
 ### 실행 제약사항
 
 - **트랜잭션 경계**: 저장·갱신 각각 단건 트랜잭션. 저장 INSERT 는 PK(request_key) 유니크로 중복 방지.
-- **동시성 제어**: 결과 확인 갱신은 WHERE is_result_confirmed=0 멱등 가드로 최초 1회만 반영(BR-301). 재실행 시 미갱신.
+- **동시성 제어**: 결과 확인 갱신은 WHERE is_result_confirmed=false 멱등 가드로 최초 1회만 반영(BR-301). 재실행 시 미갱신.
 - **성능 요구**: 단건 INSERT/UPDATE. PK 조회. 별도 임계치 없음.
 - **보안 요구**: 개인식별 컬럼 원천 배제(DATA-001-02·DATA-003-01), 회원 키·마스킹 대상 필드 부재. 결과 확인 여부·일시 정합은 DB CHECK 로 강제.
 
@@ -73,23 +73,23 @@
 ```
 B1. 상태 저장 — FN-009_saveStatus(status)  (DATA-003-01/02·DATA-001-02)  [PROC-203 호출]
   assert(status has only { requestKey, configId, isSuccess, processedAt })  // 개인식별 배제
-  BEGIN TRAN;
+  BEGIN;
     INSERT INTO TBL_INTERLOCK_PROCESS_STATUS
       (request_key, config_id, is_success, is_result_confirmed,
        processed_at, result_confirmed_at, created_at)
-    VALUES (:requestKey, :configId, :isSuccess, 0, :processedAt, NULL, SYSUTCDATETIME());
+    VALUES (:requestKey, :configId, :isSuccess, false, :processedAt, NULL, now());
     // 성공·실패·거부 모두 1건(EXC-DATA-03·EXC-BIZ-06)
-    // CHECK: (is_result_confirmed=0 AND result_confirmed_at IS NULL) 정합 만족
+    // CHECK: (is_result_confirmed=false AND result_confirmed_at IS NULL) 정합 만족
   COMMIT;
   return status(isResultConfirmed=false)
 
 B2. 결과 확인 갱신 — FN-009_confirmResult(requestKey, now)  (DATA-003-03, 멱등)  [PROC-301 호출]
   // 조회(findByKey)는 PROC-301 B4 에서 선행(미존재 404 판정)
   if (status.isResultConfirmed == false):    // 최초 조회만 갱신
-      BEGIN TRAN;
+      BEGIN;
         UPDATE TBL_INTERLOCK_PROCESS_STATUS
-          SET is_result_confirmed = 1, result_confirmed_at = :now
-        WHERE request_key = :requestKey AND is_result_confirmed = 0;   // 멱등 가드
+          SET is_result_confirmed = true, result_confirmed_at = :now
+        WHERE request_key = :requestKey AND is_result_confirmed = false;   // 멱등 가드
       COMMIT;
       status.isResultConfirmed = true; status.resultConfirmedAt = now
   return status                              // 재조회는 갱신 없이 현재 상태
@@ -100,8 +100,8 @@ B2. 결과 확인 갱신 — FN-009_confirmResult(requestKey, now)  (DATA-003-03
 
 | 변환 지점 | 변환 위치 | 입력 형태 | 출력 형태 | 변환 규칙 |
 |----------|----------|----------|----------|-----------|
-| 도메인→ENT | BE 리포지토리 | MDL-301(저장) | ENT-004 행(INSERT) | requestKey·configId·is_success·processed_at, is_result_confirmed=0 |
-| 도메인→ENT | BE 리포지토리 | 갱신 명령 | ENT-004 UPDATE | is_result_confirmed=1·result_confirmed_at(가드 조건) |
+| 도메인→ENT | BE 리포지토리 | MDL-301(저장) | ENT-004 행(INSERT) | requestKey·configId·is_success·processed_at, is_result_confirmed=false |
+| 도메인→ENT | BE 리포지토리 | 갱신 명령 | ENT-004 UPDATE | is_result_confirmed=true·result_confirmed_at(가드 조건) |
 | ENT→도메인 | BE 리포지토리 | ENT-004 행 | MDL-301 | 직접 매핑·NULL 처리 |
 
 #### 단계 통합 흐름
@@ -109,7 +109,7 @@ B2. 결과 확인 갱신 — FN-009_confirmResult(requestKey, now)  (DATA-003-03
 | # | 레이어 | 단계명 | 직전 단계 출력 | 본 단계 처리 요지 | 다음 단계 입력 |
 |---|--------|--------|--------------|----------------|---------------|
 | 1 | BE | 상태 저장(호출 PROC-203) | 전달 결과 | 개인식별 배제 assert + INSERT 1건 | 저장된 상태 |
-| 2 | BE | 결과 확인 갱신(호출 PROC-301) | 조회된 상태 | is_result_confirmed=0 가드 UPDATE(BR-301) | 갱신된 상태 |
+| 2 | BE | 결과 확인 갱신(호출 PROC-301) | 조회된 상태 | is_result_confirmed=false 가드 UPDATE(BR-301) | 갱신된 상태 |
 
 > 두 진입은 서로 다른 호출 PROC(저장=PROC-203, 갱신=PROC-301)에서 독립 위임된다. 한 요청에서 저장·갱신이 연쇄하지 않는다(저장은 연동 실행 시점, 갱신은 이후 조회 시점).
 
@@ -125,8 +125,8 @@ B2. 결과 확인 갱신 — FN-009_confirmResult(requestKey, now)  (DATA-003-03
 
 ### 실행 결과
 
-- **정상 결과(저장)**: ENT-004 1건 INSERT(is_result_confirmed=0, result_confirmed_at=NULL). 호출 PROC-203 로 반환.
-- **정상 결과(갱신)**: 최초 조회 시 is_result_confirmed=1·result_confirmed_at 갱신(멱등). 재조회는 무갱신.
+- **정상 결과(저장)**: ENT-004 1건 INSERT(is_result_confirmed=false, result_confirmed_at=NULL). 호출 PROC-203 로 반환.
+- **정상 결과(갱신)**: 최초 조회 시 is_result_confirmed=true·result_confirmed_at 갱신(멱등). 재조회는 무갱신.
 - **실패 결과**: EX-FN-999(INSERT·UPDATE 오류). 트랜잭션 롤백.
 - **후속 트리거**: 없음(종착 프로세스). 저장된 상태는 PROC-301 조회·PROC-402 보관 대상.
 
@@ -139,5 +139,5 @@ B2. 결과 확인 갱신 — FN-009_confirmResult(requestKey, now)  (DATA-003-03
 ### 구현 가이드
 
 - 요청 키값을 조회 키(PK)로 두고, 4개 상태 항목 외 개인정보성 컬럼을 스키마에서 원천 배제한다(스키마 상세는 ENT-004). DB 접근은 파라미터 바인딩만 사용한다(SEC-004-02).
-- 결과 확인 갱신은 최초 조회 성공 시 1회 수행하도록 조건절 가드(is_result_confirmed=0)로 멱등하게 설계한다. 결과 확인 여부·일시 정합은 DB CHECK 로 강제한다(ENT-004).
+- 결과 확인 갱신은 최초 조회 성공 시 1회 수행하도록 조건절 가드(is_result_confirmed=false)로 멱등하게 설계한다. 결과 확인 여부·일시 정합은 DB CHECK 로 강제한다(ENT-004).
 - 본 PROC 은 조회 응답 마스킹·엔벨로프를 수행하지 않는다 — 서비스 대면 응답은 호출 PROC-301 이 FN-010·FN-015 로 구성한다.

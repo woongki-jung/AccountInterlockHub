@@ -50,7 +50,7 @@
 ### 연관 데이터 및 외부 호출
 
 - **호출 API**: 서비스 B 전달은 동의 시 PROC-203(내부) → FN-012 가 BE 경유로 수행.
-- **데이터 조회 대상**: 진입 컨텍스트(메모리), ENT-001(활성 구성, config_code·is_active=1·deleted_at IS NULL).
+- **데이터 조회 대상**: 진입 컨텍스트(메모리), ENT-001(활성 구성, config_code·is_active=true·deleted_at IS NULL).
 - **데이터 변경 대상(CRUD)**: ENT-004 INSERT(거부 즉시 / 동의는 PROC-203→PROC-401 저장), ENT-006 INSERT(감사). 처리 후 진입 컨텍스트 폐기.
 
 ### 실행 제약사항
@@ -97,7 +97,7 @@ B2. 동의 결과 검증·분기 — FN-008_processDecision(decision, now)   [BR
   if (ctx is null OR ctx.configCode != decision.configCode)      // 구성 매칭 근거 검증
         → 400 EX-DATA-002 (만료·불일치)
   config = SELECT id FROM TBL_INTERLOCK_CONFIG
-           WHERE config_code = :ctx.configCode AND is_active = 1 AND deleted_at IS NULL;
+           WHERE config_code = :ctx.configCode AND is_active = true AND deleted_at IS NULL;
 
 B3a. 거부 경로 — REJECT (BIZ-002-03)
   status = PROC-401 / FN-009_saveStatus({ requestKey, configId: config.id,
@@ -122,7 +122,7 @@ B3b. 동의 경로 — AGREE (BIZ-002-02)
 |----------|----------|----------|----------|-----------|
 | FE→요청 | FE 어댑터 | SCR-005 결정·체크 | MDL-203 DTO | decision·configCode 매핑 |
 | 요청→도메인 | BE 컨트롤러 | MDL-203 DTO | ConsentResult | FN-005 검증·컨텍스트 매칭 |
-| 도메인→ENT | BE(PROC-401) | 결정 결과 | ENT-004 행 | REJECT→is_success=0 / AGREE→전달 결과 반영 |
+| 도메인→ENT | BE(PROC-401) | 결정 결과 | ENT-004 행 | REJECT→is_success=false / AGREE→전달 결과 반영 |
 | 도메인→응답 | BE 컨트롤러 | 처리 상태 | { success } | 상태 값 미노출(결과 유형만) |
 | 응답→FE | FE 어댑터 | 응답·에러 | SCR-006 상태 | 동의완료/거부/전달실패 유형 매핑 |
 
