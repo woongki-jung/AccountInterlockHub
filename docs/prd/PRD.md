@@ -70,7 +70,7 @@
 - **배포 형태**: ReactJS 정적 빌드를 NestJS가 정적 콘텐츠로 서빙하여, 운영 환경에서 **하나의 Azure App Service**로 배포한다.
 - **관리자 접근 제어**: 관리자 경로는 NestJS 단에서 IP 기반 접속 제한을 적용한다.
 - **데이터 원칙**: 허브는 사용자 정보를 보관하지 않는다. 처리 추적을 위해 요청 키값별 상태(처리 성공 여부·결과 확인 여부·처리일시·결과 확인일시)만 저장하고, 결과 확인 완료 후 3개월이 지나면 배치로 삭제한다. 상세 [`devspec/database.md`](devspec/database.md).
-- **데이터베이스**: MSSQL. 운영은 Azure의 MSSQL 서비스, 개발·로컬은 별도 MSSQL 서버.
+- **데이터베이스**: PostgreSQL. 운영은 Azure의 PostgreSQL 서비스(Azure Database for PostgreSQL), 개발·로컬은 별도 PostgreSQL 서버.
 - **신뢰 위임**: 회원 키의 무결성·위변조 방지는 전송 주체(서비스 A)가 책임진다.
 
 ## 프로그램 구성·기술스택·검증 방법
