@@ -51,7 +51,7 @@
 
 - **호출 API**: 외부 호출 없음(내부 영속화만).
 - **데이터 조회 대상**: ENT-001 고유성 사전 조회(config_code, deleted_at IS NULL).
-- **데이터 변경 대상(CRUD)**: ENT-001 INSERT/UPDATE, ENT-002·ENT-003 INSERT(편집 시 교체), ENT-006 INSERT(감사).
+- **데이터 변경 대상(CRUD)**: ENT-001 INSERT/UPDATE(user_key_param_id 지정 참조 반영 — 자식 INSERT 후 설정), ENT-002·ENT-003 INSERT(편집 시 교체), ENT-006 INSERT(감사).
 
 ### 실행 제약사항
 
@@ -78,6 +78,7 @@ F1. 저장 제출 트리거 → FE 검증 → 요청 DTO 변환   (SCR-003)
     if (!/^https?:\/\/\S+$/.test(serviceBDeliveryUrl))     → 필드 에러 → 중단
     if (consentItems.length < 1)                          → 알림 → 중단
     if (parameters.length < 1)                            → 알림 → 중단
+    if (parameters.filter(p => p.isUserKey).length !== 1) → 알림("사용자 키값 파라미터를 1개 지정해주세요.") → 중단   // exactly-one(BIZ-001-07)
   요청 DTO 변환(FE 어댑터):
     payload = {
       configCode: trim(form.configCode), configName: trim(form.configName),
@@ -88,7 +89,7 @@ F1. 저장 제출 트리거 → FE 검증 → 요청 DTO 변환   (SCR-003)
         required:!!c.required, order:i })),
       parameters: form.parameters.map((p,i)=>({ name:trim(p.name),
         sourceKeyA:trim(p.sourceKeyA), deliverToB:p.deliverToB!==false,
-        required:!!p.required, order:i }))
+        required:!!p.required, order:i, isUserKey:!!p.isUserKey }))   // 지정 행만 true(정확히 1개)
     }
   호출 수단:
     mutation → mode=='CREATE' ? POST /api/admin/configs
@@ -121,8 +122,10 @@ B1. 진입 가드 → 인증 → 입력 재검증
              rawSize>1MB → 413 EX-SEC-005 / 스키마 위반 → 400 EX-SEC-004(details)
   mode = 메서드(POST=CREATE / PUT=EDIT), selfId = params.id (EDIT)
 
-B2. 구성 검증·고유성 — FN-006_validateConfig(config, mode, selfId)   [BR-101]
+B2. 구성 검증·고유성 — FN-006_validateConfig(config, mode, selfId)   [BR-101·BR-107]
   필수(BIZ-001-01)·URL 형식(BIZ-001-02)·동의 항목 개수(BIZ-001-04) 위반 → 422 EX-BIZ-001
+  사용자 키값 지정(BIZ-001-07, exactly-one): isUserKey=true 파라미터가 정확히 1개가 아니거나
+    (0개 미지정·2개 이상 다중) 지정 파라미터 미실재 → 422 EX-BIZ-001   [BR-107]
   고유성 사전 조회(BIZ-001-03):
     SELECT id FROM TBL_INTERLOCK_CONFIG
     WHERE config_code = :configCode AND deleted_at IS NULL;
@@ -143,7 +146,8 @@ B3. 트랜잭션 영속화   (부모+자식 원자적)
       UPDATE TBL_INTERLOCK_CONFIG
         SET config_name=:configName, service_a_entry_url=:aUrl,
             service_b_delivery_url=:bUrl, service_b_http_method=:method,
-            is_active=:isActive, updated_at=now(), updated_by=:session.username
+            is_active=:isActive, user_key_param_id=NULL,   // 지정 참조 해제(전량 교체 전 RESTRICT 회피, data_ENT-001 §구현 가이드)
+            updated_at=now(), updated_by=:session.username
       WHERE id=:selfId AND deleted_at IS NULL;   // config_code 불변
       → configId = :selfId;
       DELETE FROM TBL_INTERLOCK_CONSENT_ITEM WHERE config_id=:configId;   // 자식 교체
@@ -152,10 +156,15 @@ B3. 트랜잭션 영속화   (부모+자식 원자적)
       INSERT INTO TBL_INTERLOCK_CONSENT_ITEM
         (id, config_id, item_label, item_description, terms_content, is_required, display_order)
       VALUES (gen_random_uuid(), :configId, :c.label, :c.description, :c.termsContent, :c.required, :c.order);
+    designatedParamId = null;
     for (p in parameters):
+      pid = gen_random_uuid();
       INSERT INTO TBL_INTERLOCK_PARAMETER
         (id, config_id, param_name, source_key_a, deliver_to_b, is_required, display_order)
-      VALUES (gen_random_uuid(), :configId, :p.name, :p.sourceKeyA, :p.deliverToB, :p.required, :p.order);
+      VALUES (:pid, :configId, :p.name, :p.sourceKeyA, :p.deliverToB, :p.required, :p.order);
+      if (p.isUserKey) designatedParamId = pid;   // 정확히 1개(B2 검증 통과 보장)
+    // 사용자 키값 파라미터 지정 참조 설정(BIZ-001-07 — 순환 FK 대응: 자식 INSERT 후 부모 UPDATE)
+    UPDATE TBL_INTERLOCK_CONFIG SET user_key_param_id = :designatedParamId WHERE id = :configId;
   COMMIT;   // 무결성 위반·중복 예외 시 ROLLBACK → 409 EX-BIZ-002 / 500 EX-FN-999
 
 B4. 커밋 후 감사 → 응답 변환
@@ -183,8 +192,8 @@ B4. 커밋 후 감사 → 응답 변환
 |---|--------|--------|--------------|----------------|---------------|
 | 1 | FE | 저장 제출 | (사용자 입력) | FE 검증 + 요청 DTO 변환 | MDL-101 요청 DTO |
 | 2 | BE | 게이트·인증·재검증 | 요청 DTO | PROC-104 IP + FN-003 세션 + FN-005 | 검증된 DTO |
-| 3 | BE | 구성 검증·고유성 | 검증된 DTO | FN-006 필수·URL·개수·고유성(BR-101) | 도메인 모델 |
-| 4 | BE | 트랜잭션 영속화 | 도메인 모델 | 부모+자식 INSERT/UPDATE + COMMIT | 저장 결과 |
+| 3 | BE | 구성 검증·고유성 | 검증된 DTO | FN-006 필수·URL·개수·고유성·키값 지정 exactly-one(BR-101·107) | 도메인 모델 |
+| 4 | BE | 트랜잭션 영속화 | 도메인 모델 | 부모+자식 INSERT/UPDATE + 지정 참조(user_key_param_id) 설정 + COMMIT | 저장 결과 |
 | 5 | BE | 감사·응답 변환 | 저장 결과 | FN-013 감사 + FN-015 응답 | MDL-101 응답 |
 | 6 | FE | 응답 처리 | MDL-101 응답 | 캐시 무효화 + Toast + SCR-004 이동 | (UI 갱신) |
 
@@ -194,9 +203,10 @@ B4. 커밋 후 감사 → 응답 변환
 |------|----------|----------|------|
 | BR-101 | 구성 코드 신규(CREATE) / 기존(EDIT) | CREATE=고유성 신규 검증, EDIT=selfId 제외 검증·config_code 불변 | 등록 또는 수정 경로 |
 | BR-102 | 개인정보 직접 수신 파라미터 포함 | 저장 차단 없이 CONFIG_PII_WARN 감사 기록 | 경고 후 저장 진행 |
+| BR-107 | 사용자 키값 지정 개수(0 / 1 / 2↑) | 정확히 1개면 user_key_param_id 참조 저장(자식 INSERT 후 UPDATE), 0개(미지정)·2개↑(다중)·미실재는 거부 | 정상 저장 또는 422 EX-BIZ-001 |
 | EX-AUTH-001 | 미인증 세션 | 진입 차단, 로그인 유도 | 401 로그인이 필요합니다. |
 | EX-AUTH-002 | 세션 유휴 30분 초과 | 세션 만료, 재인증 유도 | 401 다시 로그인해주세요. |
-| EX-BIZ-001 | 필수 누락·URL 오류·동의 항목 0개 | 저장 거부, details 필드 오류 | 422 입력 값을 확인해주세요. |
+| EX-BIZ-001 | 필수 누락·URL 오류·동의 항목 0개·사용자 키값 지정 0개(미지정)·2개↑(다중)·미실재 | 저장 거부, details 필드 오류 | 422 입력 값을 확인해주세요. |
 | EX-BIZ-002 | 구성 코드 중복(유효 구성 간) | 저장 거부(롤백) | 409 이미 존재하는 구성입니다. |
 | EX-SEC-004 | 허용 문자 위반·주입 패턴 | 저장 거부 | 400 입력 형식이 올바르지 않습니다. |
 | EX-SEC-005 | 본문 1MB 초과 | 요청 거부 | 413 요청이 너무 큽니다. |

@@ -4,6 +4,7 @@
 
 | 일시 (KST) | 단계 | 산출물·결과 | 관련 일감 | 상태 |
 |---|---|---|---|---|
+| 2026-07-08 10:05 | spec | 사용자 키값 필수화 반영 — 프로세스 — `process_PROC-101.md` 저장 전 exactly-one 검증 분기(FE F1 `!==1` 알림·B2 FN-006 BR-107)·요청 DTO isUserKey 직렬화·B3 지정 참조 영속화(자식 INSERT 후 user_key_param_id UPDATE, 편집 시 NULL 초기화로 RESTRICT 회피)·분기표 BR-107·EX-BIZ-001 확장·단계통합·CRUD·`spec-process.md` BR-107 정합 | `accountinterlockhub#30` | 🚧 |
 | 2026-07-08 09:55 | spec | 사용자 키값 필수화 반영 — 화면 — `screen_SCR-003.md` 라디오 '반드시 1개 선택(none 불가)' 필수 제약·미선택 저장 차단(검증 메시지)·행 삭제 시 재지정 유도·조건부 표시(미지정 경고·저장 비활성)·입력폼 검증 `===1`·인터랙션('지정 없음' 제거)·구현가이드 정합 | `accountinterlockhub#29` | 🚧 |
 | 2026-07-08 09:45 | spec | 사용자 키값 필수화 반영 — 기능 — `function_FN-006.md` step4 exactly-one 강제(0개 미지정 422 신설·2개↑·미실재)·개요·에러 카탈로그·구현가이드·`function_FN-016.md` 미지정 분기 방어적 주석(W3 정합)·`spec-functions.md` §Q5 정합 | `accountinterlockhub#28` | 🚧 |
 | 2026-07-08 09:35 | spec | 사용자 키값 필수화 반영 — 서비스 — `service_SVC-001.md`(F-003/006·BR-107 지정 개수 0/1/2·EX-BIZ-001 조건 확장·SVC-008/009 방어적 재서술·구현가이드 재지정·확정 노트)·`spec-services.md`(시나리오·BR-107·MDL-101·Q5) 정합 | `accountinterlockhub#26` | 🚧 |
