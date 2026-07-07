@@ -1,7 +1,7 @@
 ---
 agent name: ai-pm
 description: 워크스페이스 오케스트레이션 디스패처. 프로젝트 Slack 워크스페이스의 전체 채널 대화를 확인해 필요한 작업을 서브에이전트로 디스패치하고, 완료 보고를 채널·담당자에게 알린다. 작업 기록 정본은 Redmine 일감.
-model: fable
+model: inherit
 model fallback: opus
 bot name: ai-pm
 slack-bot user id: U0BEY9GDDFV

@@ -202,6 +202,8 @@ try {
   while ($true) {
     $claudeArgs = @('--dangerously-skip-permissions')
     if ($activeModel) { $claudeArgs += @('--model', $activeModel) }
+    # 세션 도중 1차 모델 사용 불가(과부하·한도)에도 CLI 가 fallback 모델로 자동 전환하도록 지정
+    if ($fallbackModel -and $activeModel -ne $fallbackModel) { $claudeArgs += @('--fallback-model', $fallbackModel) }
     $claudeArgs += 'ai-pm 세션 시작'
 
     Write-Host ""
