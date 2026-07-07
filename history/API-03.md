@@ -1,0 +1,13 @@
+# IA: API-03 — 완료 콜백 API
+
+> 본 IA 노드와 연관된 작업의 시계열 이력(최신순). 정책: ai/strategies/ia-history.md
+
+| 일시 (KST) | 단계 | 산출물·결과 | 관련 일감 | 상태 |
+|---|---|---|---|---|
+| 2026-07-07 11:15 | spec | `qa/API/tc_API-03.md` 신설 — 완료 콜백 API 검증 TC 11건(BR-303 완료 기록/재통지 멱등 EXC-BIZ-10·동시 콜백 조건절 가드·스코프 미수신 최신 특정·거부/실패 건 콜백 EXC-BIZ-11·처리상태 4항목 불변경 BIZ-004-06·대상 미특정 단일 404 EX-BIZ-006·인증 주체 분리·입력/제한/시스템예외)·`spec-qa.md` §5-1(SVC-009 조회·기록 11)·§5-2(PROC-303·PROC-403 완료 기록)·§5-3(POST /api/interlock/callback)·§5-4(BIZ-004·SEC-003) 반영 | `accountinterlockhub#31` | 🚧 |
+| 2026-07-07 10:30 | spec | `process_PROC-303.md` 신설(완료 콜백 API — POST /api/interlock/callback, FN-004/014/005 진입 가드·SEC-003-03 서비스 B 주체 분리·내부 PROC-403→FN-018 완료 기록(미수신 최신 1건 UPDATE 조건절 멱등 가드)·재통지 멱등 BR-303/EXC-BIZ-10·처리상태 4항목 불변경 BIZ-004-06·404 EX-BIZ-006)·`spec-process.md` 카탈로그 PROC-303 행·SVC-009 매핑·BR-303/EX-BIZ-006 반영 | `accountinterlockhub#30` | 🚧 |
+| 2026-07-07 09:30 | spec | `function_FN-018.md` 신설(완료 콜백 대상 특정·완료 기록 — PROC-303 예약, 내부 PROC-403, 미수신 최신 1건 UPDATE 동시성 가드·재통지 멱등 EXC-BIZ-10·처리상태 4항목 불변경 BIZ-004-06·404 EX-BIZ-006)·`function_FN-019.md` 공유(스코프 조회)·`spec-functions.md` 카탈로그 API-03 엔드포인트(POST /api/interlock/callback) 행·EX-BIZ-006 등재·의존관계·POL 매핑 반영 | `accountinterlockhub#28` | 🚧 |
+| 2026-07-07 08:27 | spec | `data_ENT-007.md` 신설(콜백 수신 여부·수신 일시 기록 대상 — 수신 정합 CHECK, ENT-004 와 request_key 소프트 참조·처리상태 불변경 BIZ-004-06)·`model_api.md` MDL-305(완료 콜백 요청 — configCode·userKey 2항목, 요청 키값 비필수)·MDL-303 완료 기록 흐름(PROC-303·403 예약) 신설·목록 갱신 | `accountinterlockhub#27` | 🚧 |
+| 2026-07-07 06:35 | spec | `service_SVC-009.md` 신설 — 완료 콜백 API(PROC-303·PROC-403 예약): 구성 식별자 획득 = 허브→B 전달 페이로드 동봉 값 회신 확정(SVC-005 연계)·BR-303(완료 기록/재통지 멱등)·404 EX-BIZ-006·처리상태 불변경·요청 키값은 콜백 필수 항목 아님(스코프 규칙 단일화) | `accountinterlockhub#26` | 🚧 |
+| 2026-07-07 06:20 | spec | 완료 콜백 정책 신설 — BIZ-004-03(대상 특정: 스코프 내 콜백 미수신 최신 1건에 완료 기록)·EXC-BIZ-10(재통지 멱등)·BIZ-004-06(처리상태 4항목 불변경, W5)·SEC-003-03(주체별 인증 자격 분리)·OPS-002(콜백 수신 감사)·EX-BIZ-006 채번 | `accountinterlockhub#25` | 🚧 |
+| 2026-07-07 06:20 | spec ⓒ | (공통 반영) 키값 용어 정의(W3)·DATA-001-01 개정(연동이력 예외) — common.md | `accountinterlockhub#25` | ℹ️ |

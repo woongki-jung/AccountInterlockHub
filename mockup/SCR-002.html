@@ -1,0 +1,259 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SCR-002 연동 구성 목록 · 목업</title>
+<style>
+:root{
+  --primary:#2563EB;--primary-hover:#1D4ED8;--primary-weak:#DBEAFE;
+  --danger:#DC2626;--danger-weak:#FEE2E2;--success:#16A34A;--warning:#D97706;--info:#0891B2;
+  --text:#111827;--muted:#6B7280;--inverse:#fff;
+  --border:#D1D5DB;--bg:#fff;--subtle:#F9FAFB;--disabled:#E5E7EB;
+  --r-sm:4px;--r-md:8px;--r-lg:12px;
+  --sh-sm:0 1px 2px rgba(0,0,0,.06);--sh-md:0 4px 12px rgba(0,0,0,.10);--sh-lg:0 12px 32px rgba(0,0,0,.16);
+}
+*{box-sizing:border-box}
+body{margin:0;font-family:system-ui,-apple-system,"Segoe UI",sans-serif;color:var(--text);background:var(--subtle);font-size:15px;line-height:22px}
+a{color:var(--primary);text-decoration:none}
+.mock-chrome{position:sticky;top:0;z-index:60}
+.mock-nav{display:flex;flex-wrap:wrap;align-items:center;gap:4px 6px;padding:7px 16px;background:#0B1220;border-bottom:1px solid #374151;font-size:13px}
+.mock-nav a{color:#D1D5DB;text-decoration:none;padding:3px 9px;border-radius:4px;border:1px solid transparent;line-height:18px}
+.mock-nav a:hover{background:#374151;color:#fff}
+.mock-nav a.mn-home{color:#fff;font-weight:600}
+.mock-nav a.current{background:#2563EB;border-color:#2563EB;color:#fff}
+.mock-nav .mn-grp{color:#6B7280;font-size:11px;letter-spacing:.04em;margin-left:8px;text-transform:uppercase}
+.mock-bar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding:8px 16px;background:#111827;color:#fff;font-size:13px}
+.mock-bar .lbl{color:#9CA3AF}
+.mock-bar button{background:#374151;color:#fff;border:1px solid #4B5563;border-radius:4px;padding:4px 10px;font-size:13px;cursor:pointer}
+.mock-bar button.active{background:var(--primary);border-color:var(--primary)}
+.mock-bar .tag{margin-left:auto;color:#9CA3AF}
+/* AdminNav */
+.nav{height:56px;background:#fff;border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 24px;gap:16px}
+.nav .logo{font-weight:700;font-size:16px}
+.nav .sp{flex:1}
+.nav .acct{font-size:14px;color:var(--muted)}
+.nav .logout{font-size:14px;color:var(--primary);cursor:pointer}
+.container{max-width:1120px;margin:0 auto;padding:24px}
+.pagehead{display:flex;align-items:center;gap:12px;margin-bottom:24px}
+.pagehead h1{font-size:22px;line-height:30px;font-weight:700;margin:0}
+.pagehead .sp{flex:1}
+/* controls */
+.toolbar{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:16px}
+.toolbar input[type=text]{height:40px;padding:10px 14px;border:1px solid var(--border);border-radius:var(--r-md);font-size:15px;min-width:260px}
+.toolbar select{height:40px;padding:0 12px;border:1px solid var(--border);border-radius:var(--r-md);font-size:15px;background:#fff}
+input:focus,select:focus{outline:2px solid var(--primary);outline-offset:2px;border-color:var(--primary)}
+/* buttons */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:40px;padding:0 14px;border-radius:var(--r-md);font-size:15px;font-weight:500;border:1px solid transparent;cursor:pointer;line-height:1}
+.btn-sm{height:32px;padding:0 12px;font-size:14px}
+.btn-primary{background:var(--primary);color:#fff}
+.btn-primary:hover{background:var(--primary-hover)}
+.btn-secondary{background:#fff;color:var(--text);border:1px solid var(--border)}
+.btn-danger{background:var(--danger);color:#fff}
+.btn-ghost{background:transparent;color:var(--danger)}
+/* table */
+.tablewrap{overflow-x:auto;background:#fff;border:1px solid var(--border);border-radius:var(--r-md)}
+table{width:100%;border-collapse:collapse;font-size:15px}
+thead th{text-align:left;background:var(--subtle);color:var(--muted);font-size:14px;font-weight:500;padding:12px 16px;border-bottom:1px solid var(--border);white-space:nowrap}
+tbody td{padding:14px 16px;border-bottom:1px solid #EEF0F2;white-space:nowrap}
+tbody tr:last-child td{border-bottom:none}
+tbody tr:hover{background:#FafBff}
+.cfgname{font-weight:500}
+.mono{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:13px;color:var(--muted)}
+/* badge + toggle */
+.badge{display:inline-flex;align-items:center;gap:5px;height:24px;padding:0 10px;border-radius:var(--r-sm);font-size:13px;font-weight:500}
+.badge-active{background:#DCFCE7;color:#166534}
+.badge-inactive{background:#F3F4F6;color:#4B5563}
+.badge::before{content:"";width:7px;height:7px;border-radius:50%;background:currentColor;opacity:.8}
+.togglecell{display:flex;align-items:center;gap:10px}
+.tgl{width:40px;height:22px;border-radius:11px;background:var(--success);position:relative;cursor:pointer;flex:none}
+.tgl.off{background:#CBD5E1}
+.tgl::after{content:"";position:absolute;top:2px;left:20px;width:18px;height:18px;border-radius:50%;background:#fff;transition:left .15s}
+.tgl.off::after{left:2px}
+.rowact{display:flex;gap:8px}
+/* skeleton */
+.sk{background:linear-gradient(90deg,#eef0f2 25%,#f6f7f8 37%,#eef0f2 63%);background-size:400% 100%;animation:sh 1.2s infinite;border-radius:4px;height:14px}
+@keyframes sh{0%{background-position:100% 0}100%{background-position:-100% 0}}
+/* empty / error */
+.panel{background:#fff;border:1px solid var(--border);border-radius:var(--r-md);padding:48px 24px;text-align:center}
+.panel .ico{font-size:36px}
+.panel h2{font-size:18px;font-weight:600;margin:12px 0 6px}
+.panel p{color:var(--muted);font-size:14px;margin:0 0 20px}
+.banner{display:flex;align-items:center;gap:10px;padding:14px 16px;border-radius:var(--r-md);font-size:14px;background:var(--danger-weak);color:#991B1B;border:1px solid #FCA5A5;justify-content:space-between}
+/* modal */
+.scrim{display:none;position:fixed;inset:0;background:rgba(17,24,39,.45);z-index:60;align-items:center;justify-content:center;padding:16px}
+.modal{background:#fff;border-radius:var(--r-lg);box-shadow:var(--sh-lg);max-width:420px;width:100%;padding:24px}
+.modal h2{font-size:18px;font-weight:600;margin:0 0 8px}
+.modal p{color:var(--muted);font-size:14px;margin:0 0 20px}
+.modal .actions{display:flex;justify-content:flex-end;gap:8px}
+.scrim.show{display:flex}
+/* toast */
+.toast{position:fixed;left:50%;bottom:32px;transform:translateX(-50%);background:#111827;color:#fff;padding:12px 18px;border-radius:var(--r-md);font-size:14px;box-shadow:var(--sh-md);display:none;align-items:center;gap:8px;z-index:70}
+.toast.show{display:flex}
+.toast.ok::before{content:"✓";color:#4ADE80;font-weight:700}
+/* state visibility */
+.state{display:none}
+body[data-state="initial"] .state-skeleton,
+body[data-state="loading"] .state-skeleton,
+body[data-state="loaded"] .state-loaded,
+body[data-state="empty"] .state-empty,
+body[data-state="error"] .state-error{display:block}
+</style>
+</head>
+<body data-state="loaded">
+
+<div class="mock-chrome">
+<nav class="mock-nav">
+  <a class="mn-home" href="index.html">🗂 목업 인덱스</a>
+  <span class="mn-grp">관리자</span>
+  <a href="SCR-001.html" data-scr>로그인</a>
+  <a href="SCR-002.html" data-scr>구성 목록</a>
+  <a href="SCR-003.html" data-scr>등록·편집</a>
+  <a href="SCR-004.html" data-scr>구성 상세</a>
+  <span class="mn-grp">사용자</span>
+  <a href="SCR-005.html" data-scr>이용 동의</a>
+  <a href="SCR-006.html" data-scr>동의 결과</a>
+</nav>
+<script>(function(){var f=(location.pathname.split('/').pop()||'index.html').toLowerCase();document.querySelectorAll('.mock-nav a[data-scr]').forEach(function(a){if(a.getAttribute('href').toLowerCase()===f)a.classList.add('current');});})();</script>
+<div class="mock-bar">
+  <span class="lbl">상태 시연:</span>
+  <button data-s="loaded" class="active" onclick="setState('loaded')">정상(Loaded)</button>
+  <button data-s="initial" onclick="setState('initial')">Initial(Skeleton)</button>
+  <button data-s="empty" onclick="setState('empty')">Empty</button>
+  <button data-s="error" onclick="setState('error')">Error</button>
+  <span class="tag">SCR-002 · /admin/configs</span>
+</div>
+</div><!-- /mock-chrome -->
+
+<div class="nav">
+  <span class="logo">AccountInterlockHub</span>
+  <span class="sp"></span>
+  <span class="acct">admin-operator</span>
+  <a class="logout" href="SCR-001.html?expired=0">로그아웃</a>
+</div>
+
+<div class="container">
+  <div class="pagehead">
+    <h1>연동 구성 목록</h1>
+    <span class="sp"></span>
+    <a class="btn btn-primary" href="SCR-003.html">+ 연동 구성 등록</a>
+  </div>
+
+  <div class="toolbar">
+    <input type="text" placeholder="구성명 · 구성 코드 검색" aria-label="검색어">
+    <select aria-label="활성 필터">
+      <option value="ALL">전체</option>
+      <option value="ACTIVE" selected>활성만</option>
+      <option value="INACTIVE">비활성만</option>
+    </select>
+  </div>
+
+  <!-- 정상: 데이터 목록 -->
+  <div class="state state-loaded">
+    <div class="tablewrap">
+      <table>
+        <thead>
+          <tr>
+            <th>구성 코드</th><th>구성명</th><th>활성 여부</th><th>동의 항목 수</th><th>생성 일시</th><th>액션</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="mono">CFG-PAYLINK-01</td>
+            <td class="cfgname"><a href="SCR-004.html">결제 연동 - 페이링크</a></td>
+            <td><div class="togglecell"><span class="badge badge-active">활성</span><span class="tgl" onclick="this.classList.toggle('off');toast()"></span></div></td>
+            <td>3</td>
+            <td>2026-06-30 14:22</td>
+            <td><div class="rowact"><button class="btn btn-sm btn-ghost" onclick="openModal('결제 연동 - 페이링크')">삭제</button></div></td>
+          </tr>
+          <tr>
+            <td class="mono">CFG-HEALTH-02</td>
+            <td class="cfgname"><a href="SCR-004.html">건강검진 결과 연동</a></td>
+            <td><div class="togglecell"><span class="badge badge-active">활성</span><span class="tgl" onclick="this.classList.toggle('off');toast()"></span></div></td>
+            <td>5</td>
+            <td>2026-06-28 09:10</td>
+            <td><div class="rowact"><button class="btn btn-sm btn-ghost" onclick="openModal('건강검진 결과 연동')">삭제</button></div></td>
+          </tr>
+          <tr>
+            <td class="mono">CFG-MEMBER-03</td>
+            <td class="cfgname"><a href="SCR-004.html">멤버십 포인트 이관</a></td>
+            <td><div class="togglecell"><span class="badge badge-inactive">비활성</span><span class="tgl off" onclick="this.classList.toggle('off');toast()"></span></div></td>
+            <td>2</td>
+            <td>2026-06-21 17:45</td>
+            <td><div class="rowact"><button class="btn btn-sm btn-ghost" onclick="openModal('멤버십 포인트 이관')">삭제</button></div></td>
+          </tr>
+          <tr>
+            <td class="mono">CFG-SURVEY-04</td>
+            <td class="cfgname"><a href="SCR-004.html">설문 응답 연계</a></td>
+            <td><div class="togglecell"><span class="badge badge-active">활성</span><span class="tgl" onclick="this.classList.toggle('off');toast()"></span></div></td>
+            <td>4</td>
+            <td>2026-06-15 11:03</td>
+            <td><div class="rowact"><button class="btn btn-sm btn-ghost" onclick="openModal('설문 응답 연계')">삭제</button></div></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <p style="color:var(--muted);font-size:13px;margin-top:12px">기본 정렬: 생성일 내림차순 · 기본 필터: 활성 우선. 페이지네이션 규약은 build 확정(FN-015).</p>
+  </div>
+
+  <!-- Skeleton -->
+  <div class="state state-skeleton">
+    <div class="tablewrap">
+      <table>
+        <thead><tr><th>구성 코드</th><th>구성명</th><th>활성 여부</th><th>동의 항목 수</th><th>생성 일시</th><th>액션</th></tr></thead>
+        <tbody>
+          <tr><td><div class="sk" style="width:110px"></div></td><td><div class="sk" style="width:160px"></div></td><td><div class="sk" style="width:90px"></div></td><td><div class="sk" style="width:24px"></div></td><td><div class="sk" style="width:120px"></div></td><td><div class="sk" style="width:48px"></div></td></tr>
+          <tr><td><div class="sk" style="width:110px"></div></td><td><div class="sk" style="width:140px"></div></td><td><div class="sk" style="width:90px"></div></td><td><div class="sk" style="width:24px"></div></td><td><div class="sk" style="width:120px"></div></td><td><div class="sk" style="width:48px"></div></td></tr>
+          <tr><td><div class="sk" style="width:110px"></div></td><td><div class="sk" style="width:180px"></div></td><td><div class="sk" style="width:90px"></div></td><td><div class="sk" style="width:24px"></div></td><td><div class="sk" style="width:120px"></div></td><td><div class="sk" style="width:48px"></div></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Empty -->
+  <div class="state state-empty">
+    <div class="panel">
+      <div class="ico">📭</div>
+      <h2>등록된 연동 구성이 없습니다</h2>
+      <p>첫 연동 구성을 등록해 서비스 A ↔ 서비스 B 연동을 시작하세요.</p>
+      <a class="btn btn-primary" href="SCR-003.html">+ 연동 구성 등록</a>
+    </div>
+  </div>
+
+  <!-- Error -->
+  <div class="state state-error">
+    <div class="banner" role="alert">
+      <span>목록을 불러오지 못했습니다. 네트워크 상태를 확인해 주세요.</span>
+      <button class="btn btn-sm btn-secondary" onclick="setState('loaded')">재시도</button>
+    </div>
+  </div>
+</div>
+
+<!-- 삭제 확인 Modal -->
+<div class="scrim" id="scrim">
+  <div class="modal" role="dialog" aria-modal="true">
+    <h2>연동 구성 삭제</h2>
+    <p><strong id="delname">구성</strong> 을(를) 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.</p>
+    <div class="actions">
+      <button class="btn btn-secondary" onclick="closeModal()">취소</button>
+      <button class="btn btn-danger" onclick="closeModal();toast('삭제되었습니다')">삭제</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast ok" id="toast">저장되었습니다</div>
+
+<script>
+function setState(s){
+  document.body.dataset.state=s;
+  document.querySelectorAll('.mock-bar button').forEach(function(b){b.classList.toggle('active',b.dataset.s===s)});
+}
+function openModal(name){document.getElementById('delname').textContent=name;document.getElementById('scrim').classList.add('show')}
+function closeModal(){document.getElementById('scrim').classList.remove('show')}
+var tt;
+function toast(msg){var t=document.getElementById('toast');t.textContent=(msg||'상태가 변경되었습니다');t.classList.add('show','ok');clearTimeout(tt);tt=setTimeout(function(){t.classList.remove('show')},2500)}
+document.getElementById('scrim').addEventListener('click',function(e){if(e.target===this)closeModal()});
+document.addEventListener('keydown',function(e){if(e.key==='Escape')closeModal()});
+</script>
+</body>
+</html>

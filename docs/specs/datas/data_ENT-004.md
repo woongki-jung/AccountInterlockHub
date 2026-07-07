@@ -1,0 +1,80 @@
+# 처리 상태 데이터 정의
+
+## 개요
+
+- **데이터 목적**: 연동 요청 1건의 처리 추적을 위한 최소 상태를 요청 키값 기준으로 보관한다. 회원 키·개인정보를 일절 저장하지 않으며(무저장 핵심), 서비스 A 의 처리상태 조회(API-01)와 보관 배치(BAT-02)의 대상이 된다.
+- **관련 PRD 요구사항**: [`../../prd/PRD.md`](../../prd/PRD.md) §시스템 제약사항 "요청 키값별 상태(처리 성공 여부·결과 확인 여부·처리일시·결과 확인일시)만 저장" / [`../../prd/devspec/database.md`](../../prd/devspec/database.md) §저장 대상 2·보관 정책 / IA [`../../prd/ia/IA.md`](../../prd/ia/IA.md) `BAT-01`·`API-01`·`BAT-02`.
+
+---
+
+## ENT-004 처리 상태
+
+### 기본 정보
+
+| 항목 | 내용 |
+|------|------|
+| 엔터티명 | 처리 상태 |
+| 물리 테이블명 | TBL_INTERLOCK_PROCESS_STATUS |
+| 분류 | 트랜잭션 |
+| 관련 서비스 | SVC-005, SVC-006, SVC-007 |
+| 보존 정책 | 하드 삭제(DATA-004-03). 완료 건=결과 확인 일시+90일, 미완료 건=처리 일시+90일 경과 시 배치 삭제(소프트 삭제 미사용) |
+| 개인정보 여부 | 비해당 (개인식별 컬럼 원천 배제 — DATA-001-02·DATA-003-01) |
+| CRUD 수행 PROC | C: PROC-401 / R: PROC-301·PROC-402 / U: PROC-301(결과 확인 갱신) / D: PROC-402(하드 삭제) |
+| 관련 IA 항목 | BAT-01, API-01, BAT-02 |
+
+### 속성 정의
+
+| 속성명 | 데이터 타입 | 길이/precision | NULL | 기본값 | CHECK 제약 | 키 | 설명 |
+|--------|-----------|----------------|------|--------|-----------|----|------|
+| request_key | uuid | - | NOT NULL | - | - | PK | 요청 키값(허브 발급 불투명 UUID v4, DATA-002). 회원 키와 무관 |
+| config_id | uuid | - | NOT NULL | - | - | FK | 연동 구성 참조(ENT-001.id, 개인정보 아님) |
+| is_success | boolean | - | NOT NULL | - | - | - | 처리 성공 여부(true=전달 성공, false=실패·거부 미전달) |
+| is_result_confirmed | boolean | - | NOT NULL | false | - | - | 결과 확인 여부(서비스 A 조회 성공 시 true) |
+| processed_at | timestamptz | 3 | NOT NULL | - | - | - | 처리 일시(연동 실행 결과 확정 시각) |
+| result_confirmed_at | timestamptz | 3 | NULL | NULL | - | - | 결과 확인 일시(미확인 시 NULL) |
+| created_at | timestamptz | 3 | NOT NULL | now() | - | - | 레코드 생성 일시(영속화 감사) |
+
+> **무결성 CHECK**: `(is_result_confirmed = true AND result_confirmed_at IS NOT NULL) OR (is_result_confirmed = false AND result_confirmed_at IS NULL)` — 결과 확인 여부와 확인 일시의 정합을 DB 레벨에서 강제(배치 삭제 기준 정확성 보장).
+> **개인정보·회원 키 컬럼 없음** — 저장 항목은 요청 키값·구성 참조·상태 4항목·생성 감사로 한정하며 그 외 컬럼을 추가하지 않는다(DATA-001-02·DATA-003-01). 마스킹 불요(민감 필드 부재).
+
+### 관계 정의
+
+| 대상 엔터티 | 관계 유형 | FK 컬럼 | ON DELETE | ON UPDATE | 설명 |
+|-------------|-----------|---------|-----------|-----------|------|
+| ENT-001 연동 구성 | N:1 | config_id | NO ACTION | NO ACTION | 구성 참조. 구성은 소프트 삭제라 참조 유효 유지, 처리 상태는 배치가 독립 하드 삭제 |
+
+### 인덱스 정의
+
+| 인덱스명 | 대상 컬럼 | 유형 | 카디널리티 추정 | 조회 패턴 (인용 PROC) |
+|----------|-----------|------|-----------------|----------------------|
+| PK_PROCESS_STATUS | request_key | PK(b-tree) | 높음 | PROC-301 상태 조회·갱신(WHERE request_key=?), PROC-401 INSERT 중복 방지 |
+| IX_STATUS_RETENTION_PENDING | processed_at | BTREE(부분: WHERE is_result_confirmed = false) | 중간 | PROC-402 미완료 삭제 대상 선정(WHERE is_result_confirmed=false AND processed_at < 기준, DATA-004-02) |
+| IX_STATUS_RETENTION_CONFIRMED | result_confirmed_at | BTREE(부분: WHERE is_result_confirmed = true) | 중간 | PROC-402 완료 삭제 대상 선정(WHERE is_result_confirmed=true AND result_confirmed_at < 기준, DATA-004-01) |
+
+> 두 부분 인덱스(partial index)는 배치의 완료/미완료 두 갈래(BR-401) 범위 삭제를 각각 지원한다. config_id 는 조건절·정렬·조인에 쓰는 PROC 가 없어 인덱스를 신설하지 않는다(사용 PROC 0건 금지 규칙).
+
+### 데이터 생명주기
+
+- **생성 조건**: PROC-401(처리상태 저장) · "상태 레코드 생성"·"상태 영속화 트랜잭션"에서 연동 실행 결과 확정 시 1건 INSERT. 전달 성공·실패·거부(미전달) 모두 생성(EXC-DATA-03·EXC-BIZ-06). 요청 키값 발급은 PROC-201(진입).
+- **수정 조건**: PROC-301(처리상태 확인 API) · "조회 성공 후 상태 갱신"에서 최초 조회 성공 시 is_result_confirmed=true·result_confirmed_at 갱신(BR-301, 멱등 — 재조회 시 미갱신).
+- **삭제/보관 조건**: PROC-402(보관정책 배치) · "삭제 실행"에서 하드 삭제. 완료 건=result_confirmed_at+90일, 미완료 건=processed_at+90일 경과 대상(DATA-004-01/02). 소프트 삭제·보관 플래그 미사용(DATA-004-03).
+
+### 연관 정책 (policy)
+
+| 정책 코드 | 적용 컬럼/제약 | 적용 위치 (DB 무결성 / 응용 검증 / 마스킹) |
+|-----------|----------------|------------------------------------------|
+| DATA-001-02 | 개인식별 컬럼 부재 | 스키마 설계(원천 배제) |
+| DATA-002-01 | request_key = 불투명 UUID | 응용 발급(PROC-201) + PK UNIQUE |
+| DATA-003-01 | 저장 항목 한정(4항목+요청 키값+구성 참조) | 스키마 설계 + 응용 검증 |
+| DATA-003-02/03 | processed_at·result_confirmed_at 기록 시점 | 응용 처리(PROC-401·PROC-301) + CHECK 정합 |
+| DATA-004-01/02/03 | 보관 기간·하드 삭제 | 응용 배치(PROC-402) + 인덱스 |
+| SEC-005-02 | 조회 응답 4항목 한정 | 응용 마스킹(PROC-301, MDL-302) |
+
+### 구현 가이드
+
+- **PK 전략(확정)**: request_key 는 UUID v4 를 유지한다 — 시간순 UUID(uuidv7 등) 미채택. 예측 불가성이 불투명 키의 보안 속성이며(DATA-002), PostgreSQL 16 은 네이티브 uuidv7() 이 없다. 랜덤 키의 B-tree 삽입 분산(페이지 분할·점유율 저하)은 사실이나 90일 하드 삭제(DATA-004)로 테이블·인덱스 크기가 유계라 수용한다 — 공통 근거는 [`spec-datas.md`](spec-datas.md) §PostgreSQL 물리 설계·운영 전제.
+- **시간 파티셔닝 미채택(확정)**: ① PostgreSQL 파티션 테이블은 PK/UNIQUE 에 파티션 키 포함을 강제해 request_key 단독 전역 유니크(PROC-401 중복 방지·API-01 단건 조회 계약)를 DB 레벨로 강제할 수 없게 되고, ② 삭제 자격이 두 시각 컬럼(완료=result_confirmed_at, 미완료=processed_at)에 분산돼 단일 range 키로 표현할 수 없으며, ③ 일 배치의 1회 삭제량은 하루치 만료분으로 유계라 DELETE 로 충분하다. 일 삭제 대상이 수십만 행을 상시 초과하면 파티셔닝을 재평가한다(재검토 트리거).
+- **청크 DELETE + autovacuum(확정)**: PROC-402 는 두 부분 인덱스로 대상을 선정하고 청크 단위 반복 삭제(예: `DELETE ... WHERE ctid IN (SELECT ctid ... LIMIT n)`, 청크 기본 5,000행)로 단일 트랜잭션 크기·잠금을 상한한다. dead tuple 회수는 autovacuum 위임 — 본 테이블은 스토리지 파라미터 `autovacuum_vacuum_scale_factor = 0.05`(기본안)로 하향해 삭제·갱신 후 회수를 앞당긴다.
+- **fillfactor 미채택(확정)**: 행당 1회 갱신(PROC-301 결과 확인)이 있으나 갱신 컬럼(is_result_confirmed·result_confirmed_at)이 두 부분 인덱스의 키·술어에 걸려 HOT 갱신이 성립하지 않는다 — fillfactor 하향의 실익이 없어 기본값(100)을 유지한다.
+- 배치 삭제는 완료·미완료 두 조건을 한 배치 실행 흐름에서 처리하고 청크 단위 커밋으로 멱등하게 설계한다(OPS-003-02) — 중단·재실행 시 잔여 대상만 다시 삭제된다. 삭제된 요청 키값 조회는 PROC-301 에서 404 EX-DATA-003 으로 응답(EXC-DATA-04).
+- config_id·created_at 은 DATA-003-01 명시 4항목 외의 비개인 운영 컬럼으로, [`policy_DATA.md`](../policies/policy_DATA.md) **EXC-DATA-06** 이 저장을 명시 허용한다(무저장 원칙 위배 아님 — 리비전 정합 반영 완료).

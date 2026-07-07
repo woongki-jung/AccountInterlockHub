@@ -1,0 +1,245 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SCR-005 사용자 이용 동의 · 목업</title>
+<style>
+:root{
+  --primary:#2563EB;--primary-hover:#1D4ED8;--primary-weak:#DBEAFE;
+  --danger:#DC2626;--danger-weak:#FEE2E2;--success:#16A34A;--warning:#D97706;--info:#0891B2;
+  --text:#111827;--muted:#6B7280;--inverse:#fff;
+  --border:#D1D5DB;--bg:#fff;--subtle:#F9FAFB;--disabled:#E5E7EB;
+  --r-sm:4px;--r-md:8px;--r-lg:12px;
+  --sh-sm:0 1px 2px rgba(0,0,0,.06);--sh-md:0 4px 12px rgba(0,0,0,.10);
+}
+*{box-sizing:border-box}
+body{margin:0;font-family:system-ui,-apple-system,"Segoe UI",sans-serif;color:var(--text);background:var(--subtle);font-size:15px;line-height:22px}
+.mock-chrome{position:sticky;top:0;z-index:60}
+.mock-nav{display:flex;flex-wrap:wrap;align-items:center;gap:4px 6px;padding:7px 16px;background:#0B1220;border-bottom:1px solid #374151;font-size:13px}
+.mock-nav a{color:#D1D5DB;text-decoration:none;padding:3px 9px;border-radius:4px;border:1px solid transparent;line-height:18px}
+.mock-nav a:hover{background:#374151;color:#fff}
+.mock-nav a.mn-home{color:#fff;font-weight:600}
+.mock-nav a.current{background:#2563EB;border-color:#2563EB;color:#fff}
+.mock-nav .mn-grp{color:#6B7280;font-size:11px;letter-spacing:.04em;margin-left:8px;text-transform:uppercase}
+.mock-bar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding:8px 16px;background:#111827;color:#fff;font-size:13px}
+.mock-bar .lbl{color:#9CA3AF}
+.mock-bar button{background:#374151;color:#fff;border:1px solid #4B5563;border-radius:4px;padding:4px 10px;font-size:13px;cursor:pointer}
+.mock-bar button.active{background:var(--primary);border-color:var(--primary)}
+.mock-bar .tag{margin-left:auto;color:#9CA3AF}
+.wrap{min-height:calc(100vh - 40px);display:flex;align-items:flex-start;justify-content:center;padding:48px 16px}
+.card{width:100%;max-width:480px;background:#fff;border:1px solid var(--border);border-radius:var(--r-md);box-shadow:var(--sh-sm);padding:32px 24px}
+h1{font-size:22px;line-height:30px;font-weight:700;margin:0 0 8px}
+.lead{font-size:14px;line-height:20px;color:var(--muted);margin:0 0 24px}
+.lead b{color:var(--text)}
+.banner{display:flex;align-items:flex-start;gap:8px;padding:12px 14px;border-radius:var(--r-md);font-size:14px;line-height:20px;margin-bottom:20px}
+.banner-err{background:var(--danger-weak);color:#991B1B;border:1px solid #FCA5A5}
+.banner-warn{background:#FEF3C7;color:#92400E;border:1px solid #FCD34D}
+.consent-list{border:1px solid var(--border);border-radius:var(--r-md);overflow:hidden;margin-bottom:24px}
+.citem{display:flex;gap:12px;padding:16px;border-bottom:1px solid #EEF0F2}
+.citem:last-child{border-bottom:none}
+.citem input[type=checkbox]{width:20px;height:20px;margin-top:2px;accent-color:var(--primary);flex:none}
+.citem .body{flex:1}
+.citem .top{display:flex;align-items:flex-start;gap:8px}
+.citem .lab{font-size:15px;font-weight:500;flex:1}
+.citem .lab .req{color:var(--danger);margin-left:4px;font-size:13px}
+.citem .opt{color:var(--muted);font-weight:400;font-size:13px;margin-left:4px}
+.citem .desc{font-size:13px;line-height:18px;color:var(--muted);margin-top:4px}
+.detail-btn{flex:none;background:transparent;border:1px solid var(--border);color:var(--primary);border-radius:var(--r-sm);padding:3px 9px;font-size:12px;font-weight:500;cursor:pointer;line-height:16px;min-height:26px}
+.detail-btn:hover{background:var(--primary-weak);border-color:var(--primary)}
+/* 약관 상세 모달 (콘텐츠 변형) */
+.scrim{display:none;position:fixed;inset:0;background:rgba(17,24,39,.45);z-index:60;align-items:center;justify-content:center;padding:16px}
+.scrim.show{display:flex}
+.modal{background:#fff;border-radius:var(--r-lg);box-shadow:var(--sh-md);max-width:440px;width:100%;max-height:80vh;display:flex;flex-direction:column;padding:24px}
+.modal h2{font-size:18px;font-weight:600;margin:0 0 12px}
+.modal .terms-body{overflow-y:auto;font-size:14px;line-height:21px;color:var(--text);white-space:pre-wrap;border:1px solid var(--border);border-radius:var(--r-md);padding:14px;background:var(--subtle);margin-bottom:20px;flex:1 1 auto}
+.modal .mactions{display:flex;justify-content:flex-end;gap:8px;flex:none}
+.mbtn{height:40px;padding:0 16px;border-radius:var(--r-md);font-size:15px;font-weight:500;border:1px solid transparent;cursor:pointer}
+.mbtn-primary{background:var(--primary);color:#fff}
+.mbtn-primary:hover{background:var(--primary-hover)}
+.mbtn-secondary{background:#fff;color:var(--text);border:1px solid var(--border)}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:44px;padding:0 14px;border-radius:var(--r-md);font-size:15px;font-weight:500;border:1px solid transparent;cursor:pointer;line-height:1;width:100%}
+.btn-primary{background:var(--primary);color:#fff}
+.btn-primary:hover{background:var(--primary-hover)}
+.btn-secondary{background:#fff;color:var(--text);border:1px solid var(--border)}
+.btn:disabled{background:var(--disabled);color:var(--muted);cursor:not-allowed;border-color:transparent}
+.btnrow{display:flex;flex-direction:column;gap:10px}
+.hint{font-size:12px;color:var(--muted);text-align:center;margin-top:12px}
+.spinner{width:16px;height:16px;border:2px solid rgba(255,255,255,.5);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite;display:none}
+@keyframes spin{to{transform:rotate(360deg)}}
+/* skeleton */
+.sk{background:linear-gradient(90deg,#eef0f2 25%,#f6f7f8 37%,#eef0f2 63%);background-size:400% 100%;animation:sh 1.2s infinite;border-radius:4px}
+@keyframes sh{0%{background-position:100% 0}100%{background-position:-100% 0}}
+.sk-line{height:14px;margin:12px 0}
+/* state */
+.state{display:none}
+body[data-state="loaded"] .state-loaded,
+body[data-state="submitting"] .state-loaded,
+body[data-state="initial"] .state-skeleton,
+body[data-state="err-key"] .state-error-key,
+body[data-state="err-rate"] .state-error-rate{display:block}
+body[data-state="submitting"] .btn-primary .spinner,
+body[data-state="submitting"] .btn-secondary .spinner2{display:inline-block}
+body[data-state="submitting"] .consent-list,
+body[data-state="submitting"] .btnrow button{pointer-events:none;opacity:.7}
+</style>
+</head>
+<body data-state="loaded">
+
+<div class="mock-chrome">
+<nav class="mock-nav">
+  <a class="mn-home" href="index.html">🗂 목업 인덱스</a>
+  <span class="mn-grp">관리자</span>
+  <a href="SCR-001.html" data-scr>로그인</a>
+  <a href="SCR-002.html" data-scr>구성 목록</a>
+  <a href="SCR-003.html" data-scr>등록·편집</a>
+  <a href="SCR-004.html" data-scr>구성 상세</a>
+  <span class="mn-grp">사용자</span>
+  <a href="SCR-005.html" data-scr>이용 동의</a>
+  <a href="SCR-006.html" data-scr>동의 결과</a>
+</nav>
+<script>(function(){var f=(location.pathname.split('/').pop()||'index.html').toLowerCase();document.querySelectorAll('.mock-nav a[data-scr]').forEach(function(a){if(a.getAttribute('href').toLowerCase()===f)a.classList.add('current');});})();</script>
+<div class="mock-bar">
+  <span class="lbl">상태 시연:</span>
+  <button data-s="loaded" class="active" onclick="setState('loaded')">정상(Loaded)</button>
+  <button data-s="initial" onclick="setState('initial')">Initial(Skeleton)</button>
+  <button data-s="submitting" onclick="setState('submitting')">Submitting</button>
+  <button data-s="err-key" onclick="setState('err-key')">키/컨텍스트 오류(400)</button>
+  <button data-s="err-rate" onclick="setState('err-rate')">요청 제한(429)</button>
+  <span class="tag">SCR-005 · /consent/:requestKey</span>
+</div>
+</div><!-- /mock-chrome -->
+
+<div class="wrap">
+  <div class="card">
+
+    <!-- Loaded -->
+    <div class="state state-loaded">
+      <h1>서비스 연동 동의</h1>
+      <p class="lead"><b>결제 연동 - 페이링크</b> 이용을 위해 아래 항목에 대한 동의가 필요합니다. 동의 항목을 확인하고 진행 여부를 선택해 주세요.</p>
+
+      <div class="consent-list" id="clist">
+        <label class="citem">
+          <input type="checkbox" id="c0" data-req="1" onchange="syncAgree()">
+          <span class="body">
+            <span class="top">
+              <span class="lab">결제 정보 제공 동의 <span class="req">(필수)</span></span>
+              <button type="button" class="detail-btn" onclick="event.preventDefault();event.stopPropagation();openTerms('c0')">상세</button>
+            </span>
+            <span class="desc">주문·결제 식별 정보를 서비스 B로 전달합니다.</span>
+          </span>
+        </label>
+        <label class="citem">
+          <input type="checkbox" id="c1" data-req="1" onchange="syncAgree()">
+          <span class="body">
+            <span class="top">
+              <span class="lab">개인정보 제3자 제공 동의 <span class="req">(필수)</span></span>
+              <button type="button" class="detail-btn" onclick="event.preventDefault();event.stopPropagation();openTerms('c1')">상세</button>
+            </span>
+            <span class="desc">연동 처리에 필요한 최소 식별 정보를 연동 대상에 제공합니다.</span>
+          </span>
+        </label>
+        <label class="citem">
+          <input type="checkbox" id="c2" onchange="syncAgree()">
+          <span class="body">
+            <span class="top">
+              <span class="lab">마케팅 활용 동의 <span class="opt">(선택)</span></span>
+              <!-- 약관 컨텐츠 미설정 항목: [상세] 버튼 미노출 (BIZ-002-05) -->
+            </span>
+            <span class="desc">이벤트·혜택 안내에 활용합니다.</span>
+          </span>
+        </label>
+      </div>
+
+      <div class="btnrow">
+        <button class="btn btn-primary" id="agreeBtn" disabled onclick="submitDecision('AGREE')">
+          <span class="spinner"></span><span>동의하고 계속</span>
+        </button>
+        <button class="btn btn-secondary" onclick="submitDecision('REJECT')">
+          <span class="spinner spinner2" style="border-color:rgba(0,0,0,.2);border-top-color:#111"></span><span>동의하지 않고 종료</span>
+        </button>
+      </div>
+      <p class="hint" id="agreeHint">필수 동의 항목에 모두 동의하면 계속할 수 있습니다.</p>
+    </div>
+
+    <!-- Skeleton -->
+    <div class="state state-skeleton">
+      <div class="sk sk-line" style="width:60%;height:22px"></div>
+      <div class="sk sk-line" style="width:90%"></div>
+      <div class="sk sk-line" style="width:80%"></div>
+      <div class="sk sk-line" style="width:100%;height:56px;margin-top:20px"></div>
+      <div class="sk sk-line" style="width:100%;height:56px"></div>
+      <div class="sk sk-line" style="width:100%;height:44px;margin-top:20px"></div>
+    </div>
+
+    <!-- Error: 키/컨텍스트 -->
+    <div class="state state-error-key">
+      <h1>요청이 올바르지 않습니다</h1>
+      <div class="banner banner-err" role="alert"><span>⚠</span><span>요청이 만료되었거나 올바르지 않습니다. 서비스 A에서 다시 진입해 주세요.</span></div>
+      <p class="lead">진입 정보가 유효하지 않아 동의 항목을 표시할 수 없습니다. (400 EX-DATA-002)</p>
+    </div>
+
+    <!-- Error: 요청 제한 -->
+    <div class="state state-error-rate">
+      <h1>잠시 후 다시 시도해 주세요</h1>
+      <div class="banner banner-warn" role="alert"><span>⏳</span><span>요청이 많아 처리가 지연되고 있습니다. 잠시 후 다시 시도해 주세요.</span></div>
+      <p class="lead">요청 제한에 도달했습니다. (429 EX-OPS-001)</p>
+      <button class="btn btn-secondary" onclick="setState('loaded')">다시 시도</button>
+    </div>
+
+  </div>
+</div>
+
+<!-- 약관 상세 모달 (콘텐츠 변형: 제목 + 스크롤 본문 + [동의]/[닫기]) -->
+<div class="scrim" id="termsScrim">
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="termsTitle">
+    <h2 id="termsTitle">약관 상세</h2>
+    <div class="terms-body" id="termsBody">약관 본문</div>
+    <div class="mactions">
+      <button type="button" class="mbtn mbtn-secondary" onclick="closeTerms()">닫기</button>
+      <button type="button" class="mbtn mbtn-primary" onclick="agreeTerms()">동의</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// 동의 항목별 약관 컨텐츠(전체 약관 본문) — 값이 있는 항목만 [상세] 노출
+var TERMS={
+  c0:{title:'결제 정보 제공 동의',body:'[결제 정보 제공 동의]\n\n제1조(목적) 본 약관은 서비스 A 이용자가 결제 연동을 위하여 주문·결제 식별 정보를 서비스 B에 제공하는 데 필요한 사항을 정합니다.\n\n제2조(제공 항목) 주문번호, 결제수단 식별자, 결제금액 등 연동 처리에 필요한 최소 항목.\n\n제3조(이용 목적) 결제 연동 처리 및 처리 결과 확인.\n\n제4조(보유 기간) 처리 완료 후 관련 법령이 정한 기간까지 보관하며, 목적 달성 시 지체 없이 파기합니다.\n\n※ 본 문구는 목업용 예시 본문입니다.'},
+  c1:{title:'개인정보 제3자 제공 동의',body:'[개인정보 제3자 제공 동의]\n\n1. 제공받는 자: 서비스 B 운영사\n2. 제공 항목: 연동 처리에 필요한 최소 식별 정보\n3. 제공 목적: 서비스 A↔B 계정 연동 실행\n4. 보유·이용 기간: 연동 목적 달성 시까지\n\n귀하는 위 동의를 거부할 권리가 있으며, 거부 시 연동 서비스 이용이 제한될 수 있습니다.\n\n※ 본 문구는 목업용 예시 본문입니다.'}
+  // c2(마케팅 활용 동의): 약관 컨텐츠 미설정 → [상세] 버튼 없음
+};
+var termsCurrent=null;
+function setState(s){
+  document.body.dataset.state=s;
+  document.querySelectorAll('.mock-bar button').forEach(function(b){b.classList.toggle('active',b.dataset.s===s)});
+}
+function openTerms(id){
+  var t=TERMS[id];if(!t)return;
+  termsCurrent=id;
+  document.getElementById('termsTitle').textContent=t.title;
+  document.getElementById('termsBody').textContent=t.body;
+  document.getElementById('termsScrim').classList.add('show');
+}
+function closeTerms(){document.getElementById('termsScrim').classList.remove('show');termsCurrent=null;}
+function agreeTerms(){
+  // [동의] = 해당 항목 체크(동의) 후 모달 닫기 (EXC-BIZ-08, 서버 호출 없음)
+  if(termsCurrent){var cb=document.getElementById(termsCurrent);if(cb){cb.checked=true;syncAgree();}}
+  closeTerms();
+}
+document.getElementById('termsScrim').addEventListener('click',function(e){if(e.target===this)closeTerms();});
+document.addEventListener('keydown',function(e){if(e.key==='Escape')closeTerms();});
+function syncAgree(){
+  var reqs=document.querySelectorAll('#clist input[data-req="1"]');
+  var all=Array.prototype.every.call(reqs,function(c){return c.checked});
+  var btn=document.getElementById('agreeBtn');
+  btn.disabled=!all;
+  document.getElementById('agreeHint').textContent=all?'모든 필수 항목에 동의했습니다.':'필수 동의 항목에 모두 동의하면 계속할 수 있습니다.';
+}
+function submitDecision(d){
+  setState('submitting');
+  setTimeout(function(){location.href='SCR-006.html?result='+(d==='AGREE'?'success':'reject')},1000);
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,314 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SCR-004 연동 구성 상세 · 목업</title>
+<style>
+:root{
+  --primary:#2563EB;--primary-hover:#1D4ED8;--primary-weak:#DBEAFE;
+  --danger:#DC2626;--danger-weak:#FEE2E2;--success:#16A34A;--warning:#D97706;--info:#0891B2;
+  --text:#111827;--muted:#6B7280;--inverse:#fff;
+  --border:#D1D5DB;--bg:#fff;--subtle:#F9FAFB;--disabled:#E5E7EB;
+  --r-sm:4px;--r-md:8px;--r-lg:12px;
+  --sh-sm:0 1px 2px rgba(0,0,0,.06);--sh-md:0 4px 12px rgba(0,0,0,.10);--sh-lg:0 12px 32px rgba(0,0,0,.16);
+}
+*{box-sizing:border-box}
+body{margin:0;font-family:system-ui,-apple-system,"Segoe UI",sans-serif;color:var(--text);background:var(--subtle);font-size:15px;line-height:22px}
+a{color:var(--primary);text-decoration:none}
+.mock-chrome{position:sticky;top:0;z-index:60}
+.mock-nav{display:flex;flex-wrap:wrap;align-items:center;gap:4px 6px;padding:7px 16px;background:#0B1220;border-bottom:1px solid #374151;font-size:13px}
+.mock-nav a{color:#D1D5DB;text-decoration:none;padding:3px 9px;border-radius:4px;border:1px solid transparent;line-height:18px}
+.mock-nav a:hover{background:#374151;color:#fff}
+.mock-nav a.mn-home{color:#fff;font-weight:600}
+.mock-nav a.current{background:#2563EB;border-color:#2563EB;color:#fff}
+.mock-nav .mn-grp{color:#6B7280;font-size:11px;letter-spacing:.04em;margin-left:8px;text-transform:uppercase}
+.mock-bar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding:8px 16px;background:#111827;color:#fff;font-size:13px}
+.mock-bar .lbl{color:#9CA3AF}
+.mock-bar button{background:#374151;color:#fff;border:1px solid #4B5563;border-radius:4px;padding:4px 10px;font-size:13px;cursor:pointer}
+.mock-bar button.active{background:var(--primary);border-color:var(--primary)}
+.mock-bar .tag{margin-left:auto;color:#9CA3AF}
+.nav{height:56px;background:#fff;border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 24px;gap:16px}
+.nav .logo{font-weight:700;font-size:16px}
+.nav .sp{flex:1}
+.nav .acct{font-size:14px;color:var(--muted)}
+.nav .logout{font-size:14px;color:var(--primary)}
+.container{max-width:1120px;margin:0 auto;padding:24px}
+.crumb{font-size:13px;color:var(--muted);margin-bottom:8px}
+.dethead{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:24px}
+.dethead h1{font-size:22px;line-height:30px;font-weight:700;margin:0}
+.dethead .sp{flex:1}
+.badge{display:inline-flex;align-items:center;gap:5px;height:26px;padding:0 10px;border-radius:var(--r-sm);font-size:13px;font-weight:500}
+.badge-active{background:#DCFCE7;color:#166534}
+.badge-inactive{background:#F3F4F6;color:#4B5563}
+.badge::before{content:"";width:7px;height:7px;border-radius:50%;background:currentColor;opacity:.8}
+.actions{display:flex;gap:8px;flex-wrap:wrap}
+.togglecell{display:flex;align-items:center;gap:8px}
+.tgl{width:40px;height:22px;border-radius:11px;background:var(--success);position:relative;cursor:pointer;flex:none}
+.tgl.off{background:#CBD5E1}
+.tgl::after{content:"";position:absolute;top:2px;left:20px;width:18px;height:18px;border-radius:50%;background:#fff;transition:left .15s}
+.tgl.off::after{left:2px}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:40px;padding:0 16px;border-radius:var(--r-md);font-size:15px;font-weight:500;border:1px solid transparent;cursor:pointer;line-height:1}
+.btn-sm{height:32px;padding:0 12px;font-size:14px}
+.btn-primary{background:var(--primary);color:#fff}
+.btn-primary:hover{background:var(--primary-hover)}
+.btn-secondary{background:#fff;color:var(--text);border:1px solid var(--border)}
+.btn-danger{background:var(--danger);color:#fff}
+.btn-ghost{background:transparent;color:var(--danger);border:1px solid var(--border)}
+.card{background:#fff;border:1px solid var(--border);border-radius:var(--r-md);box-shadow:var(--sh-sm);padding:24px;margin-bottom:24px}
+.card h2{font-size:18px;font-weight:600;margin:0 0 16px}
+.dl{display:grid;grid-template-columns:180px 1fr;gap:12px 16px}
+@media(max-width:640px){.dl{grid-template-columns:1fr}}
+.dl dt{color:var(--muted);font-size:14px}
+.dl dd{margin:0;font-size:15px;word-break:break-all}
+.mono{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:14px}
+.tablewrap{overflow-x:auto;border:1px solid var(--border);border-radius:var(--r-md)}
+table{width:100%;border-collapse:collapse;font-size:14px}
+thead th{text-align:left;background:var(--subtle);color:var(--muted);font-weight:500;padding:10px 14px;border-bottom:1px solid var(--border);white-space:nowrap}
+tbody td{padding:12px 14px;border-bottom:1px solid #EEF0F2;white-space:nowrap}
+tbody tr:last-child td{border-bottom:none}
+.pill{display:inline-block;padding:2px 8px;border-radius:var(--r-sm);font-size:12px;background:var(--primary-weak);color:#1E40AF}
+.pill.no{background:#F3F4F6;color:#6B7280}
+.pill.req{background:#FEE2E2;color:#991B1B}
+.mock-bar .sep{width:1px;height:18px;background:#4B5563;margin:0 2px}
+/* 사용자 키값 파라미터 지정 표시(읽기 전용) */
+.ukey-summary{display:flex;flex-wrap:wrap;align-items:center;gap:6px;padding:10px 14px;background:var(--primary-weak);border:1px solid #BFDBFE;border-radius:var(--r-md);font-size:14px;margin-bottom:16px}
+.ukey-summary b{color:#1E3A8A}
+.ukey-summary .uk-hint{color:#1E3A8A;font-size:13px}
+.badge-userkey{display:none;align-items:center;gap:5px;height:24px;padding:0 9px;border-radius:var(--r-sm);font-size:12px;font-weight:600;background:#1E40AF;color:#fff}
+.badge-userkey::before{content:"🔑";width:auto;height:auto;background:none;border-radius:0;opacity:1;font-size:11px}
+body[data-uk="set"] .badge-userkey{display:inline-flex}
+.uk-name{display:none}
+body[data-uk="set"] .uk-name{display:inline}
+.uk-none-txt{display:none}
+body[data-uk="none"] .uk-none-txt{display:inline}
+.dash{color:var(--muted)}
+.ukcell .uk-dash{display:none;color:var(--muted)}
+body[data-uk="none"] .ukcell .uk-dash{display:inline}
+/* skeleton */
+.sk{background:linear-gradient(90deg,#eef0f2 25%,#f6f7f8 37%,#eef0f2 63%);background-size:400% 100%;animation:sh 1.2s infinite;border-radius:4px}
+@keyframes sh{0%{background-position:100% 0}100%{background-position:-100% 0}}
+.sk-line{height:14px;margin:10px 0}
+/* panels */
+.panel{background:#fff;border:1px solid var(--border);border-radius:var(--r-md);padding:48px 24px;text-align:center}
+.panel .ico{font-size:36px}
+.panel h2{font-size:18px;font-weight:600;margin:12px 0 6px}
+.panel p{color:var(--muted);font-size:14px;margin:0 0 20px}
+.banner{display:flex;align-items:center;gap:10px;padding:14px 16px;border-radius:var(--r-md);font-size:14px;background:var(--danger-weak);color:#991B1B;border:1px solid #FCA5A5;justify-content:space-between}
+/* modal + toast */
+.scrim{display:none;position:fixed;inset:0;background:rgba(17,24,39,.45);z-index:60;align-items:center;justify-content:center;padding:16px}
+.scrim.show{display:flex}
+.modal{background:#fff;border-radius:var(--r-lg);box-shadow:var(--sh-lg);max-width:420px;width:100%;padding:24px}
+.modal h2{font-size:18px;font-weight:600;margin:0 0 8px}
+.modal p{color:var(--muted);font-size:14px;margin:0 0 20px}
+.modal.terms-modal{max-width:480px;max-height:80vh;display:flex;flex-direction:column}
+.modal .terms-body{overflow-y:auto;font-size:14px;line-height:21px;color:var(--text);white-space:pre-wrap;border:1px solid var(--border);border-radius:var(--r-md);padding:14px;background:var(--subtle);margin:0 0 20px;flex:1 1 auto}
+.modal .mactions{display:flex;justify-content:flex-end;gap:8px}
+.toast{position:fixed;left:50%;bottom:32px;transform:translateX(-50%);background:#111827;color:#fff;padding:12px 18px;border-radius:var(--r-md);font-size:14px;box-shadow:var(--sh-md);display:none;align-items:center;gap:8px;z-index:70}
+.toast.show{display:flex}
+.toast.ok::before{content:"✓";color:#4ADE80;font-weight:700}
+.state{display:none}
+body[data-state="loaded"] .state-loaded,
+body[data-state="initial"] .state-skeleton,
+body[data-state="empty"] .state-empty,
+body[data-state="error"] .state-error{display:block}
+body[data-state="loaded"] .head-actions,body[data-state="loaded"] .head-badge{display:flex}
+.head-actions,.head-badge{display:none}
+</style>
+</head>
+<body data-state="loaded" data-uk="set">
+
+<div class="mock-chrome">
+<nav class="mock-nav">
+  <a class="mn-home" href="index.html">🗂 목업 인덱스</a>
+  <span class="mn-grp">관리자</span>
+  <a href="SCR-001.html" data-scr>로그인</a>
+  <a href="SCR-002.html" data-scr>구성 목록</a>
+  <a href="SCR-003.html" data-scr>등록·편집</a>
+  <a href="SCR-004.html" data-scr>구성 상세</a>
+  <span class="mn-grp">사용자</span>
+  <a href="SCR-005.html" data-scr>이용 동의</a>
+  <a href="SCR-006.html" data-scr>동의 결과</a>
+</nav>
+<script>(function(){var f=(location.pathname.split('/').pop()||'index.html').toLowerCase();document.querySelectorAll('.mock-nav a[data-scr]').forEach(function(a){if(a.getAttribute('href').toLowerCase()===f)a.classList.add('current');});})();</script>
+<div class="mock-bar">
+  <span class="lbl">상태 시연:</span>
+  <button data-s="loaded" class="active" onclick="setState('loaded')">정상(Loaded)</button>
+  <button data-s="initial" onclick="setState('initial')">Initial(Skeleton)</button>
+  <button data-s="empty" onclick="setState('empty')">대상 없음</button>
+  <button data-s="error" onclick="setState('error')">Error</button>
+  <span class="sep"></span>
+  <span class="lbl">사용자 키값:</span>
+  <button data-uk="set" class="active" onclick="setUserKey('set')">지정(memberCi)</button>
+  <button data-uk="none" onclick="setUserKey('none')">미지정(방어)</button>
+  <span class="tag">SCR-004 · /admin/configs/:id</span>
+</div>
+</div><!-- /mock-chrome -->
+
+<div class="nav">
+  <span class="logo">AccountInterlockHub</span>
+  <span class="sp"></span>
+  <span class="acct">admin-operator</span>
+  <a class="logout" href="SCR-001.html">로그아웃</a>
+</div>
+
+<div class="container">
+  <div class="crumb"><a href="SCR-002.html">연동 구성 목록</a> / 상세</div>
+
+  <div class="dethead">
+    <h1>결제 연동 - 페이링크</h1>
+    <span class="badge badge-active head-badge">활성</span>
+    <span class="sp"></span>
+    <div class="actions head-actions">
+      <a class="btn btn-secondary" href="SCR-002.html">목록</a>
+      <div class="togglecell"><span class="tgl" onclick="this.classList.toggle('off');toast('상태가 변경되었습니다')"></span></div>
+      <a class="btn btn-primary" href="SCR-003.html">편집</a>
+      <button class="btn btn-ghost" onclick="openModal()">삭제</button>
+    </div>
+  </div>
+
+  <!-- Loaded -->
+  <div class="state state-loaded">
+    <div class="card">
+      <h2>기본 정보</h2>
+      <dl class="dl">
+        <dt>구성 코드</dt><dd class="mono">CFG-PAYLINK-01</dd>
+        <dt>구성명</dt><dd>결제 연동 - 페이링크</dd>
+        <dt>활성 여부</dt><dd><span class="badge badge-active">활성</span></dd>
+        <dt>생성 일시</dt><dd>2026-06-30 14:22</dd>
+      </dl>
+    </div>
+
+    <div class="card">
+      <h2>서비스 A 진입</h2>
+      <dl class="dl">
+        <dt>호출 주소</dt><dd><a href="#" onclick="return false">https://service-a.example.com/interlock/entry</a></dd>
+      </dl>
+    </div>
+
+    <div class="card">
+      <h2>서비스 B 전달</h2>
+      <dl class="dl">
+        <dt>전달 주소</dt><dd><a href="#" onclick="return false">https://service-b.example.com/receive</a></dd>
+        <dt>전달 방식</dt><dd>POST</dd>
+      </dl>
+    </div>
+
+    <div class="card">
+      <h2>전달 파라미터 (2)</h2>
+      <div class="ukey-summary">
+        <span>🔑 사용자 키값 파라미터:</span>
+        <b class="uk-name">memberCi</b><b class="uk-none-txt">지정 없음</b>
+        <span class="uk-hint uk-name">— 지정 값이 연동이력·완료 확인(API-02)·완료 콜백(API-03)의 사용자 키값 근거입니다(BIZ-004). 지정은 필수(정확히 1개).</span>
+        <span class="uk-hint uk-none-txt">— (방어) 지정은 필수라 정상 구성엔 미발생. 미지정 구성은 연동이력·완료 확인/콜백 대상이 아닙니다(BIZ-004-05).</span>
+      </div>
+      <div class="tablewrap">
+        <table>
+          <thead><tr><th>순서</th><th>파라미터명</th><th>서비스 A 원천 키명</th><th>서비스 B 전달</th><th>사용자 키값</th></tr></thead>
+          <tbody>
+            <tr><td>1</td><td class="mono">orderId</td><td class="mono">a_order_id</td><td><span class="pill">전달</span></td><td><span class="dash">—</span></td></tr>
+            <tr><td>2</td><td class="mono">memberCi</td><td class="mono">a_member_ci</td><td><span class="pill">전달</span></td><td class="ukcell"><span class="badge badge-userkey">사용자 키값</span><span class="uk-dash">—</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>동의 항목 (2)</h2>
+      <div class="tablewrap">
+        <table>
+          <thead><tr><th>순서</th><th>라벨</th><th>설명</th><th>필수</th><th>약관 컨텐츠</th></tr></thead>
+          <tbody>
+            <tr><td>1</td><td>결제 정보 제공 동의</td><td>주문·결제 식별 정보를 서비스 B로 전달합니다.</td><td><span class="pill req">필수</span></td><td><span class="pill">설정됨</span> <button class="btn btn-sm btn-secondary" onclick="openTerms('결제 정보 제공 동의')">약관 보기</button></td></tr>
+            <tr><td>2</td><td>마케팅 활용 동의</td><td>이벤트·혜택 안내에 활용합니다.</td><td><span class="pill no">선택</span></td><td><span class="pill no">없음</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Skeleton -->
+  <div class="state state-skeleton">
+    <div class="card">
+      <div class="sk sk-line" style="width:120px"></div>
+      <div class="sk sk-line" style="width:80%"></div>
+      <div class="sk sk-line" style="width:60%"></div>
+      <div class="sk sk-line" style="width:70%"></div>
+    </div>
+    <div class="card">
+      <div class="sk sk-line" style="width:120px"></div>
+      <div class="sk sk-line" style="width:90%"></div>
+    </div>
+    <div class="card">
+      <div class="sk sk-line" style="width:120px"></div>
+      <div class="sk sk-line" style="width:85%"></div>
+      <div class="sk sk-line" style="width:85%"></div>
+    </div>
+  </div>
+
+  <!-- Empty (대상 없음) -->
+  <div class="state state-empty">
+    <div class="panel">
+      <div class="ico">🔍</div>
+      <h2>대상 구성을 찾을 수 없습니다</h2>
+      <p>이미 삭제되었거나 존재하지 않는 연동 구성입니다.</p>
+      <a class="btn btn-primary" href="SCR-002.html">목록으로</a>
+    </div>
+  </div>
+
+  <!-- Error -->
+  <div class="state state-error">
+    <div class="banner" role="alert">
+      <span>상세 정보를 불러오지 못했습니다.</span>
+      <button class="btn btn-sm btn-secondary" onclick="setState('loaded')">재시도</button>
+    </div>
+  </div>
+</div>
+
+<div class="scrim" id="scrim">
+  <div class="modal" role="dialog" aria-modal="true">
+    <h2>연동 구성 삭제</h2>
+    <p><strong>결제 연동 - 페이링크</strong> 을(를) 삭제하시겠습니까? 이 작업은 되돌릴 수 없으며 감사 로그에 기록됩니다(OPS-002).</p>
+    <div class="mactions">
+      <button class="btn btn-secondary" onclick="closeModal()">취소</button>
+      <button class="btn btn-danger" onclick="doDelete()">삭제</button>
+    </div>
+  </div>
+</div>
+
+<!-- 약관 컨텐츠 열람 모달 (콘텐츠 변형: 관리자 상세는 열람 전용) -->
+<div class="scrim" id="termsScrim">
+  <div class="modal terms-modal" role="dialog" aria-modal="true" aria-labelledby="termsTitle">
+    <h2 id="termsTitle">약관 컨텐츠</h2>
+    <div class="terms-body" id="termsBody">약관 본문</div>
+    <div class="mactions">
+      <button class="btn btn-secondary" onclick="closeTerms()">닫기</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast ok" id="toast">상태가 변경되었습니다</div>
+
+<script>
+function setState(s){
+  document.body.dataset.state=s;
+  document.querySelectorAll('.mock-bar [data-s]').forEach(function(b){b.classList.toggle('active',b.dataset.s===s)});
+}
+function setUserKey(v){ // 목업 시연: 사용자 키값 파라미터 지정 구성 / 미지정 구성(방어 표시) 전환(읽기 전용). 지정 필수라 정상 구성은 항상 'set'
+  document.body.dataset.uk=v;
+  document.querySelectorAll('.mock-bar [data-uk]').forEach(function(b){b.classList.toggle('active',b.dataset.uk===v)});
+}
+function openModal(){document.getElementById('scrim').classList.add('show')}
+function closeModal(){document.getElementById('scrim').classList.remove('show')}
+function doDelete(){closeModal();var t=document.getElementById('toast');t.textContent='삭제되었습니다';t.classList.add('show');setTimeout(function(){location.href='SCR-002.html'},900)}
+var tt;function toast(msg){var t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');clearTimeout(tt);tt=setTimeout(function(){t.classList.remove('show')},2500)}
+// 약관 컨텐츠 열람(관리자 상세는 열람 전용 — 저장된 전체 약관 본문 확인)
+var TERMS={'결제 정보 제공 동의':'[결제 정보 제공 동의]\n\n제1조(목적) 본 약관은 결제 연동을 위하여 주문·결제 식별 정보를 서비스 B에 제공하는 데 필요한 사항을 정합니다.\n제2조(제공 항목) 주문번호, 결제수단 식별자, 결제금액 등 최소 항목.\n제3조(보유 기간) 처리 완료 후 관련 법령이 정한 기간까지 보관합니다.\n\n※ 본 문구는 목업용 예시 본문입니다.'};
+function openTerms(label){var t=TERMS[label]||'(약관 컨텐츠 없음)';document.getElementById('termsTitle').textContent=label+' — 약관 컨텐츠';document.getElementById('termsBody').textContent=t;document.getElementById('termsScrim').classList.add('show')}
+function closeTerms(){document.getElementById('termsScrim').classList.remove('show')}
+document.getElementById('scrim').addEventListener('click',function(e){if(e.target===this)closeModal()});
+document.getElementById('termsScrim').addEventListener('click',function(e){if(e.target===this)closeTerms()});
+document.addEventListener('keydown',function(e){if(e.key==='Escape'){closeModal();closeTerms();}});
+</script>
+</body>
+</html>
