@@ -4,6 +4,7 @@
 
 | 일시 (KST) | 단계 | 산출물·결과 | 관련 일감 | 상태 |
 |---|---|---|---|---|
+| 2026-07-08 09:35 | spec | 사용자 키값 필수화 반영 — 서비스 — `service_SVC-001.md`(F-003/006·BR-107 지정 개수 0/1/2·EX-BIZ-001 조건 확장·SVC-008/009 방어적 재서술·구현가이드 재지정·확정 노트)·`spec-services.md`(시나리오·BR-107·MDL-101·Q5) 정합 | `accountinterlockhub#26` | 🚧 |
 | 2026-07-08 09:25 | spec | 사용자 키값 필수화 반영 — 데이터 — `data_ENT-001.md`(user_key_param_id 필수·정확히 1개·관계 N:1·물리 NULL=과도상태·BIZ-001-07/004-05 정합)·`data_ENT-003.md`(지정 정확히 1개)·`model_admin.md` MDL-101(isUserKey 정확히 1개 필수, 이원표현 W3 정합)·`spec-datas.md`·`spec-models.md` 정합. 물리 제약(PostgreSQL) 유지 | `accountinterlockhub#27` | 🚧 |
 | 2026-07-08 09:10 | spec | 사용자 키값 파라미터 지정 **필수화**(선택→exactly-one, 2026-07-08 담당자 지시) — `policy_BIZ.md` BIZ-001-07(정확히 1개·0개/2개↑ 422)·EXC-BIZ-09(필수 확정·BLK-13 해소)·BIZ-004-05('미지정' 방어적 잔존)·구현가이드·개요·`spec-policies.md` §Q5 정합 | `accountinterlockhub#25` | 🚧 |
 | 2026-07-07 11:15 | spec | `qa/ADM/tc_ADM-01.md` 증분 — 사용자 키값 파라미터 지정 검증 TC 5건 추가(_017~021: 지정 정상 저장·다중 지정 422·미실재 지정 422·미지정 허용·편집 지정 파라미터 삭제 시 지정 해제 동반, FN-006 step4 BIZ-001-07 서버 검증 기준)·ADM-01 16→21·`spec-qa.md` §4-1·§5-2(PROC-101 BIZ-001-07)·§5-4(BIZ-001)·§6(BLK-13)·§3 시드 반영 | `accountinterlockhub#31` | 🚧 |
