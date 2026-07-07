@@ -113,7 +113,7 @@ B1a. 진입·요청 키값 발급·연동이력 기록 개시   (GET /interlock/
     history = FN-016(config, ctx, requestKey, now)
     // FN-016 내부(재서술 없이 위임):
     //   if (config.userKeyParamId is null) → return null          // 미지정 구성: 미기록(BR-203, 정상 진입)
-    //   designatedParam = config.parameters.find(p => p.id == config.userKeyParamId)   // user_key_param_id 매칭(구성당 최대 1개)
+    //   designatedParam = config.parameters.find(p => p.id == config.userKeyParamId)   // user_key_param_id 매칭(구성당 정확히 1개 필수)
     //   userKey = ctx.parameters[designatedParam.name]
     //   if (userKey null OR blank) → throw MissingUserKeyValueError(400, EX-BIZ-007)   // 진입 거부(이력 미생성, 부작용 없음)
     //   INSERT INTO TBL_INTERLOCK_HISTORY (request_key, config_id, user_key, requested_at,

@@ -80,7 +80,7 @@ H1. 이력 생성 — FN-016_createInterlockHistory(config, ctx, requestKey, now
   1) 지정 여부 확인 (BIZ-004-05·BIZ-001-07):
         if (config.userKeyParamId is null) → return null        // 미지정 구성: 이력 미기록(대상 밖)
   2) 지정 파라미터 값 추출·완결성 검증 (BIZ-004-02):
-        designatedParam = config.parameters.find(p => p.id == config.userKeyParamId)   // user_key_param_id 매칭(구성당 최대 1개)
+        designatedParam = config.parameters.find(p => p.id == config.userKeyParamId)   // user_key_param_id 매칭(구성당 정확히 1개 필수)
         userKey = ctx.parameters[designatedParam.name]
         if (userKey is null OR blank(userKey))
              → throw MissingUserKeyValueError (400, EX-BIZ-007)  // 진입 거부(이력 미생성, 부작용 없음)
