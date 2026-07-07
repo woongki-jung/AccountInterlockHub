@@ -4,6 +4,7 @@
 
 | 일시 (KST) | 단계 | 산출물·결과 | 관련 일감 | 상태 |
 |---|---|---|---|---|
+| 2026-07-08 09:55 | spec | 사용자 키값 필수화 반영 — 화면 — `screen_SCR-003.md` 라디오 '반드시 1개 선택(none 불가)' 필수 제약·미선택 저장 차단(검증 메시지)·행 삭제 시 재지정 유도·조건부 표시(미지정 경고·저장 비활성)·입력폼 검증 `===1`·인터랙션('지정 없음' 제거)·구현가이드 정합 | `accountinterlockhub#29` | 🚧 |
 | 2026-07-08 09:45 | spec | 사용자 키값 필수화 반영 — 기능 — `function_FN-006.md` step4 exactly-one 강제(0개 미지정 422 신설·2개↑·미실재)·개요·에러 카탈로그·구현가이드·`function_FN-016.md` 미지정 분기 방어적 주석(W3 정합)·`spec-functions.md` §Q5 정합 | `accountinterlockhub#28` | 🚧 |
 | 2026-07-08 09:35 | spec | 사용자 키값 필수화 반영 — 서비스 — `service_SVC-001.md`(F-003/006·BR-107 지정 개수 0/1/2·EX-BIZ-001 조건 확장·SVC-008/009 방어적 재서술·구현가이드 재지정·확정 노트)·`spec-services.md`(시나리오·BR-107·MDL-101·Q5) 정합 | `accountinterlockhub#26` | 🚧 |
 | 2026-07-08 09:25 | spec | 사용자 키값 필수화 반영 — 데이터 — `data_ENT-001.md`(user_key_param_id 필수·정확히 1개·관계 N:1·물리 NULL=과도상태·BIZ-001-07/004-05 정합)·`data_ENT-003.md`(지정 정확히 1개)·`model_admin.md` MDL-101(isUserKey 정확히 1개 필수, 이원표현 W3 정합)·`spec-datas.md`·`spec-models.md` 정합. 물리 제약(PostgreSQL) 유지 | `accountinterlockhub#27` | 🚧 |
