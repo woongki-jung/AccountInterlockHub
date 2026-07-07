@@ -65,13 +65,25 @@ input[readonly]{background:var(--disabled);color:var(--muted);cursor:not-allowed
 /* repeatable rows */
 .rrow{border:1px solid var(--border);border-radius:var(--r-md);padding:16px;margin-bottom:12px;background:var(--subtle)}
 .rrow .rgrid{display:grid;gap:12px;align-items:end}
-.rrow .rgrid.param{grid-template-columns:1fr 1fr auto auto}
+.rrow .rgrid.param{grid-template-columns:1fr 1fr auto auto auto}
 .rrow .rgrid.consent{grid-template-columns:1fr 1.4fr auto auto}
 @media(max-width:640px){.rrow .rgrid.param,.rrow .rgrid.consent{grid-template-columns:1fr}}
 .chkline{display:flex;align-items:center;gap:8px;height:40px;font-size:14px;white-space:nowrap}
 .chkline input{width:18px;height:18px;accent-color:var(--primary)}
 .rmbtn{height:40px;width:40px;border:1px solid var(--border);background:#fff;border-radius:var(--r-md);color:var(--danger);cursor:pointer;font-size:16px}
 .addbtn{background:transparent;border:1px dashed var(--primary);color:var(--primary);border-radius:var(--r-md);padding:10px 14px;font-size:14px;cursor:pointer;width:100%}
+/* user key designation (전달 파라미터 중 최대 1개, 선택 입력) */
+.ukbar{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px;padding:10px 14px;background:var(--primary-weak);border:1px solid #BFDBFE;border-radius:var(--r-md);margin-bottom:12px;font-size:14px}
+.ukbar .uki{display:flex;flex-wrap:wrap;align-items:center;gap:6px}
+.ukbar .uki b{color:#1E3A8A}
+.ukbar .uki .note{color:#1E3A8A;font-size:13px;font-weight:400}
+.ukclear{background:#fff;border:1px solid var(--border);border-radius:var(--r-md);padding:8px 12px;font-size:13px;color:var(--text);cursor:pointer;white-space:nowrap}
+.ukclear:disabled{background:var(--disabled);color:var(--muted);cursor:not-allowed}
+.ukline{display:flex;align-items:center;gap:8px;height:40px;font-size:14px;white-space:nowrap}
+.ukline input{width:18px;height:18px;accent-color:var(--primary)}
+.userkey-badge{display:none;align-items:center;gap:4px;height:22px;padding:0 8px;border-radius:var(--r-sm);font-size:12px;font-weight:600;background:#1E40AF;color:#fff;margin-left:6px}
+.rrow.userkey-on{border-color:var(--primary);background:var(--primary-weak)}
+.rrow.userkey-on .userkey-badge{display:inline-flex}
 /* buttons */
 .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:40px;padding:0 18px;border-radius:var(--r-md);font-size:15px;font-weight:500;border:1px solid transparent;cursor:pointer;line-height:1}
 .btn-primary{background:var(--primary);color:#fff}
@@ -213,20 +225,29 @@ body[data-err="format"] .banner-err{display:flex}
       <h2>전달 파라미터 정의</h2>
       <p class="desc">서비스 A 원천 키에서 값을 취해 서비스 B로 전달할 파라미터를 정의합니다. 최소 1개.</p>
       <div class="banner banner-warn"><span>ⓘ</span><span>일부 파라미터명(예: <b>memberCi</b>)이 개인정보성 명칭 패턴에 해당할 수 있습니다. 안내이며 저장을 차단하지 않습니다(BIZ-001-05).</span></div>
+      <div class="ukbar">
+        <div class="uki">
+          <span>사용자 키값 파라미터:</span> <b id="ukCurrent">memberCi</b>
+          <span class="note">(선택 입력 · 구성당 최대 1개 · 지정 값이 연동이력·완료 확인/콜백의 사용자 키값 근거, BIZ-001-07)</span>
+        </div>
+        <button type="button" class="ukclear" id="ukClearBtn" onclick="clearUserKey()">사용자 키값 지정 없음</button>
+      </div>
       <div id="paramRows">
         <div class="rrow">
           <div class="rgrid param">
             <div class="field" style="margin:0"><label>파라미터명 <span class="req">*</span></label><input type="text" value="orderId" placeholder="예: orderId"></div>
             <div class="field" style="margin:0"><label>서비스 A 원천 키명 <span class="req">*</span></label><input type="text" value="a_order_id" placeholder="예: a_order_id"></div>
             <label class="chkline"><input type="checkbox" checked> 서비스 B 전달</label>
+            <label class="ukline"><input type="radio" name="userKey" onchange="selectUserKey(this)"> 사용자 키값<span class="userkey-badge">지정됨</span></label>
             <button class="rmbtn" title="행 삭제" onclick="removeRow(this)">✕</button>
           </div>
         </div>
-        <div class="rrow">
+        <div class="rrow userkey-on">
           <div class="rgrid param">
             <div class="field" style="margin:0"><label>파라미터명 <span class="req">*</span></label><input type="text" value="memberCi" placeholder="예: memberCi"></div>
             <div class="field" style="margin:0"><label>서비스 A 원천 키명 <span class="req">*</span></label><input type="text" value="a_member_ci" placeholder="예: a_member_ci"></div>
             <label class="chkline"><input type="checkbox" checked> 서비스 B 전달</label>
+            <label class="ukline"><input type="radio" name="userKey" checked onchange="selectUserKey(this)"> 사용자 키값<span class="userkey-badge">지정됨</span></label>
             <button class="rmbtn" title="행 삭제" onclick="removeRow(this)">✕</button>
           </div>
         </div>
@@ -322,7 +343,7 @@ function syncActive(){var t=document.getElementById('fActive');document.getEleme
 function addParam(){
   var wrap=document.getElementById('paramRows');
   var d=document.createElement('div');d.className='rrow';
-  d.innerHTML='<div class="rgrid param"><div class="field" style="margin:0"><label>파라미터명 <span class="req">*</span></label><input type="text" placeholder="예: orderId"></div><div class="field" style="margin:0"><label>서비스 A 원천 키명 <span class="req">*</span></label><input type="text" placeholder="예: a_order_id"></div><label class="chkline"><input type="checkbox" checked> 서비스 B 전달</label><button class="rmbtn" onclick="removeRow(this)">✕</button></div>';
+  d.innerHTML='<div class="rgrid param"><div class="field" style="margin:0"><label>파라미터명 <span class="req">*</span></label><input type="text" placeholder="예: orderId"></div><div class="field" style="margin:0"><label>서비스 A 원천 키명 <span class="req">*</span></label><input type="text" placeholder="예: a_order_id"></div><label class="chkline"><input type="checkbox" checked> 서비스 B 전달</label><label class="ukline"><input type="radio" name="userKey" onchange="selectUserKey(this)"> 사용자 키값<span class="userkey-badge">지정됨</span></label><button class="rmbtn" onclick="removeRow(this)">✕</button></div>';
   wrap.appendChild(d);
 }
 function addConsent(){
@@ -331,7 +352,31 @@ function addConsent(){
   d.innerHTML='<div class="rgrid consent"><div class="field" style="margin:0"><label>동의 항목 라벨 <span class="req">*</span></label><input type="text" placeholder="라벨"></div><div class="field" style="margin:0"><label>설명</label><input type="text" placeholder="보조 설명(선택)"></div><label class="chkline"><input type="checkbox"> 필수</label><button class="rmbtn" onclick="removeRow(this)">✕</button></div><div class="consent-terms"><label>약관 컨텐츠 <span class="opt">(선택 · 전체 약관 본문 — 입력 시 동의 화면에 [상세] 노출)</span></label><textarea class="terms" placeholder="전체 약관 본문을 입력하세요(선택)."></textarea></div>';
   wrap.appendChild(d);
 }
-function removeRow(btn){btn.closest('.rrow').remove();}
+function removeRow(btn){btn.closest('.rrow').remove();syncUserKey();}
+// 사용자 키값 파라미터 지정: 전달 파라미터 반복 행 전체를 단일 라디오 그룹으로 묶어 구성당 최대 1개만 선택(BIZ-001-07). 미지정(전 행 false) 허용(EXC-BIZ-09).
+function selectUserKey(radio){
+  document.querySelectorAll('#paramRows .rrow').forEach(function(r){r.classList.remove('userkey-on')});
+  radio.closest('.rrow').classList.add('userkey-on');
+  syncUserKey();
+}
+function clearUserKey(){ // "사용자 키값 지정 없음" — 미지정으로 복귀
+  document.querySelectorAll('#paramRows input[name="userKey"]').forEach(function(r){r.checked=false});
+  document.querySelectorAll('#paramRows .rrow').forEach(function(r){r.classList.remove('userkey-on')});
+  syncUserKey();
+}
+function syncUserKey(){ // 지정 요약·해제 버튼 상태 동기화(지정 행 삭제 시 자동 미지정 처리 포함)
+  var checked=document.querySelector('#paramRows input[name="userKey"]:checked');
+  var cur=document.getElementById('ukCurrent'),btn=document.getElementById('ukClearBtn');
+  if(checked){
+    var nameInput=checked.closest('.rrow').querySelector('.rgrid.param input[type="text"]');
+    cur.textContent=(nameInput&&nameInput.value.trim())||'(파라미터명 미입력)';
+    btn.disabled=false;
+  }else{
+    cur.textContent='지정 없음';
+    btn.disabled=true;
+  }
+}
+document.addEventListener('DOMContentLoaded',syncUserKey);
 function save(){setState('submitting');setTimeout(function(){setState('ready');var t=document.getElementById('toast');t.classList.add('show');setTimeout(function(){t.classList.remove('show');location.href='SCR-004.html';},900);},1000);}
 </script>
 </body>

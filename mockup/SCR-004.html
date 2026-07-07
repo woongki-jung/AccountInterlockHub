@@ -70,6 +70,21 @@ tbody tr:last-child td{border-bottom:none}
 .pill{display:inline-block;padding:2px 8px;border-radius:var(--r-sm);font-size:12px;background:var(--primary-weak);color:#1E40AF}
 .pill.no{background:#F3F4F6;color:#6B7280}
 .pill.req{background:#FEE2E2;color:#991B1B}
+.mock-bar .sep{width:1px;height:18px;background:#4B5563;margin:0 2px}
+/* 사용자 키값 파라미터 지정 표시(읽기 전용) */
+.ukey-summary{display:flex;flex-wrap:wrap;align-items:center;gap:6px;padding:10px 14px;background:var(--primary-weak);border:1px solid #BFDBFE;border-radius:var(--r-md);font-size:14px;margin-bottom:16px}
+.ukey-summary b{color:#1E3A8A}
+.ukey-summary .uk-hint{color:#1E3A8A;font-size:13px}
+.badge-userkey{display:none;align-items:center;gap:5px;height:24px;padding:0 9px;border-radius:var(--r-sm);font-size:12px;font-weight:600;background:#1E40AF;color:#fff}
+.badge-userkey::before{content:"🔑";width:auto;height:auto;background:none;border-radius:0;opacity:1;font-size:11px}
+body[data-uk="set"] .badge-userkey{display:inline-flex}
+.uk-name{display:none}
+body[data-uk="set"] .uk-name{display:inline}
+.uk-none-txt{display:none}
+body[data-uk="none"] .uk-none-txt{display:inline}
+.dash{color:var(--muted)}
+.ukcell .uk-dash{display:none;color:var(--muted)}
+body[data-uk="none"] .ukcell .uk-dash{display:inline}
 /* skeleton */
 .sk{background:linear-gradient(90deg,#eef0f2 25%,#f6f7f8 37%,#eef0f2 63%);background-size:400% 100%;animation:sh 1.2s infinite;border-radius:4px}
 @keyframes sh{0%{background-position:100% 0}100%{background-position:-100% 0}}
@@ -101,7 +116,7 @@ body[data-state="loaded"] .head-actions,body[data-state="loaded"] .head-badge{di
 .head-actions,.head-badge{display:none}
 </style>
 </head>
-<body data-state="loaded">
+<body data-state="loaded" data-uk="set">
 
 <div class="mock-chrome">
 <nav class="mock-nav">
@@ -122,6 +137,10 @@ body[data-state="loaded"] .head-actions,body[data-state="loaded"] .head-badge{di
   <button data-s="initial" onclick="setState('initial')">Initial(Skeleton)</button>
   <button data-s="empty" onclick="setState('empty')">대상 없음</button>
   <button data-s="error" onclick="setState('error')">Error</button>
+  <span class="sep"></span>
+  <span class="lbl">사용자 키값:</span>
+  <button data-uk="set" class="active" onclick="setUserKey('set')">지정(memberCi)</button>
+  <button data-uk="none" onclick="setUserKey('none')">미지정</button>
   <span class="tag">SCR-004 · /admin/configs/:id</span>
 </div>
 </div><!-- /mock-chrome -->
@@ -177,12 +196,18 @@ body[data-state="loaded"] .head-actions,body[data-state="loaded"] .head-badge{di
 
     <div class="card">
       <h2>전달 파라미터 (2)</h2>
+      <div class="ukey-summary">
+        <span>🔑 사용자 키값 파라미터:</span>
+        <b class="uk-name">memberCi</b><b class="uk-none-txt">지정 없음</b>
+        <span class="uk-hint uk-name">— 지정 값이 연동이력·완료 확인(API-02)·완료 콜백(API-03)의 사용자 키값 근거입니다(BIZ-004-05).</span>
+        <span class="uk-hint uk-none-txt">— 미지정 구성은 연동이력·완료 확인/콜백 대상이 아닙니다(BIZ-004-05).</span>
+      </div>
       <div class="tablewrap">
         <table>
-          <thead><tr><th>순서</th><th>파라미터명</th><th>서비스 A 원천 키명</th><th>서비스 B 전달</th></tr></thead>
+          <thead><tr><th>순서</th><th>파라미터명</th><th>서비스 A 원천 키명</th><th>서비스 B 전달</th><th>사용자 키값</th></tr></thead>
           <tbody>
-            <tr><td>1</td><td class="mono">orderId</td><td class="mono">a_order_id</td><td><span class="pill">전달</span></td></tr>
-            <tr><td>2</td><td class="mono">memberCi</td><td class="mono">a_member_ci</td><td><span class="pill">전달</span></td></tr>
+            <tr><td>1</td><td class="mono">orderId</td><td class="mono">a_order_id</td><td><span class="pill">전달</span></td><td><span class="dash">—</span></td></tr>
+            <tr><td>2</td><td class="mono">memberCi</td><td class="mono">a_member_ci</td><td><span class="pill">전달</span></td><td class="ukcell"><span class="badge badge-userkey">사용자 키값</span><span class="uk-dash">—</span></td></tr>
           </tbody>
         </table>
       </div>
@@ -267,7 +292,11 @@ body[data-state="loaded"] .head-actions,body[data-state="loaded"] .head-badge{di
 <script>
 function setState(s){
   document.body.dataset.state=s;
-  document.querySelectorAll('.mock-bar button').forEach(function(b){b.classList.toggle('active',b.dataset.s===s)});
+  document.querySelectorAll('.mock-bar [data-s]').forEach(function(b){b.classList.toggle('active',b.dataset.s===s)});
+}
+function setUserKey(v){ // 목업 시연: 사용자 키값 파라미터 지정 구성 / 미지정 구성 전환(읽기 전용 표시)
+  document.body.dataset.uk=v;
+  document.querySelectorAll('.mock-bar [data-uk]').forEach(function(b){b.classList.toggle('active',b.dataset.uk===v)});
 }
 function openModal(){document.getElementById('scrim').classList.add('show')}
 function closeModal(){document.getElementById('scrim').classList.remove('show')}
