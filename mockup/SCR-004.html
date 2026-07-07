@@ -140,7 +140,7 @@ body[data-state="loaded"] .head-actions,body[data-state="loaded"] .head-badge{di
   <span class="sep"></span>
   <span class="lbl">사용자 키값:</span>
   <button data-uk="set" class="active" onclick="setUserKey('set')">지정(memberCi)</button>
-  <button data-uk="none" onclick="setUserKey('none')">미지정</button>
+  <button data-uk="none" onclick="setUserKey('none')">미지정(방어)</button>
   <span class="tag">SCR-004 · /admin/configs/:id</span>
 </div>
 </div><!-- /mock-chrome -->
@@ -199,8 +199,8 @@ body[data-state="loaded"] .head-actions,body[data-state="loaded"] .head-badge{di
       <div class="ukey-summary">
         <span>🔑 사용자 키값 파라미터:</span>
         <b class="uk-name">memberCi</b><b class="uk-none-txt">지정 없음</b>
-        <span class="uk-hint uk-name">— 지정 값이 연동이력·완료 확인(API-02)·완료 콜백(API-03)의 사용자 키값 근거입니다(BIZ-004-05).</span>
-        <span class="uk-hint uk-none-txt">— 미지정 구성은 연동이력·완료 확인/콜백 대상이 아닙니다(BIZ-004-05).</span>
+        <span class="uk-hint uk-name">— 지정 값이 연동이력·완료 확인(API-02)·완료 콜백(API-03)의 사용자 키값 근거입니다(BIZ-004). 지정은 필수(정확히 1개).</span>
+        <span class="uk-hint uk-none-txt">— (방어) 지정은 필수라 정상 구성엔 미발생. 미지정 구성은 연동이력·완료 확인/콜백 대상이 아닙니다(BIZ-004-05).</span>
       </div>
       <div class="tablewrap">
         <table>
@@ -294,7 +294,7 @@ function setState(s){
   document.body.dataset.state=s;
   document.querySelectorAll('.mock-bar [data-s]').forEach(function(b){b.classList.toggle('active',b.dataset.s===s)});
 }
-function setUserKey(v){ // 목업 시연: 사용자 키값 파라미터 지정 구성 / 미지정 구성 전환(읽기 전용 표시)
+function setUserKey(v){ // 목업 시연: 사용자 키값 파라미터 지정 구성 / 미지정 구성(방어 표시) 전환(읽기 전용). 지정 필수라 정상 구성은 항상 'set'
   document.body.dataset.uk=v;
   document.querySelectorAll('.mock-bar [data-uk]').forEach(function(b){b.classList.toggle('active',b.dataset.uk===v)});
 }

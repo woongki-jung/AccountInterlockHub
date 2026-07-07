@@ -72,13 +72,13 @@ input[readonly]{background:var(--disabled);color:var(--muted);cursor:not-allowed
 .chkline input{width:18px;height:18px;accent-color:var(--primary)}
 .rmbtn{height:40px;width:40px;border:1px solid var(--border);background:#fff;border-radius:var(--r-md);color:var(--danger);cursor:pointer;font-size:16px}
 .addbtn{background:transparent;border:1px dashed var(--primary);color:var(--primary);border-radius:var(--r-md);padding:10px 14px;font-size:14px;cursor:pointer;width:100%}
-/* user key designation (전달 파라미터 중 최대 1개, 선택 입력) */
+/* user key designation (전달 파라미터 중 정확히 1개, 필수) */
 .ukbar{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px;padding:10px 14px;background:var(--primary-weak);border:1px solid #BFDBFE;border-radius:var(--r-md);margin-bottom:12px;font-size:14px}
 .ukbar .uki{display:flex;flex-wrap:wrap;align-items:center;gap:6px}
 .ukbar .uki b{color:#1E3A8A}
 .ukbar .uki .note{color:#1E3A8A;font-size:13px;font-weight:400}
-.ukclear{background:#fff;border:1px solid var(--border);border-radius:var(--r-md);padding:8px 12px;font-size:13px;color:var(--text);cursor:pointer;white-space:nowrap}
-.ukclear:disabled{background:var(--disabled);color:var(--muted);cursor:not-allowed}
+.uk-req-err{display:none;color:var(--danger);font-size:13px;font-weight:600;white-space:nowrap}
+.ukbar.err{border-color:#FCA5A5;background:var(--danger-weak)}
 .ukline{display:flex;align-items:center;gap:8px;height:40px;font-size:14px;white-space:nowrap}
 .ukline input{width:18px;height:18px;accent-color:var(--primary)}
 .userkey-badge{display:none;align-items:center;gap:4px;height:22px;padding:0 8px;border-radius:var(--r-sm);font-size:12px;font-weight:600;background:#1E40AF;color:#fff;margin-left:6px}
@@ -225,12 +225,12 @@ body[data-err="format"] .banner-err{display:flex}
       <h2>전달 파라미터 정의</h2>
       <p class="desc">서비스 A 원천 키에서 값을 취해 서비스 B로 전달할 파라미터를 정의합니다. 최소 1개.</p>
       <div class="banner banner-warn"><span>ⓘ</span><span>일부 파라미터명(예: <b>memberCi</b>)이 개인정보성 명칭 패턴에 해당할 수 있습니다. 안내이며 저장을 차단하지 않습니다(BIZ-001-05).</span></div>
-      <div class="ukbar">
+      <div class="ukbar" id="ukBar">
         <div class="uki">
-          <span>사용자 키값 파라미터:</span> <b id="ukCurrent">memberCi</b>
-          <span class="note">(선택 입력 · 구성당 최대 1개 · 지정 값이 연동이력·완료 확인/콜백의 사용자 키값 근거, BIZ-001-07)</span>
+          <span>사용자 키값 파라미터 <span style="color:var(--danger)">*</span>:</span> <b id="ukCurrent">memberCi</b>
+          <span class="note">(필수 · 구성당 정확히 1개 · 반드시 1개 지정 · 지정 값이 연동이력·완료 확인/콜백의 사용자 키값 근거, BIZ-001-07)</span>
         </div>
-        <button type="button" class="ukclear" id="ukClearBtn" onclick="clearUserKey()">사용자 키값 지정 없음</button>
+        <span class="uk-req-err" id="ukReqErr">⚠ 사용자 키값 파라미터를 1개 지정해주세요.</span>
       </div>
       <div id="paramRows">
         <div class="rrow">
@@ -353,31 +353,30 @@ function addConsent(){
   wrap.appendChild(d);
 }
 function removeRow(btn){btn.closest('.rrow').remove();syncUserKey();}
-// 사용자 키값 파라미터 지정: 전달 파라미터 반복 행 전체를 단일 라디오 그룹으로 묶어 구성당 최대 1개만 선택(BIZ-001-07). 미지정(전 행 false) 허용(EXC-BIZ-09).
+// 사용자 키값 파라미터 지정: 전달 파라미터 반복 행 전체를 단일 라디오 그룹으로 묶어 구성당 정확히 1개 필수(BIZ-001-07). 미선택(0개)은 저장 차단(EXC-BIZ-09 — 2026-07-08 필수 확정).
 function selectUserKey(radio){
   document.querySelectorAll('#paramRows .rrow').forEach(function(r){r.classList.remove('userkey-on')});
   radio.closest('.rrow').classList.add('userkey-on');
   syncUserKey();
 }
-function clearUserKey(){ // "사용자 키값 지정 없음" — 미지정으로 복귀
-  document.querySelectorAll('#paramRows input[name="userKey"]').forEach(function(r){r.checked=false});
-  document.querySelectorAll('#paramRows .rrow').forEach(function(r){r.classList.remove('userkey-on')});
-  syncUserKey();
-}
-function syncUserKey(){ // 지정 요약·해제 버튼 상태 동기화(지정 행 삭제 시 자동 미지정 처리 포함)
+function syncUserKey(){ // 지정 요약·필수 경고 동기화(지정 행 삭제 시 미선택→경고 표시)
   var checked=document.querySelector('#paramRows input[name="userKey"]:checked');
-  var cur=document.getElementById('ukCurrent'),btn=document.getElementById('ukClearBtn');
+  var cur=document.getElementById('ukCurrent'),bar=document.getElementById('ukBar'),err=document.getElementById('ukReqErr');
   if(checked){
     var nameInput=checked.closest('.rrow').querySelector('.rgrid.param input[type="text"]');
     cur.textContent=(nameInput&&nameInput.value.trim())||'(파라미터명 미입력)';
-    btn.disabled=false;
+    bar.classList.remove('err');err.style.display='none';
   }else{
-    cur.textContent='지정 없음';
-    btn.disabled=true;
+    cur.textContent='미지정';
+    bar.classList.add('err');err.style.display='inline';
   }
 }
 document.addEventListener('DOMContentLoaded',syncUserKey);
-function save(){setState('submitting');setTimeout(function(){setState('ready');var t=document.getElementById('toast');t.classList.add('show');setTimeout(function(){t.classList.remove('show');location.href='SCR-004.html';},900);},1000);}
+function save(){
+  var checked=document.querySelector('#paramRows input[name="userKey"]:checked');
+  if(!checked){ syncUserKey(); document.getElementById('ukBar').scrollIntoView({behavior:'smooth',block:'center'}); return; }  // 필수 — 정확히 1개 지정해야 저장(BIZ-001-07)
+  setState('submitting');setTimeout(function(){setState('ready');var t=document.getElementById('toast');t.classList.add('show');setTimeout(function(){t.classList.remove('show');location.href='SCR-004.html';},900);},1000);
+}
 </script>
 </body>
 </html>
