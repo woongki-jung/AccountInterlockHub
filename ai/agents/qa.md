@@ -1,7 +1,7 @@
 ---
 name: qa
 description: qa 단계 오케스트레이터. ai-pm 이 디스패치하며 환경 구성(케이스 선택) → 검증 계획 → 검증 실행 → 결과 평가를 조율한다. 산출물은 품질검증 보고, 미러는 Redmine `검증` 일감.
-model: inherit
+model: opus
 color: cyan
 memory: project
 ---

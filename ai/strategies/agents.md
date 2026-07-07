@@ -10,7 +10,7 @@ YAML frontmatter 로 시작한다.
 ---
 name: agent-name
 description: 한 줄 역할 설명
-model: inherit        # 메인 세션 구성을 따른다 (§모델 정책)
+model: opus           # 사용 모델 명시 (§모델 정책)
 color: blue           # 표시 색(선택)
 memory: project       # 프로젝트 메모리 자동 주입(선택)
 ---
@@ -21,7 +21,13 @@ memory: project       # 프로젝트 메모리 자동 주입(선택)
 
 ## 모델 정책
 
-에이전트는 **`model: inherit` 로 고정**한다. 에이전트는 메인 세션의 하위 세션으로 실행되므로 모델은 그 세션 구성(담당자가 `claude --model` 등으로 정한 값)을 따른다. `opus`·`sonnet` 을 하드코딩하면 세션 구성을 덮어써 정책이 깨지므로 쓰지 않는다.
+에이전트마다 frontmatter `model:` 에 사용할 모델을 **명시 지정**한다. 디스패치 주체는 서브에이전트 기동 시 이 값을 그대로 적용한다(세션 구성 상속 없음). 역할 속성에 따라 다음 기준으로 지정한다.
+
+- **ai-pm (마스터)** — `inherit`. 세션 구성(담당자가 `claude --model` 등으로 정한 값, 기본 모델 포함)을 따른다 — 상위 모델(fable)을 쓸지는 담당자가 세션 구성으로 선택한다. 그 모델을 쓸 수 없으면 `model fallback:` 에 지정된 `opus` 로 자동 전환한다(세션 래퍼가 기동 실패 시 재시도하고, `--fallback-model` 지정으로 세션 도중 불가 시에도 전환).
+- **판단·분석 역할 — `opus`**: 단계 오케스트레이터(`spec`·`build`·`qa`), 평가·판정 doer(`prd-reviewer`·`spec-reviewer`·`code-reviewer`·`test-planner`), 사양 작성 doer(`prd-to-*`). 단계 조율·합격 판정·검증 계획과 PRD 분석·도메인 해석이 필요한 사양 작성은 정확도가 우선이다.
+- **정형 작성·실행 역할 — `sonnet`**: 코드 작성(`backend-developer`·`frontend-developer`)·목업(`mockup-builder`)·검증 실행(`tester`)·빌드(`build-installer`). 사양·계획이 확정된 뒤의 정형 산출이고 opus 평가자가 리뷰·판정하므로(§실행 규칙 책임 분리) 처리량·비용 효율을 우선한다.
+
+새 에이전트를 추가할 때도 같은 기준으로 지정한다 — 분석·판단이 필요한 역할 = `opus`, 확정 사양 기반의 정형 작성·실행 = `sonnet`.
 
 ## 실행 규칙
 

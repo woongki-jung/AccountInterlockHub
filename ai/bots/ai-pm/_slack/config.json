@@ -19,6 +19,8 @@
         "users:read",
         "users.profile:read",
         "chat:write",
-        "reactions:write"
+        "reactions:write",
+        "files:read",
+        "files:write"
     ]
 }

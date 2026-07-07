@@ -186,28 +186,36 @@ if ($wdExisting) {
   Write-Host "[ai-pm-session] 워치독 기동 (PID $($wdProc.Id)) — app.js 5초 간격 감시" -ForegroundColor DarkGray
 }
 
-# --- 세션 모델 — 봇 정의 frontmatter `model:` 단일 출처 ---
-$model = ''
+# --- 세션 모델 — 봇 정의 frontmatter `model:` 단일 출처. `model fallback:` 은 1차 모델 기동 불가 시 대체 모델. ---
+$primaryModel  = ''
+$fallbackModel = ''
 if (Test-Path $botDef) {
   $m = Select-String -Path $botDef -Pattern '^\s*model:\s*([^\s#]+)' -ErrorAction SilentlyContinue | Select-Object -First 1
-  if ($m) { $model = $m.Matches[0].Groups[1].Value.Trim() }
+  if ($m) { $primaryModel = $m.Matches[0].Groups[1].Value.Trim() }
+  $mf = Select-String -Path $botDef -Pattern '^\s*model fallback:\s*([^\s#]+)' -ErrorAction SilentlyContinue | Select-Object -First 1
+  if ($mf) { $fallbackModel = $mf.Matches[0].Groups[1].Value.Trim() }
 }
-if ($model -eq 'inherit') { $model = '' }
-
-$claudeArgs = @('--dangerously-skip-permissions')
-if ($model) { $claudeArgs += @('--model', $model) }
-$claudeArgs += 'ai-pm 세션 시작'
+if ($primaryModel -eq 'inherit') { $primaryModel = '' }
+$activeModel = $primaryModel
 
 try {
   while ($true) {
+    $claudeArgs = @('--dangerously-skip-permissions')
+    if ($activeModel) { $claudeArgs += @('--model', $activeModel) }
+    # 세션 도중 1차 모델 사용 불가(과부하·한도)에도 CLI 가 fallback 모델로 자동 전환하도록 지정
+    if ($fallbackModel -and $activeModel -ne $fallbackModel) { $claudeArgs += @('--fallback-model', $fallbackModel) }
+    $claudeArgs += 'ai-pm 세션 시작'
+
     Write-Host ""
     Write-Host "[ai-pm-session] launching claude session..." -ForegroundColor Cyan
-    Write-Host "[ai-pm-session] model : $(if ($model) { $model } else { '(inherit/기본)' })"
+    Write-Host "[ai-pm-session] model : $(if ($activeModel) { $activeModel } else { '(기본)' })$(if ($fallbackModel -and $activeModel -ne $fallbackModel) { " (fallback: $fallbackModel)" })"
     Write-Host "[ai-pm-session] (Slack 에서 'ai-pm 초기화' 로 자동 재기동 / Ctrl+C 또는 .stop 으로 종료)"
     Write-Host ""
 
+    $launchStart = Get-Date
     & claude @claudeArgs
     $claudeExit = $LASTEXITCODE
+    $elapsedSec = ((Get-Date) - $launchStart).TotalSeconds
     Write-Host ""
     Write-Host "[ai-pm-session] claude exited (code $claudeExit)" -ForegroundColor DarkGray
 
@@ -216,9 +224,16 @@ try {
       Write-Host "[ai-pm-session] .stop flag 감지 — 루프 종료"
       break
     }
+    # 1차 모델 기동 불가(즉시 비정상 종료) → fallback 모델로 즉시 재시도. 정상 운영 후 종료(60초 이상)는 해당 없음.
+    if ($claudeExit -ne 0 -and $elapsedSec -lt 60 -and $fallbackModel -and $activeModel -ne $fallbackModel) {
+      Write-Host "[ai-pm-session] 모델 '$activeModel' 기동 실패 추정 (즉시 종료, code $claudeExit) — fallback '$fallbackModel' 로 재시도" -ForegroundColor Yellow
+      $activeModel = $fallbackModel
+      continue
+    }
     if (Test-Path $restartFlag) {
       Remove-Item $restartFlag -Force -ErrorAction SilentlyContinue
       Write-Host "[ai-pm-session] .restart flag 감지 — 2초 후 재기동..." -ForegroundColor Yellow
+      $activeModel = $primaryModel   # 재기동 시 1차 모델부터 다시 시도
       Start-Sleep -Seconds 2
       continue
     }

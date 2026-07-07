@@ -1,7 +1,7 @@
 ---
 name: tester
 description: 정의된 검증 TC·기능검증 항목을 사용자 동일 환경에서 실행해 5종으로 판정하고 증빙을 보존하는 검증 실행 doer. qa 오케스트레이터 2단계와 build 오케스트레이터 2-C(기능검증)가 공유 호출한다. 도구·셀렉터·환경은 선택된 qa-execution 케이스 지침에서 가져온다.
-model: inherit
+model: sonnet
 color: purple
 memory: project
 ---

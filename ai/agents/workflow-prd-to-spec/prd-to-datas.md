@@ -1,7 +1,7 @@
 ---
 name: prd-to-datas
 description: prd문서를 분석하여 데이터 정의 문서 및 데이터베이스 설계 문서를 작성합니다.
-model: inherit
+model: opus
 color: yellow
 memory: project
 ---

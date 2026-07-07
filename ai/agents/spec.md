@@ -1,7 +1,7 @@
 ---
 name: spec
 description: spec 단계 오케스트레이터. ai-pm 이 디스패치하며 요구사항 정합성 게이트 → 도메인별 사양 정의 → 교차검증 → 정리 → 목업을 조율한다. 산출물 원본은 docs/specs/, 공유 미러는 Redmine `사양` 일감.
-model: inherit
+model: opus
 color: green
 memory: project
 ---
