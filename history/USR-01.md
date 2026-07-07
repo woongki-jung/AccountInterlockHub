@@ -4,6 +4,7 @@
 
 | 일시 (KST) | 단계 | 산출물·결과 | 관련 일감 | 상태 |
 |---|---|---|---|---|
+| 2026-07-07 10:30 | spec | `process_PROC-201.md` 개정 — 지정 구성 진입 시 내부 PROC-403→FN-016 연동이력 생성 흐름 추가(활성 구성 조회에 user_key_param_id·전달 파라미터 정의(ENT-003) 로드·지정 값 완결성 400 EX-BIZ-007·미지정 미기록 BR-203, 단건 INSERT 트랜잭션)·BE B1a·단계 통합 7단계·분기/예외·CRUD(ENT-007 C)·의존(PROC-403 호출) 재편·`spec-process.md` SCR-005 매핑·의존관계 반영 | `accountinterlockhub#30` | 🚧 |
 | 2026-07-07 09:30 | spec | `function_FN-016.md` 신설(연동 요청 진입 처리 중 연동이력 생성 — PROC-201 내부 호출)·`spec-functions.md` 카탈로그 `/interlock/entry`(PROC-201) 행 주요 호출 FN 에 FN-016 추가 | `accountinterlockhub#28` | 🚧 |
 | 2026-07-07 08:27 | spec | `model_user.md` MDL-201 개정 — 지정 구성의 지정 파라미터 값 필수·비공백 검증(BIZ-004-02) 명시, 지정 값의 연동이력(ENT-007.user_key) 원문 유입 주석(모델 자체는 무저장 전송 전용 유지) | `accountinterlockhub#27` | 🚧 |
 | 2026-07-07 06:35 | spec | `service_SVC-004.md` 개정 — F-006 지정 파라미터 값 검증(400 EX-BIZ-007)·F-007 연동이력 1건 생성(진입 시, PROC-403 예약)·BR-203 신설·Happy Path 7단계 재편·관련 IA + BAT-03 | `accountinterlockhub#26` | 🚧 |
