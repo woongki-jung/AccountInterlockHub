@@ -4,6 +4,7 @@
 
 | 일시 (KST) | 단계 | 산출물·결과 | 관련 일감 | 상태 |
 |---|---|---|---|---|
+| 2026-07-07 10:10 | spec | `screen_SCR-004.md` 개정 — 지정 사용자 키값 파라미터 읽기전용 표시(전달 파라미터 테이블 '사용자 키값' `Badge`·요약 표기, 미지정="지정 없음", 파라미터 정의명이라 마스킹 대상 아님, BIZ-004-05)·데이터 표시(isUserKey)·레이아웃·조건부 표시·구현 가이드 반영 | `accountinterlockhub#29` | 🚧 |
 | 2026-07-06 22:01 | spec ⓒ | (공통 반영) PostgreSQL 최적화 재정의 — common.md | `accountinterlockhub#24` | ℹ️ |
 | 2026-07-06 17:10 | spec ⓒ | (공통 반영) DB 표기 PostgreSQL 정합화 — common.md | `accountinterlockhub#24` | ℹ️ |
 | 2026-07-06 03:20 | spec | SVC-002·SCR-002/004·PROC-102/105/106·FN-010·TC ADM-02 | `accountinterlockhub#24` | 🚧 |
