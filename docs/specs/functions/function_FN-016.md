@@ -51,7 +51,7 @@ function FN-016_createInterlockHistory (
    if (config.userKeyParamId is null)         → return null   // 방어적: 정상 구성은 지정 필수(정확히 1개)라 도달하지 않음. 레거시·비정상 미지정 구성만 이력 미기록(대상 밖)
 
 2. 지정 파라미터 값 추출·완결성 검증 — POL BIZ-004-02 (validate)
-   designatedParam = config.parameters.find(p => p.id == config.userKeyParamId)   // isUserKey=true 파라미터(구성당 최대 1개)
+   designatedParam = config.parameters.find(p => p.id == config.userKeyParamId)   // isUserKey=true 파라미터(구성당 정확히 1개 필수)
    userKey = ctx.parameters[designatedParam.name]
    if (userKey is null OR blank(userKey))
         → throw MissingUserKeyValueError (400, EX-BIZ-007)     // 진입 거부 — 근거 데이터 완결성 보장
