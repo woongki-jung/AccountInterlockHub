@@ -12,3 +12,8 @@ CLAUDE.local.md
 ai/bots/ai-pm/_session/
 tmp/
 works/
+
+# 애플리케이션 빌드 산출물·로컬 환경파일 (apps/backend, apps/frontend)
+apps/**/dist/
+apps/**/node_modules/
+*.tsbuildinfo
