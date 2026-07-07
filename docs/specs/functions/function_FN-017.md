@@ -16,7 +16,7 @@
 | 기능명 | 연동 완료 확인 판정 |
 | 분류 | POL |
 | 사용 서비스 | SVC-008 |
-| 호출 PROC | PROC-302(예약) |
+| 호출 PROC | PROC-302 |
 | 연관 정책 | [BIZ-004](../policies/policy_BIZ.md#biz-004-연동이력-기록완료-판정)(04·05), [SEC-005](../policies/policy_SEC.md#sec-005-민감값-마스킹)(03·01), [DATA-006](../policies/policy_DATA.md#data-006-연동이력-보관삭제)(EXC-DATA-11) |
 | 참조 데이터 | [MDL-304](../datas/model_api.md) 완료 확인 응답, [MDL-303](../datas/model_api.md) 연동이력, [ENT-007](../datas/data_ENT-007.md) |
 | 관련 IA 항목 | API-02 |

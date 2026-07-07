@@ -17,7 +17,7 @@
 | 기능명 | 연동이력 생성 |
 | 분류 | DAT |
 | 사용 서비스 | SVC-004 |
-| 호출 PROC | PROC-201(예약 — 내부 PROC-403) |
+| 호출 PROC | PROC-201(내부 PROC-403) |
 | 연관 정책 | [BIZ-004](../policies/policy_BIZ.md#biz-004-연동이력-기록완료-판정)(01·02·05), [DATA-005](../policies/policy_DATA.md#data-005-연동이력-저장-최소항목)(01·02·03·04), [DATA-001-01](../policies/policy_DATA.md#data-001-회원-키-무저장개인정보-최소화)(EXC-DATA-07) |
 | 참조 데이터 | [MDL-303](../datas/model_api.md) 연동이력, [MDL-201](../datas/model_user.md) 진입 요청(값 출처), [MDL-101](../datas/model_admin.md) 연동 구성, [ENT-007](../datas/data_ENT-007.md)·[ENT-001](../datas/data_ENT-001.md)·[ENT-003](../datas/data_ENT-003.md) |
 | 관련 IA 항목 | BAT-03, USR-01 |

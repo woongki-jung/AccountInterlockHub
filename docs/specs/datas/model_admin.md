@@ -39,6 +39,7 @@
 
 > 중첩 ConsentItem = {label, description?, termsContent?, required, order}, Parameter = {name, sourceKeyA, deliverToB, required, order, isUserKey}. termsContent(전체 약관 본문)는 선택(BIZ-001-06) — 동의 화면은 값이 있는 항목에만 [상세] 모달을 노출한다(BIZ-002-05).
 > isUserKey(사용자 키값 파라미터 지정)는 선택 입력이다 — 전 항목 false(미지정)를 허용하고, true 는 구성당 최대 1개만 허용한다(BIZ-001-07). 항목에 붙는 플래그라 "실재하는 파라미터만 지정"이 구조적으로 보장된다. 지정 여부가 연동이력·완료 확인·완료 콜백 대상 여부를 결정한다(BIZ-004-05).
+> **이원표현 계약**: parameters[].isUserKey(FE 노출·응답 플래그)와 영속 계층의 ENT-001.user_key_param_id(지정 파라미터 = ENT-003.id 참조)는 동일 지정을 달리 표현한 것이다 — 검증·영속(플래그→FK) 은 FN-006·FN-016, FK 참조 소비는 PROC-201·PROC-403 이 담당한다(§엔터티 매핑 parameters[].isUserKey 행).
 
 ### 엔터티 매핑 (PROC 데이터 변환 흐름과 정합)
 

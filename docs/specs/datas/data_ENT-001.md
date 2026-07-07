@@ -19,7 +19,7 @@
 | 관련 서비스 | SVC-001, SVC-002, SVC-004, SVC-005, SVC-008·SVC-009(구성 실재·지정 여부 사전 검증) |
 | 보존 정책 | 무기한(설정 데이터). 소프트 삭제(deleted_at). 개인정보 아님 |
 | 개인정보 여부 | 비해당 (설정 데이터 — 서비스 A/B 주소는 마스킹 대상 아님, EXC-SEC-05) |
-| CRUD 수행 PROC | C: PROC-101 / R: PROC-102·PROC-201·PROC-203·PROC-302(예약)·PROC-303(예약) / U: PROC-101·PROC-105 / D: PROC-106(소프트) |
+| CRUD 수행 PROC | C: PROC-101 / R: PROC-102·PROC-201·PROC-203·PROC-302·PROC-303 / U: PROC-101·PROC-105 / D: PROC-106(소프트) |
 | 관련 IA 항목 | ADM-01, ADM-02 |
 
 ### 속성 정의
@@ -80,7 +80,7 @@
 | BIZ-001-02 | service_a_entry_url·service_b_delivery_url URL 형식 | 응용 검증(PROC-101) + CHECK(LIKE http/https) |
 | BIZ-001-03 | config_code 고유성 | DB 무결성(UQ_CONFIG_CODE 부분 유니크) + 응용 사전 조회 |
 | BIZ-001-07 | user_key_param_id 지정(선택·실재·구성당 최대 1개) | 응용 검증(PROC-101) + FK(RESTRICT)·단일 컬럼 구조 |
-| BIZ-004-05 | user_key_param_id 미지정 구성의 API-02/03 대상 제외 | 응용 검증(PROC-302·303 예약 — 사전 확인) |
+| BIZ-004-05 | user_key_param_id 미지정 구성의 API-02/03 대상 제외 | 응용 검증(PROC-302·303 — 사전 확인) |
 | SEC-004-01/02 | 전 입력 컬럼 길이·형식·주입 방어 | 응용 검증(DTO) + 파라미터 바인딩 |
 | EXC-SEC-05 | service_a/b URL 마스킹 예외 | 마스킹 제외(설정 데이터) |
 | OPS-002-01 | 등록·수정·삭제 감사 | 감사(PROC-101 등록·편집·PROC-105 활성 전환·PROC-106 삭제) |

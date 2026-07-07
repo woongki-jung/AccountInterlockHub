@@ -19,7 +19,7 @@
 | 관련 서비스 | SVC-004(생성), SVC-008(판정 조회), SVC-009(완료 기록), SVC-007(보관 삭제) |
 | 보존 정책 | 하드 삭제(DATA-006-03). 콜백 수신 건=수신 일시+90일(DATA-006-01), 미수신 건=연동 요청 일시+90일(DATA-006-02) — 처리상태 규칙 준용 확정 기본안(EXC-DATA-10, `accountinterlockhub#33`) |
 | 개인정보 여부 | 비해당(간주) — 지정 사용자 키값은 서비스 A 가 전달한 불투명 문자열 원문으로 허브는 해석·변형하지 않는다(DATA-005-03·EXC-DATA-07). 단 회원 식별 값이므로 로그·감사·응답에서 SEC-005 마스킹·미포함을 강제한다 |
-| CRUD 수행 PROC | C: PROC-403(예약 — PROC-201 진입 내부) / R: PROC-302(예약)·PROC-303(예약)·PROC-402 / U: PROC-403(예약 — PROC-303 완료 기록 내부) / D: PROC-402(하드 삭제) |
+| CRUD 수행 PROC | C: PROC-403(PROC-201 진입 내부) / R: PROC-302·PROC-303·PROC-402 / U: PROC-403(PROC-303 완료 기록 내부) / D: PROC-402(하드 삭제) |
 | 관련 IA 항목 | BAT-03, API-02, API-03, BAT-02 |
 
 ### 속성 정의
@@ -50,8 +50,8 @@
 
 | 인덱스명 | 대상 컬럼 | 유형 | 카디널리티 추정 | 조회 패턴 (인용 PROC) |
 |----------|-----------|------|-----------------|----------------------|
-| PK_INTERLOCK_HISTORY | request_key | PK(b-tree) | 높음 | PROC-403(예약) 이력 생성 INSERT 중복 방지 — 연동 요청 1건당 최대 1건 보장(DATA-005-04) |
-| IX_HISTORY_SCOPE | config_id, user_key, requested_at DESC | BTREE | 높음(config_id 낮음 × user_key 높음) | PROC-302(예약) 완료 판정(WHERE config_id=? AND user_key=? ORDER BY requested_at DESC LIMIT 1, BIZ-004-04), PROC-303(예약) 콜백 대상 특정(WHERE config_id=? AND user_key=? AND callback_received=false ORDER BY requested_at DESC LIMIT 1, BIZ-004-03) |
+| PK_INTERLOCK_HISTORY | request_key | PK(b-tree) | 높음 | PROC-403 이력 생성 INSERT 중복 방지 — 연동 요청 1건당 최대 1건 보장(DATA-005-04) |
+| IX_HISTORY_SCOPE | config_id, user_key, requested_at DESC | BTREE | 높음(config_id 낮음 × user_key 높음) | PROC-302 완료 판정(WHERE config_id=? AND user_key=? ORDER BY requested_at DESC LIMIT 1, BIZ-004-04), PROC-303 콜백 대상 특정(WHERE config_id=? AND user_key=? AND callback_received=false ORDER BY requested_at DESC LIMIT 1, BIZ-004-03) |
 | IX_HISTORY_RETENTION_RECEIVED | callback_received_at | BTREE(부분: WHERE callback_received = true) | 중간 | PROC-402 수신 건 삭제 대상 선정(WHERE callback_received=true AND callback_received_at < 기준, DATA-006-01) |
 | IX_HISTORY_RETENTION_PENDING | requested_at | BTREE(부분: WHERE callback_received = false) | 중간 | PROC-402 미수신 건 삭제 대상 선정(WHERE callback_received=false AND requested_at < 기준, DATA-006-02) |
 
@@ -69,11 +69,11 @@
 |-----------|----------------|------------------------------------------|
 | DATA-005-01 | 저장 항목 상한(6항목 + 운영 컬럼) | 스키마 설계(컬럼 한정) |
 | DATA-005-02 | 전달 파라미터 원문·개인식별 컬럼 부재 | 스키마 설계(원천 배제) |
-| DATA-005-03 | user_key 원문 저장(무변형·무해석) | 응용 처리(PROC-403 예약) — EXC-DATA-09 확정 기본안 |
+| DATA-005-03 | user_key 원문 저장(무변형·무해석) | 응용 처리(PROC-403) — EXC-DATA-09 확정 기본안 |
 | DATA-005-04 | request_key 1건 고유·처리상태 연결 | DB 무결성(PK) + 응용 처리 |
 | DATA-006-01/02/03 | 보관 90일 이원 기산·하드 삭제 | 응용 배치(PROC-402) + 부분 인덱스 2종 |
 | BIZ-004-01/02 | 생성 조건(지정 구성)·값 완결성 | 응용 검증(PROC-201) + NOT NULL·CHECK(length>0) |
-| BIZ-004-03/04 | 콜백 특정·완료 판정 스코프(최신 건) | 응용 조회(PROC-303·PROC-302 예약) + IX_HISTORY_SCOPE |
+| BIZ-004-03/04 | 콜백 특정·완료 판정 스코프(최신 건) | 응용 조회(PROC-303·PROC-302) + IX_HISTORY_SCOPE |
 | BIZ-004-05 | 미지정 구성 미기록·API 대상 밖 | 응용 검증(ENT-001.user_key_param_id 사전 확인) |
 | BIZ-004-06 | 처리상태 불변경(이중 추적 분리) | 응용 처리(PROC-303) — ENT-004 와 소프트 참조만 |
 | DATA-001-01·EXC-DATA-07 | 회원 키 저장의 유일 허용 예외(본 저장소 1곳) | 스키마 설계 + 응용 처리 |

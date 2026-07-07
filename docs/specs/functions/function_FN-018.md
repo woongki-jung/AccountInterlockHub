@@ -16,7 +16,7 @@
 | 기능명 | 완료 콜백 대상 특정·완료 기록 |
 | 분류 | POL |
 | 사용 서비스 | SVC-009 |
-| 호출 PROC | PROC-303(예약 — 내부 PROC-403) |
+| 호출 PROC | PROC-303(내부 PROC-403) |
 | 연관 정책 | [BIZ-004](../policies/policy_BIZ.md#biz-004-연동이력-기록완료-판정)(03·05·06), [DATA-005](../policies/policy_DATA.md#data-005-연동이력-저장-최소항목)(01·04), [SEC-005](../policies/policy_SEC.md#sec-005-민감값-마스킹)(01) |
 | 참조 데이터 | [MDL-305](../datas/model_api.md) 완료 콜백 요청, [MDL-303](../datas/model_api.md) 연동이력, [ENT-007](../datas/data_ENT-007.md) |
 | 관련 IA 항목 | API-03, BAT-03 |

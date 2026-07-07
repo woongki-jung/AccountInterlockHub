@@ -65,7 +65,7 @@
 
 | 단계 | 실행 | 입력 | 기대 결과 | 매핑 PROC |
 |--|--|--|--|--|
-| 1 | 배치 종료 | — | BATCH_RUN(SUCCESS) 감사 detail: targetCount·deletedCount·elapsedMs·runAt(MDL-402) | B3 |
+| 1 | 배치 종료 | — | BATCH_RUN(SUCCESS) 감사 detail: statusTargetCount·statusDeletedCount·historyTargetCount·historyDeletedCount·elapsedMs·runAt(MDL-402) | B4 |
 
 - **데이터 검증**: 배치 결과는 상태 테이블 미저장(감사 detail 로만 기록).
 

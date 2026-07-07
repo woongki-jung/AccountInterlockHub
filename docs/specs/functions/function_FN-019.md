@@ -16,7 +16,7 @@
 | 기능명 | 연동이력 스코프 조회·구성 지정 검증 |
 | 분류 | DAT |
 | 사용 서비스 | SVC-008, SVC-009 |
-| 호출 PROC | PROC-302(예약), PROC-303(예약) |
+| 호출 PROC | PROC-302, PROC-303 |
 | 연관 정책 | [BIZ-004](../policies/policy_BIZ.md#biz-004-연동이력-기록완료-판정)(03·04·05) |
 | 참조 데이터 | [MDL-303](../datas/model_api.md) 연동이력, [ENT-007](../datas/data_ENT-007.md)·[ENT-001](../datas/data_ENT-001.md) |
 | 관련 IA 항목 | API-02, API-03 |

@@ -49,7 +49,7 @@
 
 1. ENT-001(구성)이 최상위 마스터 — ENT-002·003(정의 자식)과 ENT-004·007(트랜잭션)이 참조. 구성의 user_key_param_id(ENT-003 지정 참조)가 ENT-007 기록 여부와 API-02/03 대상 여부를 결정한다(BIZ-004-05).
 2. ENT-004(처리 상태)는 ENT-001 을 참조하되 생명주기는 독립(생성 PROC-401, 삭제 PROC-402 배치).
-3. ENT-007(연동이력)은 ENT-001 을 참조하고 ENT-004 와 request_key 동일 값으로만 연결된다(소프트 참조 — 이중 추적 분리, BIZ-004-06). 생명주기 독립(생성 PROC-403 예약, 완료 기록 PROC-303 예약, 삭제 PROC-402 배치).
+3. ENT-007(연동이력)은 ENT-001 을 참조하고 ENT-004 와 request_key 동일 값으로만 연결된다(소프트 참조 — 이중 추적 분리, BIZ-004-06). 생명주기 독립(생성 PROC-403, 완료 기록 PROC-303, 삭제 PROC-402 배치).
 4. ENT-005(관리자 계정)는 독립 마스터 — 인증·잠금 상태 자족. ENT-006 이 행위자로 소프트 참조.
 5. ENT-006(감사 로그)은 전 도메인 횡단 — 강제 FK 없이 append-only 로 모든 운영 이벤트를 수렴.
 
@@ -66,12 +66,12 @@
 | IX_STATUS_RETENTION_CONFIRMED | ENT-004 | result_confirmed_at (부분 확인) | BTREE | 중간 | PROC-402 완료 삭제(DATA-004-01) |
 | UQ_ADMIN_USERNAME | ENT-005 | username | UNIQUE | 높음 | PROC-103 로그인 조회 |
 | PK_AUDIT_LOG | ENT-006 | id (identity) | PK(b-tree) | 높음 | 전 감사 기록 PROC INSERT |
-| PK_INTERLOCK_HISTORY | ENT-007 | request_key | PK(b-tree) | 높음 | PROC-403(예약) 생성 1건 보장(DATA-005-04) |
-| IX_HISTORY_SCOPE | ENT-007 | config_id, user_key, requested_at DESC | BTREE | 높음 | PROC-302(예약) 완료 판정·PROC-303(예약) 콜백 특정({구성+키값} 스코프 최신 건) |
+| PK_INTERLOCK_HISTORY | ENT-007 | request_key | PK(b-tree) | 높음 | PROC-403 생성 1건 보장(DATA-005-04) |
+| IX_HISTORY_SCOPE | ENT-007 | config_id, user_key, requested_at DESC | BTREE | 높음 | PROC-302 완료 판정·PROC-303 콜백 특정({구성+키값} 스코프 최신 건) |
 | IX_HISTORY_RETENTION_RECEIVED | ENT-007 | callback_received_at (부분 수신) | BTREE | 중간 | PROC-402 수신 건 삭제(DATA-006-01) |
 | IX_HISTORY_RETENTION_PENDING | ENT-007 | requested_at (부분 미수신) | BTREE | 중간 | PROC-402 미수신 건 삭제(DATA-006-02) |
 
-- **인덱스 신설 기준 준수**: 모든 신설 인덱스는 조건절·정렬·조인·유니크에 쓰는 PROC 가 1개 이상 실재한다(신규 PROC-302·303·403 은 예약 채번 — 교차검증 시 실재 확인). ENT-004.config_id·ENT-006 시각/유형 인덱스·ENT-001.user_key_param_id·ENT-007.config_id 단독 인덱스는 사용 PROC 0건이라 신설하지 않고 후속 PROC 확정 시 도입한다.
+- **인덱스 신설 기준 준수**: 모든 신설 인덱스는 조건절·정렬·조인·유니크에 쓰는 PROC 가 1개 이상 실재한다(신규 PROC-302·303·403 포함 — 프로세스 도메인에 실재). ENT-004.config_id·ENT-006 시각/유형 인덱스·ENT-001.user_key_param_id·ENT-007.config_id 단독 인덱스는 사용 PROC 0건이라 신설하지 않고 후속 PROC 확정 시 도입한다.
 - **부분 인덱스 활용**: 소프트 삭제(ENT-001)·상태 분기(ENT-004)는 PostgreSQL 부분 인덱스(partial index, WHERE 절)로 선택도·크기를 최적화한다.
 - **커버링(INCLUDE) 미채택**: ENT-004 는 PK 단건 조회 직후 갱신이 따르는 고변경 패턴(PROC-301)이라 가시성 맵이 자주 무효화돼 index-only scan 의 실익이 없다 — INCLUDE 컬럼을 두지 않는다.
 - **BRIN 미채택(현행)**: 현행 조회 패턴은 등가·부분 범위 조회라 부분 B-tree 가 적합하다. BRIN 은 ENT-006 보존 삭제 도입 시의 후보로만 남긴다([`data_ENT-006.md`](data_ENT-006.md) §구현 가이드).
