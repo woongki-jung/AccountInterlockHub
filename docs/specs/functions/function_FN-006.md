@@ -2,9 +2,9 @@
 
 ## 개요
 
-- **기능 목적**: 관리자 연동 구성 등록·편집 시 필수 항목·URL 형식·동의 항목 개수·구성 코드 고유성을 서버단에서 재검증한다. 개인정보 직접 수신 파라미터가 포함되면 저장은 차단하지 않고 경고를 감사에 남긴다.
-- **관련 PRD 요구사항**: [`../../prd/PRD.md`](../../prd/PRD.md) §수행 범위(관리자 연동 구성 관리) / 정책 BIZ-001.
-- **담당자 확정 대기**: BIZ-001-05 개인정보 파라미터 경고(비차단)는 기본안(EXC-BIZ-01).
+- **기능 목적**: 관리자 연동 구성 등록·편집 시 필수 항목·URL 형식·동의 항목 개수·구성 코드 고유성·사용자 키값 파라미터 지정(선택·실재·구성당 최대 1개)을 서버단에서 재검증한다. 개인정보 직접 수신 파라미터가 포함되면 저장은 차단하지 않고 경고를 감사에 남긴다.
+- **관련 PRD 요구사항**: [`../../prd/PRD.md`](../../prd/PRD.md) §수행 범위(관리자 연동 구성 관리 — "전달 파라미터 중 사용자 키값 파라미터를 명시적으로 지정") / 정책 BIZ-001.
+- **담당자 확정 대기**: BIZ-001-05 개인정보 파라미터 경고(비차단)는 기본안(EXC-BIZ-01). 사용자 키값 파라미터 지정을 '선택'으로 두는 안(BIZ-001-07·EXC-BIZ-09, `accountinterlockhub#33`)은 확정 기본안이다 — '필수' 전환 여부는 담당자 확정 대기.
 
 ---
 
@@ -18,7 +18,7 @@
 | 분류 | POL |
 | 사용 서비스 | SVC-001 |
 | 호출 PROC | PROC-101 |
-| 연관 정책 | [BIZ-001](../policies/policy_BIZ.md#biz-001-연동-구성-입력-검증고유성)(01·02·03·04·05·06) |
+| 연관 정책 | [BIZ-001](../policies/policy_BIZ.md#biz-001-연동-구성-입력-검증고유성)(01·02·03·04·05·06·07) |
 | 참조 데이터 | [MDL-101](../datas/model_admin.md) 연동 구성, [ENT-001](../datas/data_ENT-001.md)·[ENT-002](../datas/data_ENT-002.md)·[ENT-003](../datas/data_ENT-003.md) |
 | 관련 IA 항목 | ADM-01 |
 
@@ -60,18 +60,26 @@ function FN-006_validateConfig (
    if (config.consentItems.length < 1)
         → throw ConfigValidationError (422, EX-BIZ-001)
 
-4. 고유성 사전 조회 — POL BIZ-001-03 (validate)
+4. 사용자 키값 파라미터 지정 검증 — POL BIZ-001-07 (validate)
+   designated = config.parameters.filter(p => p.isUserKey == true)
+   if (designated.length > 1)                          // 구성당 최대 1개
+        → throw ConfigValidationError (422, EX-BIZ-001)
+   if (designated.length == 1 AND designated[0] NOT IN 저장될 config.parameters 정의)
+        → throw ConfigValidationError (422, EX-BIZ-001)   // 실재하지 않는 파라미터 지정(지정 유지 상태의 해당 파라미터 삭제 제출 포함)
+   // 미지정(designated.length == 0)은 허용 — 선택 입력(BIZ-001-07). 지정은 값 복제 없이 ENT-001.user_key_param_id 로 지정 파라미터(ENT-003.id) 참조 저장
+
+5. 고유성 사전 조회 — POL BIZ-001-03 (validate)
    SELECT id FROM TBL_INTERLOCK_CONFIG
    WHERE config_code = :config.configCode AND deleted_at IS NULL;
    if (row exists AND (mode == 'CREATE' OR row.id != selfId))   // EDIT 자기 제외(EXC-BIZ-02)
         → throw ConfigDuplicateError (409, EX-BIZ-002)
 
-5. 개인정보 파라미터 경고 — POL BIZ-001-05 (audit, 비차단)
+6. 개인정보 파라미터 경고 — POL BIZ-001-05 (audit, 비차단)
    if (config.parameters contains 개인정보 직접 수신 항목)
         FN-013_writeAudit({ eventType:'CONFIG_PII_WARN', actorType:'ADMIN',
                             target: config.configCode, result:'INFO' })   // 저장 진행
 
-6. 통과
+7. 통과
    return   // 호출 PROC-101 은 영속화 진행(자식 ENT-002·003 동일 트랜잭션)
 ```
 
@@ -90,7 +98,7 @@ function FN-006_validateConfig (
 
 | HTTP status | EX 코드 | 발생 조건 | 사용자 메시지 | 개발자 노트 |
 |-------------|---------|-----------|---------------|-------------|
-| 422 | EX-BIZ-001 | 필수 누락·URL 형식 오류·동의 항목 0개 | "입력 값을 확인해주세요." | BIZ-001-01/02/04 |
+| 422 | EX-BIZ-001 | 필수 누락·URL 형식 오류·동의 항목 0개·사용자 키값 파라미터 다중 지정·실재하지 않는 파라미터 지정 | "입력 값을 확인해주세요." | BIZ-001-01/02/04/07 |
 | 409 | EX-BIZ-002 | 구성 코드 중복(유효 구성 간) | "이미 존재하는 구성입니다." | 부분 유니크(deleted_at IS NULL) |
 | 500 | EX-FN-999 | 조회·검증 오류 | "잠시 후 다시 시도해주세요." | - |
 
@@ -106,3 +114,4 @@ function FN-006_validateConfig (
 - URL·필수·고유성은 화면 검증에 의존하지 않고 서버단에서 재수행한다. 고유성은 저장 직전 조회로 확인하며, 편집은 자기 자신을 제외한다(EXC-BIZ-02).
 - 동의 항목의 약관 컨텐츠(termsContent)는 선택 입력이라 본 검증에서 필수·형식으로 차단하지 않는다(BIZ-001-06). 크기 상한(1MB)은 진입 검증(FN-005 SEC-004-03)이 담당하며, 값은 자식(ENT-002.terms_content)으로 부모 구성과 함께 영속화한다(PROC-101).
 - 소프트 삭제된 구성 코드는 재사용을 허용한다(부분 유니크). 개인정보 직접 수신 파라미터는 값 자체를 저장하지 않으므로 경고만 남기고 차단하지 않는다(무저장 원칙과 양립).
+- 사용자 키값 파라미터 지정(BIZ-001-07)은 선택 입력이며 지정 시 전달 파라미터 정의 중 실재하는 1개(구성당 최대 1개)만 허용한다. 지정은 값 복제 없이 ENT-001.user_key_param_id(ENT-003.id 참조)로 저장하고, 지정 여부가 진입 시 연동이력 기록 여부(BIZ-004, FN-016)와 완료 확인(API-02)·완료 콜백(API-03) 대상 여부를 결정한다. 편집으로 지정 파라미터를 삭제하려면 지정 해제(또는 변경)를 함께 제출해야 하며, DB 는 지정 유지 상태의 해당 파라미터 삭제를 RESTRICT 로 차단한다(응용 검증의 안전망 — [ENT-001](../datas/data_ENT-001.md)). 지정 파라미터 값 자체의 누락 검증은 진입 시점(FN-016 EX-BIZ-007)의 몫이며 본 등록·편집 검증(EX-BIZ-001)과 구별된다.

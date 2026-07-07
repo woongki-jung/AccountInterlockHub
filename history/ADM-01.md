@@ -4,6 +4,7 @@
 
 | 일시 (KST) | 단계 | 산출물·결과 | 관련 일감 | 상태 |
 |---|---|---|---|---|
+| 2026-07-07 09:30 | spec | `function_FN-006.md` 개정 — 사용자 키값 파라미터 지정 검증 추가(선택·전달 파라미터 중 실재 1개·구성당 최대 1개, BIZ-001-07, step 4)·EX-BIZ-001 조건 확장(다중 지정·미실재 지정)·지정 파라미터 값 누락 검증은 진입(FN-016 EX-BIZ-007)과 구별 명시·`spec-functions.md` 카탈로그(FN-006 연관정책·EX-BIZ-001 행) 정합 | `accountinterlockhub#28` | 🚧 |
 | 2026-07-07 08:27 | spec | `data_ENT-001.md`·`data_ENT-003.md` 개정 — ENT-001.user_key_param_id 신설(ENT-003.id 참조 저장, NULL=미지정, 단일 컬럼으로 구성당 최대 1개 구조 보장, RESTRICT 로 지정 파라미터 삭제 차단)·`model_admin.md` MDL-101 중첩 Parameter.isUserKey 추가(true 최대 1개 검증)·목록(spec-datas.md·spec-models.md) 정합 | `accountinterlockhub#27` | 🚧 |
 | 2026-07-07 06:35 | spec | `service_SVC-001.md` 개정 — F-006 사용자 키값 파라미터 지정(선택 입력)·검증 확장(실재·구성당 최대 1개, BIZ-001-07)·BR-107 신설·EX-BIZ-001 조건 확장·MDL-101 후보 항목 추가(spec-services.md) | `accountinterlockhub#26` | 🚧 |
 | 2026-07-07 06:20 | spec | 사용자 키값 파라미터 지정 정책 — BIZ-001-07(선택 입력·전달 파라미터 중 실재 1개·구성당 최대 1개)·EXC-BIZ-09(E1 확정: 미지정 허용 기본안, 미지정 구성은 연동이력·API-02/03 대상 밖 — 근거: PRD 능력 서술·기존 구성 호환·무저장 기본값) | `accountinterlockhub#25` | 🚧 |
