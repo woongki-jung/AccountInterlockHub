@@ -13,6 +13,7 @@ import ConfigsPage from './pages/ConfigsPage';
 import ConfigFormPage from './pages/ConfigFormPage';
 import ConfigDetailPage from './pages/ConfigDetailPage';
 import ConsentPage from './pages/ConsentPage';
+import ConsentResultPage from './pages/ConsentResultPage';
 
 /** 화면 경로 상수(관리자 웹 + 사용자 이용 동의). */
 const ROUTES = {
@@ -23,6 +24,8 @@ const ROUTES = {
   configEdit: '/admin/configs/:id/edit',
   // 사용자 이용 동의(Public) — 서비스 A 진입 후 발급된 요청 키값으로 접근.
   consent: '/consent/:requestKey',
+  // 사용자 동의 결과(Public) — SCR-005 제출 성공 후 네비게이션 상태(result)로만 렌더.
+  consentResult: '/consent/:requestKey/result',
 } as const;
 
 /**
@@ -54,7 +57,8 @@ export default function App() {
           <Route path={ROUTES.configEdit} element={<ConfigFormPage mode="edit" />} />
           <Route path={ROUTES.configDetail} element={<ConfigDetailPage />} />
           {/* 사용자 이용 동의(SCR-005) — 서비스 A 진입 후 발급된 요청 키값으로 접근(Public). */}
-          {/* 결과 페이지(/consent/:requestKey/result)는 USR-P4 소관 — 본 Phase 미등록(제출 성공 시 경로 이동만). */}
+          {/* 결과 세그먼트(/…/result, SCR-006)가 :requestKey 보다 더 구체적이라 우선 매칭된다(react-router 랭킹). */}
+          <Route path={ROUTES.consentResult} element={<ConsentResultPage />} />
           <Route path={ROUTES.consent} element={<ConsentPage />} />
           {/* 기본 진입은 로그인으로 유도(MVP 관리자 웹 기준). */}
           <Route path="/" element={<Navigate to={ROUTES.login} replace />} />
