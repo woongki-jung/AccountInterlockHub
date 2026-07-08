@@ -111,7 +111,8 @@ export class InterlockService {
       // 지정 참조가 가리키는 파라미터 행 부재 — 데이터 정합 위반(정상 등록 구성은 정확히 1개 실재). 내부 오류.
       throw new AppException('EX-FN-999');
     }
-    const userKey = parameters[designated.param_name];
+    // 지정 파라미터의 source_key_a 로 진입 값을 원문 추출(ENT-003 §구현 가이드 정합) — 진입 컨텍스트는 서비스 A 원천 키명으로 키잉된다.
+    const userKey = parameters[designated.source_key_a];
     if (userKey == null || userKey.trim().length === 0) {
       throw new AppException('EX-BIZ-007'); // 진입 거부(이력 미생성, 부작용 없음)
     }

@@ -4,6 +4,7 @@
 
 | 일시 (KST) | 단계 | 산출물·결과 | 관련 일감 | 상태 |
 |---|---|---|---|---|
+| 2026-07-08 11:20 | build | `apps/backend/src/user/interlock/interlock.service.ts` FN-016 정정(USR-P2 중 발견) — 지정 사용자 키값 추출 키 `param_name`→`source_key_a`(ENT-003 §구현 가이드 정합). param_name≠source_key_a 지정 구성에서 진입 값 미검출로 오검출되던 것을 정정, 진입(PROC-201)→전달(PROC-203) end-to-end 정합 복원. 인접 주석 정정. `npm run build` 0건. 작성만(리뷰·기능검증 대기) | `accountinterlockhub#45`·`#46` | 🚧 |
 | 2026-07-08 06:02 | build | `apps/backend/src/user/interlock/interlock.service.ts` FN-016 연동이력 생성(내부 PROC-403, USR-P1) — 지정 구성 진입 시 TBL_INTERLOCK_HISTORY 1건 INSERT(user_key 원문 무변형·request_key PK·callback_received=false)·지정값 누락/공백 400 EX-BIZ-007(컨텍스트 폐기·이력 미생성·요청키 미반환)·미지정 미기록 BR-203·HISTORY_CREATE 감사(userKey 마스킹). `npm run build` 0건. 3책임 통과(tester: 지정 사용자 키값 원문 저장 예외 확인·회원키/파라미터 원문 무저장 0건 검증 🟢) | `accountinterlockhub#45` | ✅ |
 | 2026-07-07 11:15 | spec | `qa/BAT/tc_BAT-03.md` 신설 — 연동이력 저장 검증 TC 10건(지정 구성 이력 1건 생성·미지정 미생성 BR-203·지정 값 누락/공백 진입 거부 400 EX-BIZ-007·항목 6종 상한 무저장 경계 DATA-005·키값 원문 무변형·요청 키값 PK 1건·처리상태 분리·감사 마스킹)·`spec-qa.md` §4-1·§5-1(SVC-004 이용 동의·연동이력 생성 30)·§5-2(PROC-201·PROC-403 생성)·§5-4(DATA-005)·§6(BLK-17/18)·§3 시드 반영 | `accountinterlockhub#31` | 🚧 |
 | 2026-07-07 10:30 | spec | `process_PROC-403.md` 신설(연동이력 기록 — 내부 EVT·엔드포인트 없음, 생성 진입 FN-016(PROC-201 호출)·완료 기록 진입 FN-018(PROC-303 호출) 두 진입, INSERT PK 1건 보장·완료 기록 UPDATE 조건절 멱등 가드·처리상태 불변경 BIZ-004-06·요청 키값 소프트 참조 연결, PROC-401 종착 템플릿)·`spec-process.md` 카탈로그 PROC-403 행·SVC-004/009 매핑·ENT-007 C/U·의존관계 반영 | `accountinterlockhub#30` | 🚧 |
