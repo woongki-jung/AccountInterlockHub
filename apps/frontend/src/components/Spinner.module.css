@@ -1,0 +1,39 @@
+.spinner {
+  display: inline-block;
+  border-radius: 50%;
+  border-style: solid;
+  border-color: currentColor;
+  /* 링의 한쪽만 투명하게 해 회전 표시 */
+  border-top-color: transparent;
+  animation: spin 0.7s linear infinite;
+}
+
+.sizeSm {
+  width: 14px;
+  height: 14px;
+  border-width: 2px;
+}
+
+.sizeMd {
+  width: 16px;
+  height: 16px;
+  border-width: 2px;
+}
+
+.sizeLg {
+  width: 24px;
+  height: 24px;
+  border-width: 3px;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .spinner {
+    animation-duration: 1.6s;
+  }
+}

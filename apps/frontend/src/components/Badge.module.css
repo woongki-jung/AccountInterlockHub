@@ -1,0 +1,71 @@
+/*
+ * 상태·분류 배지(design-system.md §공통 컴포넌트 Badge: radius-sm, 텍스트 라벨 병기).
+ * 토큰이 정의한 색을 우선 참조하고, 토큰에 없는 약한 배경·짙은 텍스트 짝은
+ * Banner·Toast 와 동일한 컨벤션으로 모듈 내에 둔다(디자인 시스템 팔레트 파생값).
+ */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  height: 24px;
+  padding: 0 var(--space-2);
+  border-radius: var(--radius-sm);
+  font-size: var(--text-caption-size);
+  line-height: var(--text-caption-line);
+  font-weight: var(--font-weight-medium);
+  white-space: nowrap;
+}
+
+/* 상태 점(색 병기 보조 — 텍스트 라벨과 함께 노출). */
+.dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: currentColor;
+  opacity: 0.8;
+}
+
+.icon {
+  font-size: 11px;
+  line-height: 1;
+}
+
+.active {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.inactive {
+  background: #f3f4f6;
+  color: #4b5563;
+}
+
+/* 사용자 키값 지정 표식 — 강조(primary-strong 배경 + 반전 텍스트). */
+.userKey {
+  background: #1e40af;
+  color: var(--color-text-inverse);
+  font-weight: var(--font-weight-semibold);
+}
+
+/* 전달·설정됨 등 긍정 분류 — primary 계열 약배경. */
+.info {
+  background: var(--color-primary-weak);
+  color: #1e40af;
+}
+
+/* 미전달·선택·없음 등 중립 분류. */
+.neutral {
+  background: #f3f4f6;
+  color: var(--color-text-muted);
+}
+
+/* 필수·거부·실패 등 위험 분류. */
+.danger {
+  background: var(--color-danger-weak);
+  color: #991b1b;
+}
+
+.success {
+  background: #dcfce7;
+  color: #166534;
+}

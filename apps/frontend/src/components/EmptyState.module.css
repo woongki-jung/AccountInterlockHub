@@ -1,0 +1,33 @@
+/* 빈 상태 패널(design-system.md §공통 컴포넌트 EmptyState). 색·간격은 토큰 참조. */
+.panel {
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: var(--space-12) var(--space-6);
+  text-align: center;
+}
+
+.icon {
+  font-size: 36px;
+  line-height: 1;
+}
+
+.title {
+  font-size: var(--text-h2-size);
+  line-height: var(--text-h2-line);
+  font-weight: var(--font-weight-semibold);
+  margin: var(--space-3) 0 var(--space-1);
+}
+
+.description {
+  color: var(--color-text-muted);
+  font-size: var(--text-label-size);
+  line-height: var(--text-label-line);
+  margin: 0 0 var(--space-6);
+}
+
+.action {
+  display: flex;
+  justify-content: center;
+  gap: var(--space-3);
+}

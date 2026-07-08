@@ -1,0 +1,33 @@
+/* 라벨 클릭 영역 포함 불리언 입력(design-system.md §공통 컴포넌트 Checkbox). */
+.wrapper {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: var(--control-height-md); /* 최소 터치 영역 확보 */
+  font-size: var(--text-label-size);
+  line-height: var(--text-label-line);
+  color: var(--color-text);
+  cursor: pointer;
+  user-select: none;
+}
+
+.input {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--color-primary);
+  cursor: pointer;
+  flex: 0 0 auto;
+}
+
+.input:disabled {
+  cursor: not-allowed;
+}
+
+.wrapper:has(.input:disabled) {
+  color: var(--color-text-muted);
+  cursor: not-allowed;
+}
+
+.text {
+  white-space: nowrap;
+}

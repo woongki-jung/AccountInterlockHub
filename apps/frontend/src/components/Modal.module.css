@@ -1,0 +1,69 @@
+/*
+ * 모달(design-system.md §공통 컴포넌트 Modal: 배경 스크림·radius-lg·shadow-lg·내부 여백 24px).
+ * 콘텐츠 변형(scrollBody)은 max-height 내 본문 스크롤. 색·간격·라운딩은 토큰 참조.
+ */
+.scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-4);
+  background: rgba(17, 24, 39, 0.45);
+}
+
+.modal {
+  width: 100%;
+  max-height: calc(100vh - var(--space-8));
+  display: flex;
+  flex-direction: column;
+  background: var(--color-bg);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+  padding: var(--space-6);
+}
+
+.sizeSm {
+  max-width: 420px;
+}
+
+.sizeMd {
+  max-width: 480px;
+}
+
+.title {
+  font-size: var(--text-h2-size);
+  line-height: var(--text-h2-line);
+  font-weight: var(--font-weight-semibold);
+  margin: 0 0 var(--space-2);
+}
+
+.body {
+  color: var(--color-text-muted);
+  font-size: var(--text-label-size);
+  line-height: var(--text-label-line);
+  margin-bottom: var(--space-6);
+}
+
+/* 콘텐츠 변형 — 스크롤 본문(약관 전체 열람). */
+.scrollBody {
+  overflow-y: auto;
+  flex: 1 1 auto;
+  margin-bottom: var(--space-6);
+  padding: var(--space-3) var(--control-pad-x);
+  background: var(--color-bg-subtle);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  color: var(--color-text);
+  font-size: var(--text-label-size);
+  line-height: 21px;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-2);
+}

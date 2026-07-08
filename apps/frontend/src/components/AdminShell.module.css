@@ -1,0 +1,11 @@
+/* 관리자 셸 — 헤더 + 본문 컨테이너(design-system.md §레이아웃: 최대 폭 1120px, 좌우 여백 24px). */
+.shell {
+  min-height: 100vh;
+  background: var(--color-bg-subtle);
+}
+
+.body {
+  max-width: var(--admin-shell-max-width);
+  margin: 0 auto;
+  padding: var(--space-6);
+}

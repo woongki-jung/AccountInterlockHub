@@ -1,0 +1,95 @@
+/*
+ * SCR-002 연동 구성 목록 스타일. 색·간격·라운딩은 토큰(tokens.css)만 참조한다.
+ * 반응형: 테이블은 Table 컴포넌트가 가로 스크롤·mobile 열 접기를 담당한다.
+ */
+
+.pagehead {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  margin-bottom: var(--space-6);
+}
+
+.title {
+  font-size: var(--text-h1-size);
+  line-height: var(--text-h1-line);
+  font-weight: var(--font-weight-bold);
+  margin: 0;
+}
+
+.spacer {
+  flex: 1 1 auto;
+}
+
+/* 검색·활성 필터 툴바 */
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  align-items: flex-start;
+  margin-bottom: var(--space-4);
+}
+.searchCol {
+  flex: 1 1 260px;
+  min-width: 220px;
+  max-width: 360px;
+}
+.filterCol {
+  flex: 0 0 auto;
+  min-width: 160px;
+}
+
+/* 구성 코드 셀(모노) */
+.mono {
+  font-family: ui-monospace, Menlo, Consolas, monospace;
+  font-size: var(--text-caption-size);
+  color: var(--color-text-muted);
+}
+
+/* 구성명 링크(버튼 리셋 → 링크 표현) */
+.nameLink {
+  padding: 0;
+  border: 0;
+  background: none;
+  font-family: inherit;
+  font-size: var(--text-body-size);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-primary);
+  text-align: left;
+  cursor: pointer;
+}
+.nameLink:hover {
+  text-decoration: underline;
+}
+
+/* 활성 여부 셀(Badge + Toggle) */
+.activityCell {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+/* 행 액션(삭제) */
+.rowActions {
+  display: inline-flex;
+  gap: var(--space-2);
+}
+
+/* 목록 하단 안내 */
+.listNote {
+  margin: var(--space-3) 0 0;
+  font-size: var(--text-caption-size);
+  line-height: var(--text-caption-line);
+  color: var(--color-text-muted);
+}
+
+/* 오류 배너 + 재시도 */
+.errorBar {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+.errorActions {
+  display: flex;
+  gap: var(--space-3);
+}

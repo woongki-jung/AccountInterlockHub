@@ -1,0 +1,81 @@
+/*
+ * SCR-006 동의 결과 — 헤더 없는 단일 중앙 카드(design-system.md §레이아웃 사용자 셸).
+ * 색·간격·타이포·라운딩은 tokens.css 참조(하드코딩 금지). 구조 치수만 px 로 둔다.
+ */
+
+/* 페이지 — 중앙 카드, 상하 여백 48px, 모바일 좌우 거터 16px. */
+.page {
+  min-height: 100vh;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: var(--space-12) var(--space-4);
+}
+
+/* 결과 카드 — 최대 폭 480px(사용자 셸). 결과 안내는 중앙 정렬. */
+.card {
+  width: 100%;
+  max-width: var(--user-card-max-width);
+  padding: var(--space-8) var(--space-6);
+  text-align: center;
+}
+
+/*
+ * 결과 상태 아이콘(장식용) — 배경은 중립 표면 토큰으로 통일하고, 색 의미는 Badge·문구가 담당한다
+ * (상태를 색만으로 전달하지 않음, §의미 전달). 원형 지름은 구조 치수라 px 로 둔다.
+ */
+.icon {
+  width: 64px;
+  height: 64px;
+  margin: 0 auto var(--space-4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: var(--text-display-size);
+  line-height: 1;
+  border-radius: 50%;
+  background: var(--color-bg-subtle);
+  border: 1px solid var(--color-border);
+}
+
+/* 결과 Badge 행. */
+.badgeRow {
+  margin-bottom: var(--space-3);
+}
+
+.title {
+  font-size: var(--text-h1-size);
+  line-height: var(--text-h1-line);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text);
+  margin: 0 0 var(--space-3);
+}
+
+.message {
+  font-size: var(--text-body-size);
+  line-height: var(--text-body-line);
+  color: var(--color-text-muted);
+  margin: 0;
+}
+
+/* 전달 실패 안내 Banner 영역 — 제목·설명 아래 간격. 배너 본문은 좌측 정렬. */
+.banner {
+  margin: var(--space-4) 0 0;
+  text-align: left;
+}
+
+/* 마무리 보조 문구(text-caption). */
+.foot {
+  margin: var(--space-4) 0 0;
+  font-size: var(--text-caption-size);
+  line-height: var(--text-caption-line);
+  color: var(--color-text-muted);
+}
+
+/* 모바일: 카드 좌우 여백 16px 로 전체 폭(design-system §반응형 사용자 카드). */
+@media (max-width: 640px) {
+  .card {
+    padding-left: var(--space-4);
+    padding-right: var(--space-4);
+  }
+}

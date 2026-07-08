@@ -1,0 +1,68 @@
+/*
+ * 목록 테이블(design-system.md §공통 컴포넌트 Table). 색·간격은 토큰 참조.
+ * 헤더 배경 color-bg-subtle, 행 hover 강조, 가로 스크롤 컨테이너로 좁은 폭 보호.
+ */
+.scroll {
+  overflow-x: auto;
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--text-body-size);
+  line-height: var(--text-body-line);
+}
+
+.table thead th {
+  text-align: left;
+  background: var(--color-bg-subtle);
+  color: var(--color-text-muted);
+  font-size: var(--text-label-size);
+  line-height: var(--text-label-line);
+  font-weight: var(--font-weight-medium);
+  padding: var(--space-3) var(--space-4);
+  border-bottom: 1px solid var(--color-border);
+  white-space: nowrap;
+}
+
+.table tbody td {
+  padding: var(--space-4) var(--space-4);
+  border-bottom: 1px solid #eef0f2;
+  color: var(--color-text);
+  vertical-align: middle;
+}
+
+.table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.table tbody tr:hover {
+  background: var(--color-bg-subtle);
+}
+
+/* 행 클릭 활성 시 커서 표시(design-system.md: 행 클릭=상세 이동). */
+.clickable {
+  cursor: pointer;
+}
+
+.alignRight {
+  text-align: right;
+}
+
+.alignCenter {
+  text-align: center;
+}
+
+.nowrap {
+  white-space: nowrap;
+}
+
+/* mobile(<640px)에서 접는 열(관리자 테이블 주요 열만 노출 — §레이아웃·반응형). */
+@media (max-width: 640px) {
+  .hideOnMobile {
+    display: none;
+  }
+}
