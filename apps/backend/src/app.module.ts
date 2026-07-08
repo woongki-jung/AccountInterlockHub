@@ -1,6 +1,7 @@
 import { join } from 'path';
 import { Module, MiddlewareConsumer, NestModule } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
+import { ScheduleModule } from '@nestjs/schedule';
 import { ServeStaticModule } from '@nestjs/serve-static';
 import { AppController } from './app.controller';
 import { AdminAuthModule } from './admin/auth/admin-auth.module';
@@ -11,6 +12,7 @@ import { ApiInterlockModule } from './api/interlock/api-interlock.module';
 import { AdminIpMiddleware } from './common/middleware/admin-ip.middleware';
 import { AuditModule } from './common/audit/audit.module';
 import { DatabaseModule } from './database/database.module';
+import { RetentionModule } from './batch/retention.module';
 import { InterlockModule } from './user/interlock/interlock.module';
 import { ConsentModule } from './user/consent/consent.module';
 
@@ -22,8 +24,12 @@ const frontendDistPath =
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
+    // 보관정책 배치(BAT-02, PROC-402) 스케줄 등록. ScheduleModule 이 있어야 RetentionScheduler 의 @Cron 이
+    // 활성화된다(일 1회 도래 시 runRetentionBatch 호출). CLI 온디맨드 러너는 본 등록 없이 실행한다.
+    ScheduleModule.forRoot(),
     DatabaseModule,
     AuditModule,
+    RetentionModule,
     AdminAuthModule,
     AdminConfigModule,
     // 사용자 도메인(서비스 A 진입·이용 동의 항목 조회) — USR-01·BAT-03. 진입 컨텍스트 스토어를 공유한다.

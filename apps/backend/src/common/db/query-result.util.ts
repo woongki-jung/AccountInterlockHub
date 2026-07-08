@@ -24,3 +24,17 @@ export function firstUpdatedRow<T>(result: unknown): T | undefined {
   }
   return undefined;
 }
+
+/**
+ * `UPDATE`/`DELETE`(RETURNING 유무 무관) 결과에서 영향 행 수(affected)를 형상 안전하게 추출한다.
+ *
+ * ⚠ 형상 주의: 이 TypeORM+node-postgres 조합에서 UPDATE·DELETE 는 **`[행배열, affected건수]` 튜플**을
+ * 반환한다 — RETURNING 없는 DELETE 는 `[[], n]`(빈 행배열 + 삭제 건수 n). 튜플 2번째 원소가 곧 affected 다.
+ * 청크 DELETE 루프(PROC-402)에서 삭제 건수 n 을 읽어 n=0 이 될 때까지 반복하는 데 쓴다.
+ */
+export function affectedCount(result: unknown): number {
+  if (Array.isArray(result) && typeof result[1] === 'number') {
+    return result[1]; // 튜플 [행배열, affected] — 2번째 원소가 영향 행 수
+  }
+  return 0;
+}
