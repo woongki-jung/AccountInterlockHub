@@ -181,16 +181,18 @@ export class ConfigService {
     if (!UUID_RE.test(id)) {
       throw new AppException('EX-SEC-004'); // id 형식 위반(PROC-105 B1) — 400
     }
-    const rows: Array<{ config_code: string; is_active: boolean }> = await this.dataSource.query(
+    const result = await this.dataSource.query(
       `UPDATE "TBL_INTERLOCK_CONFIG"
          SET is_active = $1, updated_at = now(), updated_by = $2
        WHERE id = $3 AND deleted_at IS NULL
        RETURNING config_code, is_active`,
       [isActive, actor, id],
     );
-    const updated = rows[0];
+    // ⚠ UPDATE...RETURNING 은 [행배열, affected] 튜플을 반환한다(평탄 배열 아님 — firstUpdatedRow 주석 참조).
+    // 매칭 없음(id 부재·이미 삭제)은 [[], 0] → updated=undefined 로 정규화되어 대상 없음으로 판별된다.
+    const updated = firstUpdatedRow<{ config_code: string; is_active: boolean }>(result);
     if (!updated) {
-      return null; // 대상 없음/이미 삭제 — 오류 아님(PROC-105 B2)
+      return null; // 대상 없음/이미 삭제 — 오류 아님(PROC-105 B2). 감사 미기록.
     }
 
     // 커밋 후 감사(OPS-002-01). target 은 기존 감사와 정합하게 config_code 를 쓴다.
@@ -215,16 +217,18 @@ export class ConfigService {
     if (!UUID_RE.test(id)) {
       throw new AppException('EX-SEC-004'); // id 형식 위반(PROC-106 B1) — 400
     }
-    const rows: Array<{ config_code: string; is_active: boolean }> = await this.dataSource.query(
+    const result = await this.dataSource.query(
       `UPDATE "TBL_INTERLOCK_CONFIG"
          SET deleted_at = now(), updated_at = now(), updated_by = $1
        WHERE id = $2 AND deleted_at IS NULL
        RETURNING config_code, is_active`, // is_active 는 삭제 전 상태(UPDATE 미변경)
       [actor, id],
     );
-    const deleted = rows[0];
+    // ⚠ UPDATE...RETURNING 은 [행배열, affected] 튜플을 반환한다(firstUpdatedRow 주석 참조).
+    // 매칭 없음(id 부재·이미 삭제)은 [[], 0] → deleted=undefined 로 정규화되어 멱등하게 대상 없음 처리.
+    const deleted = firstUpdatedRow<{ config_code: string; is_active: boolean }>(result);
     if (!deleted) {
-      return null; // 대상 없음/이미 삭제 — 오류 아님(PROC-106 B2)
+      return null; // 대상 없음/이미 삭제 — 오류 아님(PROC-106 B2). 감사 미기록.
     }
 
     // 커밋 후 감사(OPS-002-01, 삭제 전후 상태 기록). detail 에 삭제 직전 활성 상태를 남긴다(SVC-002 §구현 가이드).
@@ -613,6 +617,27 @@ interface SummaryRow {
 // ── 검증 유틸 ──
 function isBlank(value: string | null | undefined): boolean {
   return !value || value.trim().length === 0;
+}
+
+/**
+ * `UPDATE ... RETURNING` (dataSource.query/queryRunner.query 공통) 결과에서 첫 행을 형상 안전하게 추출한다.
+ *
+ * ⚠ 형상 주의(회귀 #43): 이 TypeORM+node-postgres 조합에서 UPDATE...RETURNING 은 **평탄한 행 배열이 아니라
+ * `[행배열, affected건수]` 튜플**을 반환한다 — 매칭 시 `[[{...}], 1]`, 매칭 없음 시 `[[], 0]`. 실측 결과
+ * 이 튜플 형상은 dataSource.query 든 queryRunner.query 든 동일하다(문 종류가 UPDATE 이기 때문).
+ * 반면 INSERT...RETURNING·SELECT 는 평탄 배열(`[{...}]`)이라 create/조회 경로는 rows[0] 로 그대로 읽는다.
+ *
+ * 과거 결함: `rows[0]` 로 읽어 튜플의 겉배열 `[]`(빈, 그러나 truthy)을 "행 있음"으로 오판 → 대상 없음 분기 사문화.
+ * 여기서 겉배열 안의 실제 행 유무로 판별하므로 매칭 없음은 undefined 로 정규화된다(200 data:null·감사 미기록).
+ */
+function firstUpdatedRow<T>(result: unknown): T | undefined {
+  if (Array.isArray(result) && Array.isArray(result[0])) {
+    return (result[0] as T[])[0]; // 튜플 [행배열, affected] — 안쪽 행배열의 첫 행(없으면 undefined)
+  }
+  if (Array.isArray(result)) {
+    return (result as T[])[0]; // 평탄 배열 방어(향후 형상 변동 대비)
+  }
+  return undefined;
 }
 
 // http/https 절대 URL(FE 1차 검증·DB CHECK 와 정합). 공백 없는 스킴 이후 1자 이상.
