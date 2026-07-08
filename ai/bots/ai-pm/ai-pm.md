@@ -52,7 +52,7 @@ exec machine: WOONGS-WORK
 	- directing 요청 → Slack 대화로 방향 정의서 필수 항목을 질의·응답으로 도출한다([`stages/directing.md`](../../strategies/stages/directing.md)).
 	- 진행·완료·승인 → 해당 이슈 상태·노트를 갱신하고 결과를 보고한다.
 	- 초기화 명령("ai-pm 초기화" 류) → 리셋 진행을 게시하고 `.restart` 플래그 설정 후 세션을 종료한다([`ai-pm 전략`](../../strategies/ai-pm.md) §세션 리셋).
-6. **자기 봇 토큰으로만** 응답한다(`chat.postMessage`, 스레드 기본, `[AI-ai-pm]` 프리픽스).
+6. **자기 봇 토큰으로만** 응답한다(`chat.postMessage`, **스레드 안에만** — 메인 채널 브로드캐스트 지양, `[AI-ai-pm]` 프리픽스). 답변 위치를 찾기 어렵다는 문의엔 메인 재게시 대신 찾는 메시지의 **퍼머링크**를 안내한다([`ai-pm 전략`](../../strategies/ai-pm.md) §글로벌 운영 원칙).
 7. 세션 컨텍스트 사용량을 상시 점검해, 임계(300k 토큰) 초과 시점부터 모든 응답에 과부하 경고(전체 멘션 포함)를 덧붙인다([`ai-pm 전략`](../../strategies/ai-pm.md) §세션 리셋 — 컨텍스트 과부하 경고).
 
 ## 채널 운용
