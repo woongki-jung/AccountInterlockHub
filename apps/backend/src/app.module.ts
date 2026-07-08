@@ -28,8 +28,8 @@ const frontendDistPath =
 })
 export class AppModule implements NestModule {
   configure(consumer: MiddlewareConsumer): void {
-    // 관리자 경로(SPA /admin/**, API /api/admin/**)에 IP 접근 제한 스켈레톤을 선적용한다.
-    // 현재는 전량 통과이며 실제 허용목록·403 은 후속 단계(ADM-P1, refs #38)에서 본구현한다.
+    // 관리자 경로(SPA /admin/**, API /api/admin/**)에 IP 접근 제한(PROC-104·FN-001·SEC-001)을 선적용한다.
+    // 허용목록(ADMIN_IP_ALLOWLIST 운영 구성값) 밖 출발지는 403 EX-SEC-001 로 차단(ADM-P1, refs #38).
     consumer.apply(AdminIpMiddleware).forRoutes('admin', 'api/admin');
   }
 }

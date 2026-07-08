@@ -4,6 +4,7 @@
 
 | 일시 (KST) | 단계 | 산출물·결과 | 관련 일감 | 상태 |
 |---|---|---|---|---|
+| 2026-07-08 09:48 | build | ADM-P1 관리자 IP 접근 제어 미들웨어 본구현(PROC-104·FN-001·SEC-001) — `common/middleware/admin-ip.middleware.ts`(운영 구성값 ADMIN_IP_ALLOWLIST 대조·dev 비활성 EXC-SEC-01·차단 403 EX-SEC-001 엔벨로프 직접 종결·IP_BLOCK 감사 SYSTEM/BLOCKED)·`common/middleware/ip-match.util.ts`(IP 정규화·IPv4-mapped 환원·정확 IP/CIDR v4·v6 매칭)·`.env.example`(ADMIN_IP_ALLOWLIST·TRUST_PROXY) | `accountinterlockhub#38` | 🚧 |
 | 2026-07-06 17:10 | spec ⓒ | (공통 반영) DB 표기 PostgreSQL 정합화 — common.md | `accountinterlockhub#24` | ℹ️ |
 | 2026-07-06 03:20 | spec | AUTH-001~003·SEC-001·SVC-003·ENT-005·FN-001/002/003·SCR-001·PROC-103/104·TC ADM-03 | `accountinterlockhub#24` | 🚧 |
 | 2026-07-06 03:20 | spec ⓒ | (공통 반영) 무저장·신뢰위임·공통 기능·디자인 시스템·시나리오 TC — common.md | `accountinterlockhub#24` | ℹ️ |
