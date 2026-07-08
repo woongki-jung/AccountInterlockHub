@@ -13,4 +13,4 @@
 
 - **영향**: `ai-pm.md`(전략)·`ai-pm.md`(봇)·`app.js`·`ai-pm-session.ps1`·`.gitignore`. 마커 파일 2종 신설(`_slack/last-event`·`_session/last-processed`, git 비관리). 워치독은 app.js 생존 감시에 '처리 생존' 감시가 더해짐. **적용은 런타임 전체 재기동 시 반영**(새 watchdog 소스·app.js·세션 부팅 동작이 재기동으로 로드됨) — in-flight qa 작업 종료 후 유휴 시점에 적용. 근본 대안(이벤트 구동 재아키텍처)은 별도 과제로 분리 권장.
 
-- **관련 일감**: (등록 예정 — ai-pm 세션 통해 Redmine 반영)
+- **관련 일감**: 없음 — 프로젝트 산출물이 아닌 워크플로(운영 문서·런타임) 개선이라 Redmine 미등록(담당자 결정, 2026-07-09).
