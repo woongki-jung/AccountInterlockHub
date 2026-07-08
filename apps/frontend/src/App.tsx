@@ -2,17 +2,24 @@
  * 애플리케이션 루트 — 라우팅 구성(관리자 웹 SPA).
  * 백엔드(NestJS)가 /api·/interlock 을 제외한 경로를 index.html 로 폴백 서빙하므로
  * 클라이언트 라우팅(BrowserRouter)으로 화면을 분기한다. 경로는 same-origin 상대 경로.
+ * 전역 Toast(ToastProvider)는 라우터 상위에 두어 화면 전환 후에도 토스트가 유지된다.
  */
 import { useEffect } from 'react';
 import { BrowserRouter, Navigate, Route, Routes, useNavigate } from 'react-router-dom';
 import { setSessionExpiredHandler } from './lib/apiClient';
+import { ToastProvider } from './components';
 import LoginPage from './pages/LoginPage';
 import ConfigsPage from './pages/ConfigsPage';
+import ConfigFormPage from './pages/ConfigFormPage';
+import ConfigDetailPage from './pages/ConfigDetailPage';
 
 /** 관리자 화면 경로 상수. */
 const ROUTES = {
   login: '/admin/login',
   configs: '/admin/configs',
+  configNew: '/admin/configs/new',
+  configDetail: '/admin/configs/:id',
+  configEdit: '/admin/configs/:id/edit',
 } as const;
 
 /**
@@ -33,16 +40,22 @@ function SessionExpiredBridge() {
 
 export default function App() {
   return (
-    <BrowserRouter>
-      <SessionExpiredBridge />
-      <Routes>
-        <Route path={ROUTES.login} element={<LoginPage />} />
-        <Route path={ROUTES.configs} element={<ConfigsPage />} />
-        {/* 기본 진입은 로그인으로 유도(MVP 관리자 웹 기준). */}
-        <Route path="/" element={<Navigate to={ROUTES.login} replace />} />
-        {/* 미정의 경로 폴백 — 로그인으로 유도. */}
-        <Route path="*" element={<Navigate to={ROUTES.login} replace />} />
-      </Routes>
-    </BrowserRouter>
+    <ToastProvider>
+      <BrowserRouter>
+        <SessionExpiredBridge />
+        <Routes>
+          <Route path={ROUTES.login} element={<LoginPage />} />
+          <Route path={ROUTES.configs} element={<ConfigsPage />} />
+          {/* 정적 세그먼트(new)가 동적(:id)보다 우선 매칭된다(react-router 랭킹). */}
+          <Route path={ROUTES.configNew} element={<ConfigFormPage mode="create" />} />
+          <Route path={ROUTES.configEdit} element={<ConfigFormPage mode="edit" />} />
+          <Route path={ROUTES.configDetail} element={<ConfigDetailPage />} />
+          {/* 기본 진입은 로그인으로 유도(MVP 관리자 웹 기준). */}
+          <Route path="/" element={<Navigate to={ROUTES.login} replace />} />
+          {/* 미정의 경로 폴백 — 로그인으로 유도. */}
+          <Route path="*" element={<Navigate to={ROUTES.login} replace />} />
+        </Routes>
+      </BrowserRouter>
+    </ToastProvider>
   );
 }

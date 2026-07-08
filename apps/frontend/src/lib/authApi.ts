@@ -22,3 +22,14 @@ export function loginRequest(username: string, password: string): Promise<LoginR
     { suppressSessionExpiredRedirect: true },
   );
 }
+
+/**
+ * 관리자 로그아웃 — POST /api/admin/auth/logout (HttpCode 200).
+ * 서버 세션을 파기한다. 이미 만료·무효 세션이어도 호출부는 로그인 화면으로 이동하므로
+ * 세션 만료 중앙 리다이렉트를 억제한다(이중 이동·루프 방지).
+ */
+export function logoutRequest(): Promise<{ success: boolean }> {
+  return apiPost<{ success: boolean }>('/api/admin/auth/logout', undefined, {
+    suppressSessionExpiredRedirect: true,
+  });
+}

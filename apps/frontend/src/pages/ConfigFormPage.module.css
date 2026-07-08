@@ -1,0 +1,234 @@
+/*
+ * SCR-003 연동 구성 등록·편집 폼 스타일. 색·간격·라운딩은 토큰(tokens.css)만 참조한다.
+ * 반응형: desktop 2컬럼(라벨-입력), mobile(<640px) 1컬럼(필드 세로 스택).
+ */
+
+.crumb {
+  font-size: var(--text-caption-size);
+  line-height: var(--text-caption-line);
+  color: var(--color-text-muted);
+  margin-bottom: var(--space-2);
+}
+.crumb a {
+  color: var(--color-primary);
+  text-decoration: none;
+}
+
+.title {
+  font-size: var(--text-h1-size);
+  line-height: var(--text-h1-line);
+  font-weight: var(--font-weight-bold);
+  margin: 0 0 var(--space-6);
+}
+
+/* 폼 전체 disabled(제출 중)에도 레이아웃 유지. */
+.fieldset {
+  border: 0;
+  margin: 0;
+  padding: 0;
+  min-width: 0;
+}
+
+.bannerSlot {
+  margin-bottom: var(--space-4);
+}
+
+/* 섹션 헤더 */
+.sectionHeader {
+  margin-bottom: var(--space-4);
+}
+.sectionTitle {
+  font-size: var(--text-h2-size);
+  line-height: var(--text-h2-line);
+  font-weight: var(--font-weight-semibold);
+  margin: 0 0 var(--space-1);
+}
+.sectionDesc {
+  font-size: var(--text-caption-size);
+  line-height: var(--text-caption-line);
+  color: var(--color-text-muted);
+  margin: 0;
+}
+
+/* 2컬럼 그리드(desktop) → 1컬럼(mobile) */
+.grid2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-4);
+}
+.field {
+  display: flex;
+  flex-direction: column;
+}
+.fieldFull {
+  grid-column: 1 / -1;
+}
+.staticLabel {
+  font-size: var(--text-label-size);
+  line-height: var(--text-label-line);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text);
+  margin-bottom: var(--space-2);
+}
+
+/* 사용자 키값 지정 요약 바 */
+.ukBar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  padding: var(--control-pad-y) var(--control-pad-x);
+  background: var(--color-primary-weak);
+  border: 1px solid #bfdbfe;
+  border-radius: var(--radius-md);
+  margin-bottom: var(--space-3);
+  font-size: var(--text-label-size);
+}
+.ukBarError {
+  background: var(--color-danger-weak);
+  border-color: #fca5a5;
+}
+.ukInfo {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-1) var(--space-2);
+}
+.ukInfo b {
+  color: #1e3a8a;
+}
+.reqMark {
+  color: var(--color-danger);
+}
+.ukNote {
+  color: #1e3a8a;
+  font-size: var(--text-caption-size);
+  font-weight: var(--font-weight-regular);
+}
+.ukReqError {
+  color: var(--color-danger);
+  font-size: var(--text-caption-size);
+  font-weight: var(--font-weight-semibold);
+}
+
+/* 파라미터 행 헤더의 사용자 키값 라디오 라인 */
+.ukLine {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: var(--control-height-md);
+  color: var(--color-text);
+  cursor: pointer;
+}
+.ukLine input {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--color-primary);
+  cursor: pointer;
+}
+.ukBadge {
+  display: inline-flex;
+  align-items: center;
+  height: 22px;
+  padding: 0 var(--space-2);
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+  font-weight: var(--font-weight-semibold);
+  background: #1e40af;
+  color: var(--color-text-inverse);
+}
+
+/* 반복 행 내부 필드 그리드 */
+.paramGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr auto;
+  gap: var(--space-3);
+  align-items: end;
+}
+.consentGrid {
+  display: grid;
+  grid-template-columns: 1fr 1.4fr auto;
+  gap: var(--space-3);
+  align-items: end;
+}
+.checkCell {
+  display: flex;
+  align-items: center;
+  min-height: var(--control-height-md);
+}
+
+/* 약관 컨텐츠 textarea */
+.termsField {
+  margin-top: var(--space-3);
+  display: flex;
+  flex-direction: column;
+}
+.termsLabel {
+  font-size: var(--text-label-size);
+  line-height: var(--text-label-line);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text);
+  margin-bottom: var(--space-2);
+}
+.optMark {
+  color: var(--color-text-muted);
+  font-weight: var(--font-weight-regular);
+  font-size: var(--text-caption-size);
+}
+.textarea {
+  width: 100%;
+  min-height: 72px;
+  padding: var(--control-pad-y) var(--control-pad-x);
+  font-family: inherit;
+  font-size: var(--text-body-size);
+  line-height: var(--text-body-line);
+  color: var(--color-text);
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  resize: vertical;
+}
+.textarea:disabled {
+  background: var(--color-disabled-bg);
+  color: var(--color-text-muted);
+  cursor: not-allowed;
+}
+
+/* 목록 수준 에러 캡션 */
+.listError {
+  display: block;
+  margin-top: var(--space-2);
+  font-size: var(--text-caption-size);
+  line-height: var(--text-caption-line);
+  color: var(--color-danger);
+}
+
+/* 하단 액션(우측 정렬) */
+.formActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-3);
+  margin-top: var(--space-2);
+}
+
+/* 편집 로드 오류 액션 */
+.loadErrorActions {
+  display: flex;
+  gap: var(--space-3);
+  margin-top: var(--space-4);
+}
+
+/* Skeleton 간격 */
+.skGap {
+  height: var(--space-3);
+}
+
+/* 반응형 — mobile 1컬럼 */
+@media (max-width: 640px) {
+  .grid2,
+  .paramGrid,
+  .consentGrid {
+    grid-template-columns: 1fr;
+  }
+}

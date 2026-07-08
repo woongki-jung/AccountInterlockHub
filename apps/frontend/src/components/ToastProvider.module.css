@@ -1,0 +1,11 @@
+/* 화면 하단 중앙 고정 토스트 영역(design-system.md §공통 컴포넌트 Toast). */
+.region {
+  position: fixed;
+  left: 50%;
+  bottom: var(--space-8);
+  transform: translateX(-50%);
+  z-index: 100;
+  display: flex;
+  justify-content: center;
+  pointer-events: none; /* 영역 자체는 클릭 통과, 토스트 표면만 pointer-events 복원 */
+}

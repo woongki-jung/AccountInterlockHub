@@ -1,0 +1,29 @@
+/* 하단 중앙 고정 토스트 — design-system.md §공통 컴포넌트 Toast(4초 자동 소멸은 Provider 관리). */
+.toast {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-md);
+  font-size: var(--text-label-size);
+  line-height: var(--text-label-line);
+  color: var(--color-text-inverse);
+  pointer-events: auto;
+}
+
+.success {
+  background: #111827;
+}
+
+.error {
+  background: var(--color-danger);
+}
+
+.info {
+  background: var(--color-info);
+}
+
+.icon {
+  font-weight: var(--font-weight-bold);
+}
