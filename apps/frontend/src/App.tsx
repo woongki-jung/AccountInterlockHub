@@ -12,14 +12,17 @@ import LoginPage from './pages/LoginPage';
 import ConfigsPage from './pages/ConfigsPage';
 import ConfigFormPage from './pages/ConfigFormPage';
 import ConfigDetailPage from './pages/ConfigDetailPage';
+import ConsentPage from './pages/ConsentPage';
 
-/** 관리자 화면 경로 상수. */
+/** 화면 경로 상수(관리자 웹 + 사용자 이용 동의). */
 const ROUTES = {
   login: '/admin/login',
   configs: '/admin/configs',
   configNew: '/admin/configs/new',
   configDetail: '/admin/configs/:id',
   configEdit: '/admin/configs/:id/edit',
+  // 사용자 이용 동의(Public) — 서비스 A 진입 후 발급된 요청 키값으로 접근.
+  consent: '/consent/:requestKey',
 } as const;
 
 /**
@@ -50,6 +53,9 @@ export default function App() {
           <Route path={ROUTES.configNew} element={<ConfigFormPage mode="create" />} />
           <Route path={ROUTES.configEdit} element={<ConfigFormPage mode="edit" />} />
           <Route path={ROUTES.configDetail} element={<ConfigDetailPage />} />
+          {/* 사용자 이용 동의(SCR-005) — 서비스 A 진입 후 발급된 요청 키값으로 접근(Public). */}
+          {/* 결과 페이지(/consent/:requestKey/result)는 USR-P4 소관 — 본 Phase 미등록(제출 성공 시 경로 이동만). */}
+          <Route path={ROUTES.consent} element={<ConsentPage />} />
           {/* 기본 진입은 로그인으로 유도(MVP 관리자 웹 기준). */}
           <Route path="/" element={<Navigate to={ROUTES.login} replace />} />
           {/* 미정의 경로 폴백 — 로그인으로 유도. */}

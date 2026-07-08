@@ -1,0 +1,164 @@
+/*
+ * SCR-005 사용자 이용 동의 — 헤더 없는 단일 중앙 카드(design-system.md §레이아웃 사용자 셸).
+ * 색·크기·간격·라운딩은 tokens.css 참조(하드코딩 금지).
+ */
+
+/* 페이지 — 중앙 카드, 상하 여백 48px, 모바일 좌우 거터 16px. 긴 내용은 위에서부터 흐르게 flex-start. */
+.page {
+  min-height: 100vh;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: var(--space-12) var(--space-4);
+}
+
+/* 동의 카드 — 최대 폭 480px(사용자 셸). Card 기본 여백을 상하 32px·좌우 24px 로 조정. */
+.card {
+  width: 100%;
+  max-width: var(--user-card-max-width);
+  padding: var(--space-8) var(--space-6);
+}
+
+.title {
+  font-size: var(--text-h1-size);
+  line-height: var(--text-h1-line);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text);
+  margin: 0 0 var(--space-2);
+}
+
+.lead {
+  font-size: var(--text-label-size);
+  line-height: var(--text-label-line);
+  color: var(--color-text-muted);
+  margin: 0 0 var(--space-6);
+}
+
+/* 제출 실패 배너 영역 간격. */
+.banner {
+  margin-bottom: var(--space-4);
+}
+
+/* 동의 항목 목록 — 카드 내부 경계 묶음. */
+.itemList {
+  list-style: none;
+  margin: 0 0 var(--space-6);
+  padding: 0;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+
+/* 항목 1행 — 체크박스 + 본문. 행 간 구분선. */
+.item {
+  display: flex;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.item:last-child {
+  border-bottom: none;
+}
+
+/* 네이티브 체크박스(디자인 시스템 Checkbox 와 동일 액센트·크기). 첫 줄 텍스트에 정렬. */
+.checkbox {
+  width: 18px;
+  height: 18px;
+  margin-top: 3px;
+  accent-color: var(--color-primary);
+  cursor: pointer;
+  flex: 0 0 auto;
+}
+
+.checkbox:disabled {
+  cursor: not-allowed;
+}
+
+.itemBody {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+/* 라벨 행 — 라벨(좌, 신축) + [상세](우, 고정). */
+.itemHeader {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-2);
+}
+
+.itemLabel {
+  flex: 1 1 auto;
+  min-width: 0;
+  font-size: var(--text-label-size);
+  line-height: var(--text-label-line);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text);
+  cursor: pointer;
+}
+
+/* 필수 표식(*) + 텍스트 병기(색만으로 전달하지 않음, 접근성 §의미 전달). */
+.required {
+  margin-left: var(--space-1);
+  font-size: var(--text-caption-size);
+  font-weight: var(--font-weight-regular);
+  color: var(--color-danger);
+  white-space: nowrap;
+}
+
+.optional {
+  margin-left: var(--space-1);
+  font-size: var(--text-caption-size);
+  font-weight: var(--font-weight-regular);
+  color: var(--color-text-muted);
+  white-space: nowrap;
+}
+
+/* [상세] 버튼 — 라벨 행 상단 정렬. */
+.detailButton {
+  flex: 0 0 auto;
+}
+
+/* 항목 설명(text-caption 보조 텍스트). */
+.itemDesc {
+  margin: var(--space-1) 0 0;
+  font-size: var(--text-caption-size);
+  line-height: var(--text-caption-line);
+  color: var(--color-text-muted);
+}
+
+/* 동의/거부 버튼 — 세로 스택(모바일·데스크톱 공통 단일 컬럼). */
+.actions {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+/* 필수 미충족 안내(동의 버튼 비활성 사유 병기). */
+.hint {
+  margin: var(--space-3) 0 0;
+  text-align: center;
+  font-size: var(--text-caption-size);
+  line-height: var(--text-caption-line);
+  color: var(--color-text-muted);
+}
+
+/* 초기 로딩 골격 — 세로 간격. */
+.skeletonWrap {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+/* 골격 블록(항목·버튼 자리) 위 간격 확대. */
+.skeletonBlock {
+  margin-top: var(--space-4);
+}
+
+/* 모바일: 카드 좌우 여백 16px 로 전체 폭(design-system §반응형 사용자 카드). */
+@media (max-width: 640px) {
+  .card {
+    padding-left: var(--space-4);
+    padding-right: var(--space-4);
+  }
+}
