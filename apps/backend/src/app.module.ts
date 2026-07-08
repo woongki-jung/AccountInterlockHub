@@ -3,6 +3,7 @@ import { Module, MiddlewareConsumer, NestModule } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { ServeStaticModule } from '@nestjs/serve-static';
 import { AppController } from './app.controller';
+import { AdminAuthModule } from './admin/auth/admin-auth.module';
 import { AdminIpMiddleware } from './common/middleware/admin-ip.middleware';
 import { AuditModule } from './common/audit/audit.module';
 import { DatabaseModule } from './database/database.module';
@@ -17,6 +18,7 @@ const frontendDistPath =
     ConfigModule.forRoot({ isGlobal: true }),
     DatabaseModule,
     AuditModule,
+    AdminAuthModule,
     // React 정적 서빙: API 경로(/api/**)와 서비스 A 진입(/interlock/**)은 제외해 컨트롤러가 처리하고,
     // 그 외 경로(사용자 웹·관리자 웹 SPA)는 정적 산출물(및 index.html 폴백)로 응답한다.
     ServeStaticModule.forRoot({

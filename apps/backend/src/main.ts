@@ -1,7 +1,9 @@
 import { HttpStatus, ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { ErrorRequestHandler, json, urlencoded } from 'express';
+import session from 'express-session';
 import { AppModule } from './app.module';
+import { buildSessionOptions } from './admin/auth/session.support';
 import { AllExceptionsFilter } from './common/envelope/all-exceptions.filter';
 import { EX_CODE_MAP } from './common/envelope/ex-code.map';
 import { SuccessInterceptor } from './common/envelope/success.interceptor';
@@ -38,6 +40,10 @@ async function bootstrap(): Promise<void> {
     next(err);
   };
   app.use(bodyParserErrorHandler);
+
+  // FN-003 관리자 세션(MDL-104, 애플리케이션 세션). in-memory 저장소(MVP 단일 App Service — 스케일아웃 시 공유 저장소 필요).
+  // 쿠키 HttpOnly·SameSite=Lax·Secure(운영만)·rolling(유휴 30분). sessionId 는 로그에 남기지 않는다.
+  app.use(session(buildSessionOptions()));
 
   // FN-005 공통 입력 검증: 화이트리스트·변환, 검증 실패는 400 EX-SEC-004(필드 details)로 변환.
   app.useGlobalPipes(

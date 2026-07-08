@@ -21,8 +21,9 @@ export type AuditResult = (typeof AuditResult)[keyof typeof AuditResult];
 export const AuditEventType = {
   LOGIN_SUCCESS: 'LOGIN_SUCCESS',
   LOGIN_FAIL: 'LOGIN_FAIL',
+  LOGIN_LOCKED: 'LOGIN_LOCKED', // 잠금 중 로그인 시도(AUTH-003-01, FN-002 step2)
   LOGOUT: 'LOGOUT',
-  ACCOUNT_LOCK: 'ACCOUNT_LOCK',
+  ACCOUNT_LOCK: 'ACCOUNT_LOCK', // 연속 실패 임계 도달로 잠금 설정(AUTH-003-02)
   CONFIG_CREATE: 'CONFIG_CREATE',
   CONFIG_UPDATE: 'CONFIG_UPDATE',
   CONFIG_DELETE: 'CONFIG_DELETE',
