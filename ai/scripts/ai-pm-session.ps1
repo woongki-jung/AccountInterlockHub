@@ -37,6 +37,8 @@ $restartFlag = Join-Path $sessionDir '.restart'
 $stopFlag    = Join-Path $sessionDir '.stop'
 $watchdogPs1 = Join-Path $sessionDir 'watchdog.ps1'
 $watchdogLog = Join-Path $sessionDir 'watchdog.log'
+$lastEventFile     = Join-Path $slackDir 'last-event'      # app.js 가 기록하는 최신 수신 이벤트 ts (§운영 연속성 ③)
+$lastProcessedFile = Join-Path $sessionDir 'last-processed' # 세션이 트리아지한 최신 이벤트 ts
 
 New-Item -ItemType Directory -Force -Path $sessionDir | Out-Null
 Remove-Item -Path $restartFlag, $stopFlag -Force -ErrorAction SilentlyContinue
@@ -126,9 +128,17 @@ param(
   [Parameter(Mandatory=$true)][string]$RuntimeErr,
   [Parameter(Mandatory=$true)][string]$RepoRoot,
   [Parameter(Mandatory=$true)][string]$StopFlag,
-  [Parameter(Mandatory=$true)][string]$WatchdogLog
+  [Parameter(Mandatory=$true)][string]$WatchdogLog,
+  [Parameter(Mandatory=$true)][string]$RestartFlag,
+  [Parameter(Mandatory=$true)][string]$LastEventFile,
+  [Parameter(Mandatory=$true)][string]$LastProcessedFile,
+  [Parameter(Mandatory=$true)][string]$WrapperTag,
+  [int]$StallThresholdSec = 300,
+  [int]$StallCooldownSec = 600
 )
-# ai-pm Slack 런타임 워치독 — ai-pm-session.ps1 이 생성·기동한다. 직접 수정하지 말 것.
+# ai-pm Slack 런타임 워치독 — ai-pm-session.ps1 이 생성·기동한다. 직접 수정하지 말 것
+# (본문 정본은 ai-pm-session.ps1 의 $watchdogSource heredoc). 역할: (1) app.js 생존 감시·재기동,
+# (2) 처리 정체 감지·세션 강제 웨이크 — ai/strategies/ai-pm.md §운영 연속성 ③.
 $ErrorActionPreference = 'SilentlyContinue'
 
 function Write-WdLog([string]$msg) {
@@ -143,26 +153,90 @@ function Start-AppOnce {
   $cmdLine = ('node --env-file="{0}" "{1}" >> "{2}" 2>> "{3}"' -f $EnvFile, $AppJs, $RuntimeLog, $RuntimeErr)
   Start-Process -FilePath 'cmd.exe' -ArgumentList '/c', $cmdLine -WorkingDirectory $RepoRoot -WindowStyle Hidden
 }
+function Read-Ts([string]$file) {
+  try {
+    if (Test-Path $file) {
+      $v = (Get-Content $file -Raw -ErrorAction SilentlyContinue)
+      if ($v) {
+        $v = $v.Trim()
+        $d = 0.0
+        # Slack ts(초.마이크로초) — 로케일 무관 파싱(소수점 '.' 고정)
+        if ($v -and [double]::TryParse($v, [System.Globalization.NumberStyles]::Float, [System.Globalization.CultureInfo]::InvariantCulture, [ref]$d)) { return $d }
+      }
+    }
+  } catch {}
+  return $null
+}
+function Get-SessionPids {
+  # 래퍼(WrapperTag=ai-pm-session.ps1, -File 기동) 프로세스의 claude.exe 자식 = ai-pm 세션.
+  $pids = @()
+  $wrap = Get-CimInstance Win32_Process -Filter "Name='powershell.exe' OR Name='pwsh.exe'" -ErrorAction SilentlyContinue |
+    Where-Object { $_.CommandLine -and $_.CommandLine.IndexOf($WrapperTag, [System.StringComparison]::OrdinalIgnoreCase) -ge 0 -and $_.CommandLine.IndexOf('-File', [System.StringComparison]::OrdinalIgnoreCase) -ge 0 }
+  foreach ($w in $wrap) {
+    $pids += (Get-CimInstance Win32_Process -Filter "Name='claude.exe'" -ErrorAction SilentlyContinue |
+      Where-Object { $_.ParentProcessId -eq $w.ProcessId } | Select-Object -ExpandProperty ProcessId)
+  }
+  return $pids
+}
 
-Write-WdLog "start (app: $AppJs, pid: $PID)"
+Write-WdLog "start (app: $AppJs, pid: $PID, stall>=${StallThresholdSec}s)"
 $backoff = 5
+$unprocessedSince = $null
+$stallCooldownUntil = $null
+$stallCount = 0
+$stallWindowStart = $null
 while ($true) {
   if (Test-Path $StopFlag) { Write-WdLog '.stop flag 감지 — 워치독 종료'; break }
-  if (Test-AppAlive) {
-    $backoff = 5
-    Start-Sleep -Seconds 5
-    continue
-  }
-  Write-WdLog 'app.js 사망 감지 — 재기동'
-  Start-AppOnce
-  Start-Sleep -Seconds 3
+
+  # (1) app.js 생존 — 죽었으면 재기동
   if (Test-AppAlive) {
     $backoff = 5
   } else {
-    Write-WdLog "재기동 직후 사망 — ${backoff}s 백오프 후 재시도"
-    Start-Sleep -Seconds $backoff
-    $backoff = [Math]::Min($backoff * 2, 60)
+    Write-WdLog 'app.js 사망 감지 — 재기동'
+    Start-AppOnce
+    Start-Sleep -Seconds 3
+    if (Test-AppAlive) {
+      $backoff = 5
+    } else {
+      Write-WdLog "재기동 직후 사망 — ${backoff}s 백오프 후 재시도"
+      Start-Sleep -Seconds $backoff
+      $backoff = [Math]::Min($backoff * 2, 60)
+    }
   }
+
+  # (2) 처리 정체 감지 — last-event 가 last-processed 보다 앞선 상태(미트리아지 적체)가
+  #     임계 이상 지속되면 세션을 강제 재기동해 백로그를 드레인시킨다(§운영 연속성 ③ 하드 백스톱).
+  #     세션 ① 자가 웨이크 루프가 멈춰도 미처리 이벤트가 방치되지 않게 하는 결정적 안전망.
+  try {
+    $now = Get-Date
+    if ($stallCooldownUntil -and $now -lt $stallCooldownUntil) {
+      # 쿨다운 중 — 직전 재기동의 드레인 대기, 판정 보류
+    } elseif (Test-AppAlive) {
+      $le = Read-Ts $LastEventFile
+      $lp = Read-Ts $LastProcessedFile
+      $gap = ($null -ne $le) -and (($null -eq $lp) -or ($le -gt $lp))
+      if ($gap) {
+        if (-not $unprocessedSince) { $unprocessedSince = $now }
+        elseif ((($now - $unprocessedSince).TotalSeconds) -ge $StallThresholdSec) {
+          if (-not $stallWindowStart -or (($now - $stallWindowStart).TotalHours -ge 1)) { $stallWindowStart = $now; $stallCount = 0 }
+          if ($stallCount -ge 3) {
+            Write-WdLog "처리 정체 지속 — 1시간 내 3회 재기동 초과. 자동 재기동 중단, 담당자 확인 필요 (last-event=$le last-processed=$lp)"
+          } else {
+            Write-WdLog "처리 정체 감지 (미트리아지 ${StallThresholdSec}s 초과, last-event=$le last-processed=$lp) — .restart + 세션 강제 웨이크"
+            try { New-Item -ItemType File -Path $RestartFlag -Force | Out-Null } catch {}
+            foreach ($sp in (Get-SessionPids)) { Stop-Process -Id $sp -Force -ErrorAction SilentlyContinue; Write-WdLog "  세션 PID $sp 종료(재기동 유도)" }
+            $stallCount++
+            $stallCooldownUntil = $now.AddSeconds($StallCooldownSec)
+            $unprocessedSince = $null
+          }
+        }
+      } else {
+        $unprocessedSince = $null
+      }
+    }
+  } catch { Write-WdLog "stall-check 예외: $($_.Exception.Message)" }
+
+  Start-Sleep -Seconds 5
 }
 '@
 Set-Content -Path $watchdogPs1 -Value $watchdogSource -Encoding UTF8
@@ -180,7 +254,11 @@ if ($wdExisting) {
     '-RuntimeErr', "`"$runtimeErr`"",
     '-RepoRoot', "`"$repoRoot`"",
     '-StopFlag', "`"$stopFlag`"",
-    '-WatchdogLog', "`"$watchdogLog`""
+    '-WatchdogLog', "`"$watchdogLog`"",
+    '-RestartFlag', "`"$restartFlag`"",
+    '-LastEventFile', "`"$lastEventFile`"",
+    '-LastProcessedFile', "`"$lastProcessedFile`"",
+    '-WrapperTag', 'ai-pm-session.ps1'
   )
   $wdProc = Start-Process -FilePath 'powershell.exe' -ArgumentList $wdArgs -WindowStyle Hidden -PassThru
   Write-Host "[ai-pm-session] 워치독 기동 (PID $($wdProc.Id)) — app.js 5초 간격 감시" -ForegroundColor DarkGray
