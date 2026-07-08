@@ -4,7 +4,7 @@
 
 | 일시 (KST) | 단계 | 산출물·결과 | 관련 일감 | 상태 |
 |---|---|---|---|---|
-| 2026-07-08 06:02 | build | `apps/backend/src/user/interlock/*`·`user/consent/*`·`user/entry-context/*` 신규(USR-P1) — POST /interlock/entry(회원키 본문 수신·요청키 UUID v4 발급 FN-007·진입 컨텍스트 인메모리 TTL 10분 무저장·요청제한 60/분 IP 미들웨어 FN-014)·GET /api/consent/:requestKey(구성 소속 동의항목만 조회 FN-008)·app.module 등록·EX-BIZ-007/EX-DATA-002 문구 사양 정정·HISTORY_CREATE 감사 추가. `npm run build` 0건 | `accountinterlockhub#45` | 🚧 |
+| 2026-07-08 06:02 | build | `apps/backend/src/user/interlock/*`·`user/consent/*`·`user/entry-context/*` 신규(USR-P1) — POST /interlock/entry(회원키 본문 수신·요청키 UUID v4 발급 FN-007·진입 컨텍스트 인메모리 TTL 10분 무저장·요청제한 60/분 IP 미들웨어 FN-014)·GET /api/consent/:requestKey(구성 소속 동의항목만 조회 FN-008)·app.module 등록·EX-BIZ-007/EX-DATA-002 문구 사양 정정·HISTORY_CREATE 감사 추가. `npm run build` 0건. 3책임 통과(리뷰 PASS·요청제한 누수 회귀 수정·tester 실 DB round-trip 🟢, 무저장 경계 검증) | `accountinterlockhub#45` | ✅ |
 | 2026-07-07 10:30 | spec | `process_PROC-201.md` 개정 — 지정 구성 진입 시 내부 PROC-403→FN-016 연동이력 생성 흐름 추가(활성 구성 조회에 user_key_param_id·전달 파라미터 정의(ENT-003) 로드·지정 값 완결성 400 EX-BIZ-007·미지정 미기록 BR-203, 단건 INSERT 트랜잭션)·BE B1a·단계 통합 7단계·분기/예외·CRUD(ENT-007 C)·의존(PROC-403 호출) 재편·`spec-process.md` SCR-005 매핑·의존관계 반영 | `accountinterlockhub#30` | 🚧 |
 | 2026-07-07 09:30 | spec | `function_FN-016.md` 신설(연동 요청 진입 처리 중 연동이력 생성 — PROC-201 내부 호출)·`spec-functions.md` 카탈로그 `/interlock/entry`(PROC-201) 행 주요 호출 FN 에 FN-016 추가 | `accountinterlockhub#28` | 🚧 |
 | 2026-07-07 08:27 | spec | `model_user.md` MDL-201 개정 — 지정 구성의 지정 파라미터 값 필수·비공백 검증(BIZ-004-02) 명시, 지정 값의 연동이력(ENT-007.user_key) 원문 유입 주석(모델 자체는 무저장 전송 전용 유지) | `accountinterlockhub#27` | 🚧 |
