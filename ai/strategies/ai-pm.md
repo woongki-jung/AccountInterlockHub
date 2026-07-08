@@ -85,17 +85,48 @@ ai-pm 의 Slack 런타임은 자기완결 폴더 `ai/bots/ai-pm/` 에 둔다.
 - `ai/bots/ai-pm/_slack/config.json` — 봇 이름·표시이름·앱 식별자·워크스페이스·감시 채널·실행 장비(`exec_machine`) (선언적 설정).
 - `ai/bots/ai-pm/_slack/.env` — Slack 토큰(`SLACK_BOT_TOKEN`·`SLACK_APP_TOKEN`). git 비관리. 양식은 같은 폴더 `.env.example`.
 - `ai/bots/ai-pm/_slack/runtime.log` — 수신 이벤트 로그(세션이 tail). git 비관리. 래퍼 기동 시 10MB 초과면 `runtime.log.1` 로 회전.
-- `ai/bots/ai-pm/_session/` — 세션 재기동·정지 플래그(`.restart`·`.stop`).
-- `ai/scripts/ai-pm-session.ps1` — 세션 래퍼(자동 재기동 지원).
+- `ai/bots/ai-pm/_slack/last-event` — app.js 가 기록하는 최신 수신 이벤트 ts(처리 정체 감지용, §운영 연속성 ③). git 비관리.
+- `ai/bots/ai-pm/_session/` — 세션 재기동·정지 플래그(`.restart`·`.stop`)와 처리 마커 `last-processed`(세션이 트리아지한 최신 이벤트 ts, §운영 연속성). git 비관리.
+- `ai/scripts/ai-pm-session.ps1` — 세션 래퍼(자동 재기동 지원). Slack 런타임 워치독(`$watchdogSource`)을 생성·감시하며, 워치독은 app.js 생존과 함께 처리 정체(§운영 연속성 ③)를 감지해 세션을 강제 웨이크한다.
 
 ## 기동 절차
 
 1. **(최초 1회) Slack 앱 구성** — 전용 Slack 앱을 생성해 Bot Token(`xoxb-...`)·App Token(`xapp-...`)을 발급하고, 토큰을 `ai/bots/ai-pm/_slack/.env` 에 기입한다. 발급된 앱 id·봇 user id·워크스페이스 id 를 `config.json` 과 봇 정의 frontmatter 에 반영한다. 필요한 OAuth scope 와 Event Subscriptions(`message.channels`·`message.im`·`app_mention`)를 활성화한다. 상세 절차는 [`project-bootstrap.md`](project-bootstrap.md) §4.
 2. **세션 기동** — **지정 실행 장비(§운영 모델)에서** 세션 래퍼 `ai/scripts/ai-pm-session.ps1` 를 실행한다. 래퍼는 현재 장비가 `exec_machine` 과 다르면 기동을 중단하고, 일치하면 Slack 런타임(`app.js`)이 떠 있지 않을 때 백그라운드로 1개 띄운 뒤 ai-pm 세션(`claude`)을 기동한다. 래퍼는 Slack 런타임을 워치독으로 감시해 죽으면 자동 재기동한다.
-3. **운영 루프** — ai-pm 세션은 `runtime.log` 를 tail 하며 워크스페이스 전체 채널·DM 의 이벤트를 §처리 대상 식별·§디스패치 계약대로 처리한다.
+3. **운영 루프** — ai-pm 세션은 `runtime.log` 를 tail 하며 워크스페이스 전체 채널·DM 의 이벤트를 §처리 대상 식별·§디스패치 계약대로 처리한다. 세션은 유휴로 끝내지 않고 §운영 연속성 ①의 자가 웨이크 루프로 상시 구동하며, 깨어날 때마다 §운영 연속성 ②로 `last-processed` 마커 이후 백로그를 전수 처리한다.
 4. **catch-up 폴링** — Redmine 이슈 폴링을 저빈도(예: 5분)로 병행해 Slack 을 거치지 않은 변경을 흡수한다.
 
 세션이 `ai-pm 세션 시작` 류 프롬프트로 시작되면 본 문서를 읽고 그대로 동작한다([`CLAUDE.md`](../../CLAUDE.md) §ai-pm 세션 실행 모드).
+
+## 운영 연속성 (처리 루프 지속)
+
+ai-pm 세션은 대화형 에이전트라 한 턴을 마치면 다음 입력을 기다리며 유휴로 들어간다. app.js 가 `runtime.log` 에 남기는 신규 이벤트는 그 자체로 세션을 깨우지 않으므로(하네스가 로그 갱신을 세션 입력으로 전달하지 않는다), 유휴 진입 후에는 새 메시지가 로그에만 쌓이고 처리되지 않는다 — **tail→처리 공백**. 이를 3층으로 막는다.
+
+### 처리 마커 (좌표)
+
+- `_slack/last-event` — app.js 가 세션에 보일 이벤트(mention·DM·channel)를 로깅할 때마다 그 `ts` 를 기록(최신값 덮어쓰기). "app.js 가 받은 최신 이벤트".
+- `_session/last-processed` — 세션이 **트리아지한**(처리했든 무응답으로 판정했든) 최신 이벤트 `ts`. 세션은 매 사이클에서 로그의 최신 이벤트까지 이 값을 전진시킨다(무응답 잡담도 포함 — "봤고 판정함"의 좌표이지 "작업 완료"가 아니다).
+- `last-event > last-processed` = 아직 트리아지되지 않은 이벤트 존재 = tail→처리 공백. 두 값 모두 Slack ts(초.마이크로초), git 비관리(런타임 상태).
+
+### ① 세션 자가 웨이크 루프 (상시)
+
+세션은 "처리 후 유휴 대기"로 턴을 끝내지 않는다. 운영 루프를 `/loop` 자가 페이싱으로 상시 구동한다 — 부팅 즉시 `/loop`(간격 생략 = 모델 자가 페이싱)로 운영 틱을 걸고, 매 틱에서 로그 드레인·마커 갱신을 한 뒤 다음 틱을 예약(ScheduleWakeup)한다. 유휴처럼 보여도 실제로는 주기적으로 `runtime.log`·Redmine 을 재점검하는 상태를 유지한다.
+
+- 간격: 활동 중 약 60초(저지연·프롬프트 캐시 유지), 장기 유휴 시 완화, 00–04 저활동은 §세션 리셋 압축 주기와 조화.
+- 세션이 결코 "유휴 + 다음 틱 미예약"으로 끝나지 않게 한다.
+
+### ② 웨이크 시 백로그 전수 드레인
+
+세션이 깨어날 때(자가 틱·터미널 입력·재기동) `last-processed` 마커부터 `runtime.log` 를 전수 스캔해 누적된 모든 미트리아지 이벤트를 처리한다(최신 1건만 처리 금지). 처리 대상마다 §진행 피드백 '접수'를 즉시 게시해 담당자 무응답 체감을 없앤다. 트리아지가 끝나면 `last-processed` 를 본 최신 이벤트 `ts` 로 갱신한다.
+
+### ③ 처리 정체 감지·자가치유 백스톱 (하드)
+
+워치독(§런타임 구성 요소)이 app.js 생존 감시에 더해 '처리 생존'을 감시한다 — `last-event` 가 `last-processed` 보다 앞선 상태(미트리아지 적체)가 임계(기본 5분) 넘게 지속되면 `.restart` 를 설정하고 ai-pm 세션 프로세스를 강제 종료해 래퍼가 새 세션을 기동하게 한다(재기동 → ①·②로 자동 복구). ①(소프트·응답성)이 멈춰도 미처리 이벤트가 방치되지 않게 하는 결정적 백스톱이다.
+
+- 오탐·루프 방지: app.js 생존 상태에서만 판정, 재기동 후 쿨다운(기본 10분), 1시간 내 3회 초과 재기동 시 자동 재기동을 멈추고 `watchdog.log` 에 경고만 남긴다(마커 미갱신 등 비정상 신호).
+- 임계·쿨다운 기본값은 `ai-pm-session.ps1` 워치독 파라미터(`StallThresholdSec`·`StallCooldownSec`)로 조정한다.
+
+①은 응답성이 좋지만 소프트(모델이 예약을 빠뜨릴 수 있음), ③은 느리지만 하드(외부 프로세스가 결정적으로 복구). 두 층을 겹쳐 단일 실패점을 없앤다.
 
 ## 세션 리셋
 

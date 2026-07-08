@@ -13,6 +13,19 @@ const BOT = config.bot_name;
 let SELF_USER_ID = null;
 let SELF_BOT_ID = null;
 
+// 처리 정체 감지용 마커 — 세션에 보일 이벤트(mention·DM·channel)를 로깅할 때마다 그 ts 를
+// 기록한다(최신값 덮어쓰기). 워치독이 _session/last-processed 와 비교해 tail→처리 공백
+// (세션이 새 로그를 다시 읽지 못하고 멈춘 상태)을 감지한다(ai/strategies/ai-pm.md §운영 연속성).
+const LAST_EVENT_FILE = path.join(__dirname, 'last-event');
+function markLastEvent(ts) {
+  if (!ts) return;
+  try {
+    fs.writeFileSync(LAST_EVENT_FILE, String(ts), 'utf8');
+  } catch (e) {
+    console.error(`[${BOT}][last-event write failed] ${e?.message || e}`);
+  }
+}
+
 const app = new App({
   token: process.env.SLACK_BOT_TOKEN,
   appToken: process.env.SLACK_APP_TOKEN,
@@ -61,6 +74,7 @@ app.event('app_mention', async ({ event, client }) => {
     thread_ts: event.thread_ts,
     text: event.text,
   }));
+  markLastEvent(event.ts);
 });
 
 app.message(async ({ message, client }) => {
@@ -79,6 +93,7 @@ app.message(async ({ message, client }) => {
       ts: message.ts,
       text: message.text,
     }));
+    markLastEvent(message.ts);
     return;
   }
 
@@ -99,6 +114,7 @@ app.message(async ({ message, client }) => {
     thread_ts: message.thread_ts,
     text: message.text,
   }));
+  markLastEvent(message.ts);
 });
 
 app.command('/ping', async ({ ack, respond }) => {
