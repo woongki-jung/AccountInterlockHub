@@ -1,0 +1,143 @@
+/*
+ * SCR-004 연동 구성 상세 스타일. 색·간격·라운딩은 토큰(tokens.css)만 참조한다.
+ * 반응형: Card 세로 스택(기본), 테이블은 Table 컴포넌트가 가로 스크롤 담당. dl 은 mobile 1컬럼.
+ */
+
+.crumb {
+  font-size: var(--text-caption-size);
+  line-height: var(--text-caption-line);
+  color: var(--color-text-muted);
+  margin-bottom: var(--space-2);
+}
+.crumb a {
+  color: var(--color-primary);
+  text-decoration: none;
+}
+
+.dethead {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  margin-bottom: var(--space-6);
+}
+.title {
+  font-size: var(--text-h1-size);
+  line-height: var(--text-h1-line);
+  font-weight: var(--font-weight-bold);
+  margin: 0;
+}
+.spacer {
+  flex: 1 1 auto;
+}
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+}
+.toggleWrap {
+  display: inline-flex;
+  align-items: center;
+}
+
+/* 카드 간 간격 */
+.card {
+  margin-bottom: var(--space-6);
+}
+.cardTitle {
+  font-size: var(--text-h2-size);
+  line-height: var(--text-h2-line);
+  font-weight: var(--font-weight-semibold);
+  margin: 0 0 var(--space-4);
+}
+
+/* 정의 목록(라벨-값 2컬럼 → mobile 1컬럼) */
+.dl {
+  display: grid;
+  grid-template-columns: 180px 1fr;
+  gap: var(--space-3) var(--space-4);
+  margin: 0;
+}
+.dl dt {
+  color: var(--color-text-muted);
+  font-size: var(--text-label-size);
+  line-height: var(--text-label-line);
+}
+.dl dd {
+  margin: 0;
+  font-size: var(--text-body-size);
+  line-height: var(--text-body-line);
+  word-break: break-all;
+}
+
+.mono {
+  font-family: ui-monospace, Menlo, Consolas, monospace;
+  font-size: var(--text-caption-size);
+}
+.extLink {
+  color: var(--color-primary);
+  word-break: break-all;
+}
+.dash {
+  color: var(--color-text-muted);
+}
+
+/* 사용자 키값 파라미터 요약(읽기 전용) */
+.ukeySummary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-1) var(--space-2);
+  padding: var(--control-pad-y) var(--control-pad-x);
+  background: var(--color-primary-weak);
+  border: 1px solid #bfdbfe;
+  border-radius: var(--radius-md);
+  margin-bottom: var(--space-4);
+  font-size: var(--text-label-size);
+}
+.ukeySummary b {
+  color: #1e3a8a;
+}
+.ukeySummaryWarn {
+  background: var(--color-warning-weak);
+  border-color: #fcd34d;
+}
+.ukHint {
+  color: #1e3a8a;
+  font-size: var(--text-caption-size);
+}
+.ukeySummaryWarn .ukHint,
+.ukeySummaryWarn b {
+  color: #92400e;
+}
+
+/* 동의 항목 약관 셀(설정됨 Badge + 약관 보기 버튼) */
+.termsCell {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+/* 로드 오류 액션 */
+.loadErrorActions {
+  display: flex;
+  gap: var(--space-3);
+  margin-top: var(--space-4);
+}
+
+/* Skeleton 간격 */
+.skGap {
+  height: var(--space-3);
+}
+
+/* 반응형 — mobile 1컬럼 dl */
+@media (max-width: 640px) {
+  .dl {
+    grid-template-columns: 1fr;
+    gap: var(--space-1) 0;
+  }
+  .dl dd {
+    margin-bottom: var(--space-3);
+  }
+}

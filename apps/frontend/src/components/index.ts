@@ -1,7 +1,6 @@
 /*
  * 공통 컴포넌트 배럴. 화면은 이 모듈에서 컴포넌트를 가져온다.
- * design-system.md §공통 컴포넌트의 나머지(Table·Modal·Badge·EmptyState)는
- * 후속 Phase(ADM-P7)에서 이 폴더에 추가한다.
+ * design-system.md §공통 컴포넌트 전량(입력·표시·상태·레이아웃)을 여기서 노출한다.
  */
 export { Button } from './Button';
 export type { ButtonProps } from './Button';
@@ -30,3 +29,11 @@ export { AdminNav } from './AdminNav';
 export type { AdminNavProps } from './AdminNav';
 export { AdminShell } from './AdminShell';
 export type { AdminShellProps } from './AdminShell';
+export { Badge } from './Badge';
+export type { BadgeProps, BadgeVariant } from './Badge';
+export { Table } from './Table';
+export type { TableProps, TableColumn } from './Table';
+export { EmptyState } from './EmptyState';
+export type { EmptyStateProps } from './EmptyState';
+export { Modal } from './Modal';
+export type { ModalProps } from './Modal';
