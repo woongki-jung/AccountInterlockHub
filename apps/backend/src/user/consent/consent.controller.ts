@@ -1,5 +1,5 @@
 import { Body, Controller, Get, HttpCode, Param, Post } from '@nestjs/common';
-import { ConsentItemResponse, ConsentService, DecisionResponse } from './consent.service';
+import { ConsentService, ConsentViewResponse, DecisionResponse } from './consent.service';
 import { SubmitConsentDto } from './dto/submit-consent.dto';
 
 /**
@@ -15,10 +15,10 @@ import { SubmitConsentDto } from './dto/submit-consent.dto';
 export class ConsentController {
   constructor(private readonly consentService: ConsentService) {}
 
-  /** 동의 항목 조회(GET /api/consent/:requestKey). 성공 → ConsentItem[]. */
+  /** 동의 항목 조회(GET /api/consent/:requestKey). 성공 → { configCode, items:[...] }(configCode 는 FE 제출 회신용). */
   @Get(':requestKey')
   @HttpCode(200)
-  async getConsentItems(@Param('requestKey') requestKey: string): Promise<ConsentItemResponse[]> {
+  async getConsentItems(@Param('requestKey') requestKey: string): Promise<ConsentViewResponse> {
     return this.consentService.buildConsentView(requestKey);
   }
 

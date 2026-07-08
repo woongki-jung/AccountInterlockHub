@@ -14,7 +14,8 @@ import { SubmitConsentDto } from './dto/submit-consent.dto';
  *
  * 진입 컨텍스트(요청 키값)로 구성을 특정해 그 구성에 설정된 동의 항목만 조회하고(BIZ-002-01 구성 외 노출 금지),
  * 사용자의 동의/거부 결정을 서버가 구성 매칭 근거(configCode)로 검증·분기한다(화면 값 단독 신뢰 금지, BIZ-002).
- * 조회 응답에는 회원 키·요청 키값·구성 코드 등 민감·내부 값을 포함하지 않는다(DATA-001). 약관 컨텐츠(terms_content)는
+ * 조회 응답에는 회원 키·요청 키값 등 민감·내부 값을 포함하지 않는다(DATA-001). 단 구성 코드(configCode)는
+ * 구성 식별 메타(개인정보 아님)로 포함해 FE 가 제출 시 되돌려 보낼 수 있게 한다(PROC-202 ctx.configCode, MDL-203). 약관 컨텐츠(terms_content)는
  * 포함한다([상세] 버튼·약관 모달은 화면(SCR-005) 처리 — BIZ-002-05·EXC-BIZ-08).
  *
  * DB 접근은 파라미터 바인딩만 사용한다(SEC-004-02). 동의 항목 조회는 감사 미기록(read-only), 거부 처리는 감사 기록.
@@ -48,6 +49,13 @@ export interface ConsentItemResponse {
   order: number;
 }
 
+// 동의 항목 조회 응답(GET) — 구성 코드 + 항목 목록. configCode 는 구성 식별 메타(개인정보 아님, DATA-001 무저장 대상 아님)로,
+// FE 가 제출(POST MDL-203 { decision, configCode })에 되돌려 보내기 위한 값이다. 화면 표시가 아니라 FE 메모리 보유용(PROC-202 ctx.configCode).
+export interface ConsentViewResponse {
+  configCode: string;
+  items: ConsentItemResponse[];
+}
+
 // 동의/거부 처리 응답(PROC-202) — 상태 값 미노출, 결과 유형만. SuccessInterceptor 가 { success, data } 로 감싼다.
 export interface DecisionResponse {
   success: true;
@@ -63,8 +71,8 @@ export class ConsentService {
     private readonly auditService: AuditService,
   ) {}
 
-  /** GET /api/consent/:requestKey — 동의 항목 조회(FN-008 buildConsentView). */
-  async buildConsentView(requestKey: string): Promise<ConsentItemResponse[]> {
+  /** GET /api/consent/:requestKey — 동의 항목 조회(FN-008 buildConsentView). 응답에 configCode 동봉(FE 제출 회신용). */
+  async buildConsentView(requestKey: string): Promise<ConsentViewResponse> {
     // 1. 진입 컨텍스트 조회. 미존재·만료면 400 EX-DATA-002(요청이 올바르지 않습니다).
     const ctx = this.entryContextStore.get(requestKey);
     if (!ctx) {
@@ -90,13 +98,16 @@ export class ConsentService {
       [config.id],
     );
 
-    return items.map((i) => ({
-      label: i.item_label,
-      description: i.item_description,
-      termsContent: i.terms_content,
-      required: i.is_required,
-      order: i.display_order,
-    }));
+    return {
+      configCode: ctx.configCode,
+      items: items.map((i) => ({
+        label: i.item_label,
+        description: i.item_description,
+        termsContent: i.terms_content,
+        required: i.is_required,
+        order: i.display_order,
+      })),
+    };
   }
 
   /**
