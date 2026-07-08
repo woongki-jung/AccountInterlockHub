@@ -7,6 +7,7 @@ import { AdminAuthModule } from './admin/auth/admin-auth.module';
 import { ConfigModule as AdminConfigModule } from './admin/config/config.module';
 import { ApiCommonModule } from './api/common/api-common.module';
 import { StatusModule } from './api/status/status.module';
+import { ApiInterlockModule } from './api/interlock/api-interlock.module';
 import { AdminIpMiddleware } from './common/middleware/admin-ip.middleware';
 import { AuditModule } from './common/audit/audit.module';
 import { DatabaseModule } from './database/database.module';
@@ -34,6 +35,10 @@ const frontendDistPath =
     // 처리상태 확인 API(API-P2) — GET /api/status/:requestKey. PROC-301 / SVC-006 / API-01.
     // 서비스 A 자격으로 요청 키값의 처리·결과 확인 상태를 조회하고, 최초 조회 시 결과 확인을 멱등 갱신한다.
     StatusModule,
+    // 연동 완료 확인 API(API-P3) — POST /api/interlock/completion. PROC-302 / SVC-008 / API-02.
+    // 서비스 A 자격으로 {구성 식별자 + 사용자 키값} 스코프 최신 이력의 완료 콜백 수신 여부를 조회한다(읽기 전용).
+    // FN-019(스코프 조회)는 후속 P4 콜백(API-03)과 공유하는 단일 소스로 본 모듈이 export 한다.
+    ApiInterlockModule,
     // React 정적 서빙: API 경로(/api/**)와 서비스 A 진입(/interlock/**)은 제외해 컨트롤러가 처리하고,
     // 그 외 경로(사용자 웹·관리자 웹 SPA)는 정적 산출물(및 index.html 폴백)로 응답한다.
     ServeStaticModule.forRoot({

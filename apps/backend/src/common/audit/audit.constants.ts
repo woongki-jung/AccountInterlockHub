@@ -36,6 +36,7 @@ export const AuditEventType = {
   DELIVERY_BLOCK: 'DELIVERY_BLOCK', // 미동의 전달 차단(PROC-203 B1, FN-012 — 내부 차단·EX 없음, BLOCKED)
   DELIVERY_FAIL: 'DELIVERY_FAIL', // 서비스 B 전달 실패 확정(PROC-203 B6, 재시도 후, FAIL → 502 EX-BIZ-004)
   CALLBACK_RECEIVE: 'CALLBACK_RECEIVE',
+  COMPLETION_CHECK: 'COMPLETION_CHECK', // 연동 완료 확인 조회(PROC-302, FN-017 — userKey 마스킹·완료 여부 기록, 읽기 전용)
   HISTORY_CREATE: 'HISTORY_CREATE', // 연동이력 생성(PROC-201 진입 시, FN-016 — userKey 마스킹만 기록)
   RATE_LIMIT_EXCEEDED: 'RATE_LIMIT_EXCEEDED',
   BATCH_RUN: 'BATCH_RUN',
