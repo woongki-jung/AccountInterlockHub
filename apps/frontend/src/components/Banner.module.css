@@ -1,0 +1,40 @@
+/* 화면 상단 안내(세션 만료·경고·오류) — design-system.md §공통 컴포넌트 Banner. */
+.banner {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--control-pad-x);
+  border-radius: var(--radius-md);
+  border: 1px solid transparent;
+  font-size: var(--text-label-size);
+  line-height: var(--text-label-line);
+}
+
+.info {
+  background: var(--color-info-weak);
+  color: #155e75;
+  border-color: #67e8f9;
+}
+
+.warning {
+  background: var(--color-warning-weak);
+  color: #92400e;
+  border-color: #fcd34d;
+}
+
+.error {
+  background: var(--color-danger-weak);
+  color: #991b1b;
+  border-color: #fca5a5;
+}
+
+/* 상태를 색으로만 전달하지 않도록 접두 아이콘(텍스트) 병기(접근성 §의미 전달). */
+.icon {
+  flex: 0 0 auto;
+  font-weight: var(--font-weight-bold);
+  line-height: inherit;
+}
+
+.content {
+  flex: 1 1 auto;
+}

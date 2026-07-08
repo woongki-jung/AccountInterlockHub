@@ -1,0 +1,60 @@
+/* 라벨(상단) + 입력 + 에러 캡션 3단 구조(design-system.md §공통 컴포넌트 TextField). */
+.field {
+  display: flex;
+  flex-direction: column;
+}
+
+.label {
+  font-size: var(--text-label-size);
+  line-height: var(--text-label-line);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text);
+  margin-bottom: var(--space-2);
+}
+
+.required {
+  color: var(--color-danger);
+  margin-left: 2px;
+}
+
+.input {
+  width: 100%;
+  height: var(--control-height-md);
+  padding: var(--control-pad-y) var(--control-pad-x);
+  font-family: inherit;
+  font-size: var(--text-body-size);
+  line-height: var(--text-body-line);
+  color: var(--color-text);
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+}
+
+.input::placeholder {
+  color: var(--color-text-muted);
+}
+
+.input:disabled {
+  background: var(--color-disabled-bg);
+  color: var(--color-text-muted);
+  cursor: not-allowed;
+}
+
+/* 에러 시 경계 색(aria-invalid 와 연동). */
+.inputInvalid {
+  border-color: var(--color-danger);
+}
+
+.caption {
+  font-size: var(--text-caption-size);
+  line-height: var(--text-caption-line);
+  margin-top: var(--space-2);
+}
+
+.captionError {
+  color: var(--color-danger);
+}
+
+.captionHint {
+  color: var(--color-text-muted);
+}

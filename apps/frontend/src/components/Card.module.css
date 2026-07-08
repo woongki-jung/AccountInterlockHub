@@ -1,0 +1,8 @@
+/* 정보 묶음 카드(design-system.md §공통 컴포넌트 Card: shadow-sm, radius-md). */
+.card {
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
+  padding: var(--space-6);
+}

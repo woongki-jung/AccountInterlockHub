@@ -1,0 +1,79 @@
+/* SCR-001 관리자 로그인 — 헤더 없는 중앙 카드 레이아웃(design-system.md §레이아웃 사용자 셸 배치 응용). */
+.page {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  /* 세로 여백 + 모바일 좌우 16px 거터 */
+  padding: var(--space-8) var(--space-4);
+}
+
+/* 로그인 카드 — 최대 폭 480px, 상하 여백 48px(SCR-001 레이아웃 구성). */
+.card {
+  width: 100%;
+  max-width: var(--user-card-max-width);
+  padding: var(--space-12) var(--space-6);
+  box-shadow: var(--shadow-md);
+}
+
+.brand {
+  font-size: var(--text-caption-size);
+  line-height: var(--text-caption-line);
+  color: var(--color-text-muted);
+  letter-spacing: 0.02em;
+}
+
+.title {
+  font-size: var(--text-h1-size);
+  line-height: var(--text-h1-line);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text);
+  margin: var(--space-1) 0 var(--space-6);
+}
+
+/* 상단 안내 배너(세션 만료·잠금) 영역 간격 */
+.banner {
+  margin-bottom: var(--space-4);
+}
+
+/* fieldset 기본 스타일 초기화(폼 그룹·일괄 disabled 용도) */
+.formGroup {
+  border: 0;
+  margin: 0;
+  padding: 0;
+  min-width: 0;
+}
+
+/* 폼 필드 간 16px(design-system.md §간격: 폼 필드 간 16px) */
+.field {
+  margin-bottom: var(--space-4);
+}
+
+/* 폼 레벨 인증 실패 인라인 에러(401 EX-AUTH-001) — 버튼 상단 */
+.authError {
+  display: block;
+  font-size: var(--text-caption-size);
+  line-height: var(--text-caption-line);
+  color: var(--color-danger);
+  margin-bottom: var(--space-4);
+}
+
+.submit {
+  margin-top: var(--space-2);
+}
+
+.foot {
+  margin-top: var(--space-6);
+  text-align: center;
+  font-size: var(--text-caption-size);
+  line-height: var(--text-caption-line);
+  color: var(--color-text-muted);
+}
+
+/* 모바일: 카드 좌우 여백 16px 로 전체 폭(SCR-001 반응형). */
+@media (max-width: 640px) {
+  .card {
+    padding-left: var(--space-4);
+    padding-right: var(--space-4);
+  }
+}
