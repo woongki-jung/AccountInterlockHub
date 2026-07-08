@@ -43,8 +43,10 @@ export const EX_CODE_MAP: Record<string, ExCodeEntry> = {
   },
   'EX-BIZ-005': { httpStatus: HttpStatus.NOT_FOUND, message: '완료 확인 대상을 찾을 수 없습니다.' },
   'EX-BIZ-006': { httpStatus: HttpStatus.NOT_FOUND, message: '완료 처리 대상을 찾을 수 없습니다.' },
-  'EX-BIZ-007': { httpStatus: HttpStatus.BAD_REQUEST, message: '필수 사용자 키값이 누락되었습니다.' },
-  'EX-DATA-002': { httpStatus: HttpStatus.BAD_REQUEST, message: '요청 키 형식이 올바르지 않습니다.' },
+  // 사양 문구 정정: SVC-004/FN-016/PROC-201 은 "연동에 필요한 값이 누락되었습니다."로 확정(지정 파라미터 값 누락).
+  'EX-BIZ-007': { httpStatus: HttpStatus.BAD_REQUEST, message: '연동에 필요한 값이 누락되었습니다.' },
+  // 진입 컨텍스트 만료·미존재·불일치 케이스(PROC-201 B1b·FN-008) 사양 문구로 정정. 형식 오류(FN-007 조회, 후속 Phase)와 코드 공유.
+  'EX-DATA-002': { httpStatus: HttpStatus.BAD_REQUEST, message: '요청이 올바르지 않습니다.' },
   'EX-DATA-003': { httpStatus: HttpStatus.NOT_FOUND, message: '요청 정보를 찾을 수 없습니다.' },
   'EX-OPS-001': {
     httpStatus: HttpStatus.TOO_MANY_REQUESTS,
