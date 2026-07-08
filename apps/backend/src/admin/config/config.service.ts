@@ -84,6 +84,32 @@ interface ParameterResponse {
   isUserKey: boolean;
 }
 
+// MDL-102 목록 요약 응답(설정 데이터·자식 카운트). URL·자식 상세는 상세 조회(MDL-101)가 제공한다.
+export interface ConfigSummary {
+  id: string;
+  configCode: string;
+  configName: string;
+  isActive: boolean;
+  consentItemCount: number;
+  createdAt: string | null;
+}
+
+// 목록 조회 조건(정규화 후) — active 미지정=null(필터 없음), keyword 미지정=null(필터 없음).
+export interface ListConfigFilter {
+  active: boolean | null;
+  keyword: string | null;
+}
+
+// 활성 전환·삭제 최소 결과 응답.
+export interface ActiveResult {
+  id: string;
+  isActive: boolean;
+}
+export interface DeleteResult {
+  id: string;
+  deleted: true;
+}
+
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 @Injectable()
@@ -101,6 +127,117 @@ export class ConfigService {
   /** PUT /api/admin/configs/:id — 편집(PROC-101 EDIT, config_code 불변). */
   async updateConfig(selfId: string, dto: SaveConfigDto, actor: string): Promise<ConfigResponse> {
     return this.saveConfig('EDIT', dto, selfId, actor);
+  }
+
+  /**
+   * GET /api/admin/configs — 목록 조회(PROC-102 B2 / SVC-002 F-001 / MDL-102).
+   * deleted_at IS NULL + 활성 필터 + 검색어(config_code/config_name LIKE) + 생성일 DESC 정렬.
+   * 감사 미기록(read-only). 파라미터 바인딩만 사용한다(SEC-004-02).
+   */
+  async listConfigs(filter: ListConfigFilter): Promise<ConfigSummary[]> {
+    const kw = filter.keyword ? `%${filter.keyword}%` : null;
+    const rows: SummaryRow[] = await this.dataSource.query(
+      `SELECT c.id, c.config_code, c.config_name, c.is_active, c.created_at,
+              (SELECT COUNT(*)::int FROM "TBL_INTERLOCK_CONSENT_ITEM" ci
+                 WHERE ci.config_id = c.id) AS consent_item_count
+       FROM "TBL_INTERLOCK_CONFIG" c
+       WHERE c.deleted_at IS NULL
+         AND ($1::boolean IS NULL OR c.is_active = $1::boolean)
+         AND ($2::text IS NULL OR c.config_code LIKE $2::text OR c.config_name LIKE $2::text)
+       ORDER BY c.created_at DESC`, // IX_CONFIG_LIST. 페이지네이션은 MVP 미적용(PROC-102 build 확정).
+      [filter.active, kw],
+    );
+    return rows.map((r) => ({
+      id: r.id,
+      configCode: r.config_code,
+      configName: r.config_name,
+      isActive: r.is_active,
+      consentItemCount: Number(r.consent_item_count ?? 0),
+      createdAt: toIso(r.created_at),
+    }));
+  }
+
+  /**
+   * GET /api/admin/configs/:id — 상세 조회(PROC-102 B3 / SVC-002 F-002 / MDL-101).
+   * 저장 결과와 동일 형상(selectConfig 재사용) — SCR-003 편집 프리필이 userKeyParamId·parameters[].isUserKey 로 복원.
+   * 대상 없음(id 부재·이미 삭제)은 오류가 아닌 null 반환(→ 200 data:null). 감사 미기록(read-only).
+   * ※ PROC-102 B3 의사코드 SELECT 투영은 축약형(user_key_param_id·isUserKey 생략)이라 그대로 따르지 않고,
+   *   MDL-101 전체 형상을 반환한다(완료 보고 참조).
+   */
+  async getConfigDetail(id: string): Promise<ConfigResponse | null> {
+    if (!UUID_RE.test(id)) {
+      // id 형식 위반(PROC-102 B1) — 400 EX-SEC-004. uuid 컬럼 대상 22P02(→500) 방어도 겸한다.
+      throw new AppException('EX-SEC-004');
+    }
+    return this.selectConfig(id); // 미삭제만·없으면 null
+  }
+
+  /**
+   * PATCH /api/admin/configs/:id/active — 활성 전환(PROC-105 / SVC-002 F-003 / BR-103).
+   * is_active·updated_at/by 를 단건 UPDATE(deleted_at IS NULL). affected=0 → 대상 없음(null→200 data:null).
+   * 커밋 후 CONFIG_ACTIVATE/DEACTIVATE 감사(OPS-002-01, target=config_code). 파라미터 바인딩만(SEC-004-02).
+   */
+  async setActive(id: string, isActive: boolean, actor: string): Promise<ActiveResult | null> {
+    if (!UUID_RE.test(id)) {
+      throw new AppException('EX-SEC-004'); // id 형식 위반(PROC-105 B1) — 400
+    }
+    const rows: Array<{ config_code: string; is_active: boolean }> = await this.dataSource.query(
+      `UPDATE "TBL_INTERLOCK_CONFIG"
+         SET is_active = $1, updated_at = now(), updated_by = $2
+       WHERE id = $3 AND deleted_at IS NULL
+       RETURNING config_code, is_active`,
+      [isActive, actor, id],
+    );
+    const updated = rows[0];
+    if (!updated) {
+      return null; // 대상 없음/이미 삭제 — 오류 아님(PROC-105 B2)
+    }
+
+    // 커밋 후 감사(OPS-002-01). target 은 기존 감사와 정합하게 config_code 를 쓴다.
+    await this.auditService.write({
+      eventType: isActive ? AuditEventType.CONFIG_ACTIVATE : AuditEventType.CONFIG_DEACTIVATE,
+      actorType: ActorType.ADMIN,
+      actorId: actor,
+      target: updated.config_code,
+      result: AuditResult.SUCCESS,
+    });
+
+    return { id, isActive: updated.is_active };
+  }
+
+  /**
+   * DELETE /api/admin/configs/:id — 소프트 삭제(PROC-106 / SVC-002 F-004 / BR-104).
+   * deleted_at·updated_at/by 만 UPDATE(물리 삭제·자식 CASCADE 미발생). affected=0 → 대상 없음(null→200 data:null).
+   * 소프트 삭제는 parameter 행을 지우지 않으므로 user_key_param_id RESTRICT FK 가 트리거되지 않는다.
+   * 커밋 후 CONFIG_DELETE 감사(OPS-002-01, 삭제 전 상태 기록). 파라미터 바인딩만(SEC-004-02).
+   */
+  async softDelete(id: string, actor: string): Promise<DeleteResult | null> {
+    if (!UUID_RE.test(id)) {
+      throw new AppException('EX-SEC-004'); // id 형식 위반(PROC-106 B1) — 400
+    }
+    const rows: Array<{ config_code: string; is_active: boolean }> = await this.dataSource.query(
+      `UPDATE "TBL_INTERLOCK_CONFIG"
+         SET deleted_at = now(), updated_at = now(), updated_by = $1
+       WHERE id = $2 AND deleted_at IS NULL
+       RETURNING config_code, is_active`, // is_active 는 삭제 전 상태(UPDATE 미변경)
+      [actor, id],
+    );
+    const deleted = rows[0];
+    if (!deleted) {
+      return null; // 대상 없음/이미 삭제 — 오류 아님(PROC-106 B2)
+    }
+
+    // 커밋 후 감사(OPS-002-01, 삭제 전후 상태 기록). detail 에 삭제 직전 활성 상태를 남긴다(SVC-002 §구현 가이드).
+    await this.auditService.write({
+      eventType: AuditEventType.CONFIG_DELETE,
+      actorType: ActorType.ADMIN,
+      actorId: actor,
+      target: deleted.config_code,
+      result: AuditResult.SUCCESS,
+      detail: `소프트 삭제 — 삭제 전 활성=${deleted.is_active}`,
+    });
+
+    return { id, deleted: true };
   }
 
   private async saveConfig(
@@ -155,8 +292,13 @@ export class ConfigService {
       result: AuditResult.SUCCESS,
     });
 
-    // 저장 결과 조회 → MDL-101(자식 포함) 응답.
-    return this.selectConfig(configId);
+    // 저장 결과 조회 → MDL-101(자식 포함) 응답. 방금 커밋한 행이라 항상 존재한다.
+    const saved = await this.selectConfig(configId);
+    if (!saved) {
+      // 방금 커밋한 행이 사라지는 비정상 상황 — 내부 오류로 처리.
+      throw new AppException('EX-FN-999');
+    }
+    return saved;
   }
 
   /** DTO → 정규화 도메인(기본값·order·boolean). 문자열은 DTO 에서 이미 트림됨. */
@@ -364,19 +506,22 @@ export class ConfigService {
     }
   }
 
-  /** 저장 결과를 MDL-101(자식 포함·지정 참조 복원)로 조립한다. */
-  private async selectConfig(configId: string): Promise<ConfigResponse> {
+  /**
+   * id 로 MDL-101(자식 포함·지정 참조 복원) 상세를 조립한다. 미삭제(deleted_at IS NULL)만 대상이며,
+   * 대상이 없으면 null 을 반환한다(상세 조회의 "대상 없음"=200 data:null / 저장 결과 조회는 항상 존재).
+   * 저장 결과 조립과 상세 조회(PROC-102 B3)가 동일 형상을 쓰도록 공용한다 — SCR-003 편집 프리필과 정합.
+   */
+  private async selectConfig(configId: string): Promise<ConfigResponse | null> {
     const configRows: ConfigRow[] = await this.dataSource.query(
       `SELECT id, config_code, config_name, service_a_entry_url, service_b_delivery_url,
               service_b_http_method, user_key_param_id, is_active,
               created_at, created_by, updated_at, updated_by
-       FROM "TBL_INTERLOCK_CONFIG" WHERE id = $1`,
+       FROM "TBL_INTERLOCK_CONFIG" WHERE id = $1 AND deleted_at IS NULL`,
       [configId],
     );
     const cfg = configRows[0];
     if (!cfg) {
-      // 방금 커밋한 행이 사라지는 비정상 상황 — 내부 오류로 처리.
-      throw new AppException('EX-FN-999');
+      return null;
     }
 
     const consentRows: ConsentRow[] = await this.dataSource.query(
@@ -455,6 +600,14 @@ interface ParamRow {
   deliver_to_b: boolean;
   is_required: boolean;
   display_order: number;
+}
+interface SummaryRow {
+  id: string;
+  config_code: string;
+  config_name: string;
+  is_active: boolean;
+  created_at: Date | string | null;
+  consent_item_count: number | string | null;
 }
 
 // ── 검증 유틸 ──
