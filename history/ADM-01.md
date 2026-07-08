@@ -4,6 +4,7 @@
 
 | 일시 (KST) | 단계 | 산출물·결과 | 관련 일감 | 상태 |
 |---|---|---|---|---|
+| 2026-07-08 12:40 | build | 연동 구성 등록·편집 API (ADM-P4) — `apps/backend/src/admin/config/`(config.module/controller/service·dto/save-config.dto·config-pii.util) 신규: POST/PUT `/api/admin/configs`, SessionGuard(FN-003)·FN-006 서버 재검증(필수·URL·동의≥1·키값 exactly-one → 422 EX-BIZ-001, 고유성 사전조회+부분유니크 → 409 EX-BIZ-002)·BR-102 개인정보 경고(이름 휴리스틱·비차단 CONFIG_PII_WARN)·단일 트랜잭션 부모+자식 전량교체(순환 FK: NULL 초기화→자식 INSERT→user_key_param_id 재지정)·커밋 후 감사(CONFIG_CREATE/UPDATE)·MDL-101 응답. app.module 등록·audit.constants CONFIG_PII_WARN 추가. `npm run build` 통과. 리뷰·기능검증 대기 | `accountinterlockhub#41` | 🚧 |
 | 2026-07-08 10:25 | spec | 사용자 키값 필수화 반영 — 목업 — `mockup/SCR-003.html` '사용자 키값 지정 없음' 버튼 제거·필수(*) 표기·미선택 시 필수 경고·저장 차단(save 가드)·라디오 정확히 1개, `mockup/SCR-004.html` '미지정'을 방어 표시로 재라벨 | `accountinterlockhub#32` | 🚧 |
 | 2026-07-08 10:15 | spec | 사용자 키값 필수화 반영 — 검증 TC — `tc_ADM-01.md` _020 미지정 허용→미지정(0개) 저장 차단 422(Positive→Negative)·_017 정확히 1개 명확화·_021 재지정 필수화·`spec-qa.md` §3 시드(미지정=방어 SQL)·§5-2 PROC-101·§5-4 BIZ-001·§6 BLK-13 **해소**·§4-2 유형 분포(P 58→57·N 38→39). 총 156 TC·ADM-01 21건 유지 | `accountinterlockhub#31` | 🚧 |
 | 2026-07-08 10:05 | spec | 사용자 키값 필수화 반영 — 프로세스 — `process_PROC-101.md` 저장 전 exactly-one 검증 분기(FE F1 `!==1` 알림·B2 FN-006 BR-107)·요청 DTO isUserKey 직렬화·B3 지정 참조 영속화(자식 INSERT 후 user_key_param_id UPDATE, 편집 시 NULL 초기화로 RESTRICT 회피)·분기표 BR-107·EX-BIZ-001 확장·단계통합·CRUD·`spec-process.md` BR-107 정합 | `accountinterlockhub#30` | 🚧 |
