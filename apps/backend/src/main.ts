@@ -1,3 +1,4 @@
+import type { IncomingMessage, ServerResponse } from 'node:http';
 import { HttpStatus, ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { ErrorRequestHandler, json, urlencoded } from 'express';
@@ -13,9 +14,14 @@ import { validationExceptionFactory } from './common/validation/validation.util'
 // (devspec/infra.md §애플리케이션 구성). 공통 기반(엔벨로프·입력검증·예외)을 전역 부착한다.
 async function bootstrap(): Promise<void> {
   // 기본 body parser 를 끄고 본문 크기 상한 1MB 로 재등록한다(SEC-004-03 — 초과 시 413 → EX-SEC-005).
+  // 서비스 대면 API HMAC 서명 검증(FN-004)을 위해 파싱 전 원문 본문을 req.rawBody 로 보존한다(verify 콜백).
+  // 본문 없는 요청(GET 등)은 콜백 미발화 → rawBody undefined(가드가 빈 바이트로 취급). 참조만 저장해 기존 흐름에 무해.
+  const rawBodyVerify = (req: IncomingMessage, _res: ServerResponse, buf: Buffer): void => {
+    (req as IncomingMessage & { rawBody?: Buffer }).rawBody = buf;
+  };
   const app = await NestFactory.create(AppModule, { bodyParser: false });
-  app.use(json({ limit: '1mb' }));
-  app.use(urlencoded({ extended: true, limit: '1mb' }));
+  app.use(json({ limit: '1mb', verify: rawBodyVerify }));
+  app.use(urlencoded({ extended: true, limit: '1mb', verify: rawBodyVerify }));
 
   // body-parser raw 에러 종결 미들웨어(SEC-004-03 회귀 해소).
   // serve-static 의 제외 경로(/api/*, /interlock/*) 에러 핸들러는 app.listen() 시점에 더 뒤에 등록되어

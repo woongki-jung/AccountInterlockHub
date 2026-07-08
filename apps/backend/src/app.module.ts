@@ -5,6 +5,7 @@ import { ServeStaticModule } from '@nestjs/serve-static';
 import { AppController } from './app.controller';
 import { AdminAuthModule } from './admin/auth/admin-auth.module';
 import { ConfigModule as AdminConfigModule } from './admin/config/config.module';
+import { ApiCommonModule } from './api/common/api-common.module';
 import { AdminIpMiddleware } from './common/middleware/admin-ip.middleware';
 import { AuditModule } from './common/audit/audit.module';
 import { DatabaseModule } from './database/database.module';
@@ -26,6 +27,9 @@ const frontendDistPath =
     // 사용자 도메인(서비스 A 진입·이용 동의 항목 조회) — USR-01·BAT-03. 진입 컨텍스트 스토어를 공유한다.
     InterlockModule,
     ConsentModule,
+    // 서비스 대면 API 공통 가드 인프라(FN-004 인증·FN-014 요청제한) — API-01/02/03 횡단(API-P1).
+    // 가드·인증·카운터 provider 를 세워 앱 부팅을 성립시키고, 후속 P2~P4 모듈이 import 해 소비한다.
+    ApiCommonModule,
     // React 정적 서빙: API 경로(/api/**)와 서비스 A 진입(/interlock/**)은 제외해 컨트롤러가 처리하고,
     // 그 외 경로(사용자 웹·관리자 웹 SPA)는 정적 산출물(및 index.html 폴백)로 응답한다.
     ServeStaticModule.forRoot({
