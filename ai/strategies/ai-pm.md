@@ -24,7 +24,7 @@ ai-pm 이 처리할 일을 인지하는 경로는 둘이다.
 - **프로젝트 구분은 워크스페이스 단위**, 그 안의 작업 단위 구분은 **채널 단위**다.
 - 동일 워크스페이스에 ai-pm 세션을 둘 이상 띄우지 않는다 — Slack 런타임 중복 수신과 중복 디스패치를 막는다.
 - **실행 장비 지정** — ai-pm 세션·Slack 런타임은 **지정 실행 장비에서만** 기동한다. 지정 값의 단일 출처는 `ai/bots/ai-pm/_slack/config.json` 의 `exec_machine`(장비 MachineName, Windows `$env:COMPUTERNAME`)이며, 봇 정의 frontmatter `exec machine` 에도 반영한다. 세션 래퍼는 기동 시 현재 장비의 MachineName 을 `exec_machine` 과 대조해 불일치하면 기동을 중단한다 — 복제 워크스페이스를 가진 다른 PC 에서의 중복 기동(단일 세션 위반)을 장비 수준에서 막는다. 실행 장비를 옮길 때는 `exec_machine` 을 새 장비 값으로 갱신·커밋한다([`project-bootstrap.md`](project-bootstrap.md) §다른 PC 재구성).
-- **운영 강도(ultracode)** — ai-pm 세션은 워크스페이스 최상위 추론 강도 `ultracode` 로 기동한다(봇 정의 frontmatter `effort: ultracode`). CLI `--effort` 에 ultracode 레벨이 없어 세션 래퍼가 상한 `max` 로 매핑해 `--effort max` 로 띄운다(모델은 `model:`·`model fallback:` 규칙). 복잡·비가역 작업은 다중 에이전트 오케스트레이션·교차검증을 우선한다. 서브에이전트에는 각 정의의 `effort`(opus=max·sonnet=xhigh)를 그대로 적용한다([`agents.md`](agents.md) §모델·추론 강도(effort) 정책).
+- **운영 강도** — ai-pm 세션은 최상위 추론 강도 `max` 로 기동한다(봇 정의 frontmatter `effort: max` → 세션 래퍼가 `--effort max` 로 띄움, 모델은 `model:`·`model fallback:` 규칙). 복잡·비가역 작업은 다중 에이전트 오케스트레이션·교차검증을 우선한다. 서브에이전트에는 각 정의의 `effort`(opus=max·sonnet=xhigh)를 그대로 적용한다([`agents.md`](agents.md) §모델·추론 강도(effort) 정책).
 
 ## 처리 대상 식별
 
