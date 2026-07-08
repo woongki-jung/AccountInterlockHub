@@ -2,6 +2,7 @@
 name: mockup-builder
 description: 확정된 화면 사양을 반영한 UI 중심 경량 목업(static HTML)을 생성합니다. 비즈니스 로직·실 API·실코드는 만들지 않으며, 사양 보완 후보를 함께 보고합니다.
 model: sonnet
+effort: xhigh
 color: orange
 memory: project
 ---

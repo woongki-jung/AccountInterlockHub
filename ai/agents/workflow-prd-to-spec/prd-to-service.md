@@ -2,6 +2,7 @@
 name: prd-to-service
 description: prd문서를 분석하여 서비스 기능 정의서를 작성합니다.
 model: opus
+effort: max
 color: blue
 memory: project
 ---

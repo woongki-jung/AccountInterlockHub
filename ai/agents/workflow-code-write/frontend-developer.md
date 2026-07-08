@@ -2,6 +2,7 @@
 name: frontend-developer
 description: build 단계 코드 작성 doer — 프론트엔드(화면 UI·상태·백엔드 연동) 코드를 Phase 단위로 작성한다. 코드리뷰·기능검증은 별도 doer 소관.
 model: sonnet
+effort: xhigh
 color: orange
 memory: project
 ---

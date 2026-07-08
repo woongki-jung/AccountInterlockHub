@@ -2,6 +2,7 @@
 name: prd-to-policies
 description: prd문서를 분석하여 프로젝트 정책 정의 문서를 작성합니다.
 model: opus
+effort: max
 color: blue
 memory: project
 ---

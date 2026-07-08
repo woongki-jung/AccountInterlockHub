@@ -2,6 +2,7 @@
 name: prd-to-screens
 description: prd문서를 분석하여 서비스의 화면 기획서, 디자인 사양서를 작성합니다.
 model: opus
+effort: max
 color: purple
 memory: project
 ---

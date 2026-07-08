@@ -2,6 +2,7 @@
 name: prd-to-functions
 description: prd문서를 분석하여 정책을 구현하는 공통 기능 및 프로젝트 특화 로직 정의 문서를 작성합니다.
 model: opus
+effort: max
 color: orange
 memory: project
 ---

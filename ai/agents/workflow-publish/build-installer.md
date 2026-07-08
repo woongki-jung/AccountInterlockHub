@@ -2,6 +2,7 @@
 name: build-installer
 description: 코드 생성 완료 후 배포사양이 정의한 배포 산출물(인스톨러 등)을 전 구성으로 빌드하고 결과를 보고한다.
 model: sonnet
+effort: xhigh
 color: green
 memory: project
 ---

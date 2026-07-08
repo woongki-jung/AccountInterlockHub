@@ -2,6 +2,7 @@
 name: spec-reviewer
 description: spec 도메인 사양을 교차검증해 도메인 간 정합성·PRD 구현 충실도·깨진 참조를 평가하는 evaluator
 model: opus
+effort: max
 color: red
 memory: project
 ---

@@ -2,6 +2,7 @@
 name: prd-to-process
 description: prd문서를 분석하여 서비스 기능구현 프로세스정의서를 작성합니다.
 model: opus
+effort: max
 color: blue
 memory: project
 ---

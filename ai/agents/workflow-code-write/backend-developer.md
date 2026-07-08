@@ -2,6 +2,7 @@
 name: backend-developer
 description: build 단계 코드 작성 doer — 백엔드(서버 로직·API·외부 연동·데이터 접근) 코드를 Phase 단위로 작성한다. 코드리뷰·기능검증은 별도 doer 소관.
 model: sonnet
+effort: xhigh
 color: blue
 memory: project
 ---

@@ -2,6 +2,7 @@
 name: code-reviewer
 description: build 코드리뷰 doer. 완료된 Phase 구현을 계획·코딩 표준·사양 부합 기준으로 정적 검토해 첫 줄 PASS/FAIL 로 판정한다. build 오케스트레이터 2-B 가 호출한다.
 model: opus
+effort: max
 color: yellow
 memory: project
 ---

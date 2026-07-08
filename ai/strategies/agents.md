@@ -10,7 +10,8 @@ YAML frontmatter 로 시작한다.
 ---
 name: agent-name
 description: 한 줄 역할 설명
-model: opus           # 사용 모델 명시 (§모델 정책)
+model: opus           # 사용 모델 명시 (§모델·추론 강도(effort) 정책)
+effort: max           # 추론 강도 명시 (§모델·추론 강도(effort) 정책)
 color: blue           # 표시 색(선택)
 memory: project       # 프로젝트 메모리 자동 주입(선택)
 ---
@@ -19,15 +20,15 @@ memory: project       # 프로젝트 메모리 자동 주입(선택)
 - 본문은 역할·입력·절차·산출·예외를 담는다. 작성 규칙은 [`document-master-guide.md`](document-master-guide.md) 를 따른다.
 - **워크스페이스 밖 경로를 참조하지 않는다.** `memory: project` 가 런타임에 경로를 주입한다.
 
-## 모델 정책
+## 모델·추론 강도(effort) 정책
 
-에이전트마다 frontmatter `model:` 에 사용할 모델을 **명시 지정**한다. 디스패치 주체는 서브에이전트 기동 시 이 값을 그대로 적용한다(세션 구성 상속 없음). 역할 속성에 따라 다음 기준으로 지정한다.
+에이전트마다 frontmatter `model:`(사용 모델)·`effort:`(추론 강도)를 **명시 지정**한다. 디스패치 주체는 서브에이전트 기동 시 이 **두 값을 그대로 적용**한다(세션 구성 상속 없음) — 담당자가 지정한 설정으로 실행하는 것이 원칙이다. `effort` 허용값은 `low`·`medium`·`high`·`xhigh`·`max`(CLI `--effort` 기준)다. 역할 속성에 따라 model·effort 를 함께 다음 기준으로 지정한다.
 
-- **ai-pm (마스터)** — `inherit`. 세션 구성(담당자가 `claude --model` 등으로 정한 값, 기본 모델 포함)을 따른다 — 상위 모델(fable)을 쓸지는 담당자가 세션 구성으로 선택한다. 그 모델을 쓸 수 없으면 `model fallback:` 에 지정된 `opus` 로 자동 전환한다(세션 래퍼가 기동 실패 시 재시도하고, `--fallback-model` 지정으로 세션 도중 불가 시에도 전환).
-- **판단·분석 역할 — `opus`**: 단계 오케스트레이터(`spec`·`build`·`qa`), 평가·판정 doer(`prd-reviewer`·`spec-reviewer`·`code-reviewer`·`test-planner`), 사양 작성 doer(`prd-to-*`). 단계 조율·합격 판정·검증 계획과 PRD 분석·도메인 해석이 필요한 사양 작성은 정확도가 우선이다.
-- **정형 작성·실행 역할 — `sonnet`**: 코드 작성(`backend-developer`·`frontend-developer`)·목업(`mockup-builder`)·검증 실행(`tester`)·빌드(`build-installer`). 사양·계획이 확정된 뒤의 정형 산출이고 opus 평가자가 리뷰·판정하므로(§실행 규칙 책임 분리) 처리량·비용 효율을 우선한다.
+- **ai-pm (마스터)** — model `inherit` · effort `ultracode`. 모델은 세션 구성(담당자가 `claude --model` 등으로 정한 값, 기본 모델 포함)을 따르고, 상위 모델(fable)을 쓸지는 담당자가 선택한다 — 쓸 수 없으면 `model fallback:` 의 `opus` 로 자동 전환한다(래퍼가 기동 실패 시 재시도, `--fallback-model` 으로 세션 도중 불가 시에도 전환). 추론 강도는 워크스페이스 최상위 **`ultracode`** — CLI `--effort` 에 해당 레벨이 없어 세션 래퍼가 상한 `max` 로 매핑해 기동하며, 워크플로 오케스트레이션·다중 검증을 우선하는 ultracode 운영 posture 는 [`ai-pm.md`](ai-pm.md) 가 정본이다.
+- **판단·분석 역할 — model `opus` · effort `max`**: 단계 오케스트레이터(`spec`·`build`·`qa`), 평가·판정 doer(`prd-reviewer`·`spec-reviewer`·`code-reviewer`·`test-planner`), 사양 작성 doer(`prd-to-*`). 단계 조율·합격 판정·검증 계획과 PRD 분석·도메인 해석이 필요한 사양 작성은 정확도가 우선이므로 최상위 강도로 실행한다.
+- **정형 작성·실행 역할 — model `sonnet` · effort `xhigh`**: 코드 작성(`backend-developer`·`frontend-developer`)·목업(`mockup-builder`)·검증 실행(`tester`)·빌드(`build-installer`). 사양·계획이 확정된 뒤의 정형 산출이고 opus 평가자가 리뷰·판정하므로(§실행 규칙 책임 분리) 처리량·비용 효율을 함께 고려해 한 단계 낮은 강도로 실행한다.
 
-새 에이전트를 추가할 때도 같은 기준으로 지정한다 — 분석·판단이 필요한 역할 = `opus`, 확정 사양 기반의 정형 작성·실행 = `sonnet`.
+새 에이전트를 추가할 때도 같은 기준으로 지정한다 — 분석·판단이 필요한 역할 = model `opus`·effort `max`, 확정 사양 기반의 정형 작성·실행 = model `sonnet`·effort `xhigh`.
 
 ## 실행 규칙
 

@@ -198,17 +198,35 @@ if (Test-Path $botDef) {
 if ($primaryModel -eq 'inherit') { $primaryModel = '' }
 $activeModel = $primaryModel
 
+# --- 세션 추론 강도(effort) — 봇 정의 frontmatter `effort:` 단일 출처(ai/strategies/agents.md §모델·추론 강도(effort) 정책).
+#     CLI --effort 허용값: low/medium/high/xhigh/max. ai-pm 은 최상위 'ultracode' 지정 — CLI 에 해당 레벨이
+#     없어 상한 'max' 로 매핑한다(ultracode 운영 posture 는 ai-pm.md 지침이 정본). 미지정/무효값이면 --effort 미부여(세션 기본). ---
+$effort = ''
+if (Test-Path $botDef) {
+  $e = Select-String -Path $botDef -Pattern '^\s*effort:\s*([^\s#]+)' -ErrorAction SilentlyContinue | Select-Object -First 1
+  if ($e) { $effort = $e.Matches[0].Groups[1].Value.Trim() }
+}
+if ($effort -eq 'ultracode') { $effort = 'max' }   # ultracode → CLI 상한 'max' 로 매핑
+$validEffort = @('low', 'medium', 'high', 'xhigh', 'max')
+if ($effort -and ($validEffort -notcontains $effort)) {
+  Write-Host "[ai-pm-session] effort '$effort' 무효값 — 무시(세션 기본 강도 사용)" -ForegroundColor Yellow
+  $effort = ''
+}
+
 try {
   while ($true) {
     $claudeArgs = @('--dangerously-skip-permissions')
     if ($activeModel) { $claudeArgs += @('--model', $activeModel) }
     # 세션 도중 1차 모델 사용 불가(과부하·한도)에도 CLI 가 fallback 모델로 자동 전환하도록 지정
     if ($fallbackModel -and $activeModel -ne $fallbackModel) { $claudeArgs += @('--fallback-model', $fallbackModel) }
+    # 세션 추론 강도 — 봇 정의 effort(ultracode→max 매핑 후). 미지정이면 부여하지 않는다(세션 기본).
+    if ($effort) { $claudeArgs += @('--effort', $effort) }
     $claudeArgs += 'ai-pm 세션 시작'
 
     Write-Host ""
     Write-Host "[ai-pm-session] launching claude session..." -ForegroundColor Cyan
     Write-Host "[ai-pm-session] model : $(if ($activeModel) { $activeModel } else { '(기본)' })$(if ($fallbackModel -and $activeModel -ne $fallbackModel) { " (fallback: $fallbackModel)" })"
+    Write-Host "[ai-pm-session] effort: $(if ($effort) { $effort } else { '(기본)' })"
     Write-Host "[ai-pm-session] (Slack 에서 'ai-pm 초기화' 로 자동 재기동 / Ctrl+C 또는 .stop 으로 종료)"
     Write-Host ""
 

@@ -2,6 +2,7 @@
 name: prd-reviewer
 description: spec 단계 진입 게이트의 평가 doer(요구사항 정합성 평가 정본). PRD·요구사항 문서를 분석해 모호·누락·충돌 등 적합도를 평가하고 신규 요구사항을 제안한다.
 model: opus
+effort: max
 color: purple
 memory: project
 ---
