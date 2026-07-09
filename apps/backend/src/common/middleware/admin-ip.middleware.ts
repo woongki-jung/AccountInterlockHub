@@ -6,6 +6,7 @@ import { ActorType, AuditEventType, AuditResult } from '../audit/audit.constants
 import { maskToken } from '../audit/masking.util';
 import { EX_CODE_MAP } from '../envelope/ex-code.map';
 import { matchesAny, normalizeIp, parseAllowList } from './ip-match.util';
+import { isTrustProxyEnabled, resolveClientIp } from './source-ip.util';
 
 /**
  * 관리자 경로 IP 접근 제어 미들웨어 — PROC-104 / FN-001 / SEC-001.
@@ -21,8 +22,9 @@ import { matchesAny, normalizeIp, parseAllowList } from './ip-match.util';
  * 응답 형상 주의: 미들웨어는 Nest 예외존(전역 필터) 밖에서 실행되고, next(err) 로 넘기면 serve-static 의
  * 말미 에러 핸들러가 404 로 재작성한다(main.ts 참조). 따라서 차단 응답을 여기서 FN-015 엔벨로프로 직접 종결한다.
  *
- * 출발지 IP 판별(프록시): MVP 는 소켓 원 IP(req.socket.remoteAddress)를 신뢰한다. 프록시/LB 뒤에서
+ * 출발지 IP 판별(프록시): 소켓 원 IP(req.socket.remoteAddress)를 신뢰한다. 프록시/LB 뒤에서
  * X-Forwarded-For 를 신뢰하려면 TRUST_PROXY 환경 플래그를 켠다(켜면 XFF 최좌측=원 클라이언트 IP 사용).
+ * 판별 로직은 진입 요청제한(EntryRateLimitMiddleware)과 공유하는 source-ip.util 로 단일화한다(오류 #213 방지).
  */
 @Injectable()
 export class AdminIpMiddleware implements NestMiddleware {
@@ -45,7 +47,8 @@ export class AdminIpMiddleware implements NestMiddleware {
       return;
     }
 
-    const sourceIp = normalizeIp(this.resolveSourceIp(req));
+    const trustProxy = isTrustProxyEnabled(this.config.get<string>('TRUST_PROXY'));
+    const sourceIp = normalizeIp(resolveClientIp(req, trustProxy));
 
     // 2. 허용 대조(SEC-001-01)
     if (sourceIp.length > 0 && matchesAny(sourceIp, allowList)) {
@@ -75,32 +78,5 @@ export class AdminIpMiddleware implements NestMiddleware {
         details: null,
       },
     });
-  }
-
-  /**
-   * 출발지 IP 판별. TRUST_PROXY 가 켜져 있으면 X-Forwarded-For 최좌측(원 클라이언트)을,
-   * 아니면 직접 소켓 원 IP 를 사용한다. sessionId·자격 등 민감값은 로그에 남기지 않는다.
-   */
-  private resolveSourceIp(req: Request): string {
-    const trustProxy = this.isTruthy(this.config.get<string>('TRUST_PROXY'));
-    if (trustProxy) {
-      const xff = req.headers['x-forwarded-for'];
-      const raw = Array.isArray(xff) ? xff[0] : xff;
-      if (raw) {
-        const first = raw.split(',')[0]?.trim();
-        if (first) {
-          return first;
-        }
-      }
-    }
-    return req.socket?.remoteAddress ?? req.ip ?? '';
-  }
-
-  private isTruthy(value: string | undefined): boolean {
-    if (!value) {
-      return false;
-    }
-    const v = value.toLowerCase();
-    return v === '1' || v === 'true' || v === 'yes' || v === 'on';
   }
 }
