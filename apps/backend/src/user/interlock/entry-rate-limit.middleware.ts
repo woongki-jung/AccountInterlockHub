@@ -1,9 +1,12 @@
 import { Injectable, NestMiddleware } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { NextFunction, Request, Response } from 'express';
 import { AuditService } from '../../common/audit/audit.service';
 import { ActorType, AuditEventType, AuditResult } from '../../common/audit/audit.constants';
 import { maskToken } from '../../common/audit/masking.util';
 import { EX_CODE_MAP } from '../../common/envelope/ex-code.map';
+import { normalizeIp } from '../../common/middleware/ip-match.util';
+import { isTrustProxyEnabled, resolveClientIp } from '../../common/middleware/source-ip.util';
 import { EntryRateLimitStore } from './entry-rate-limit.store';
 
 const ENTRY_LIMIT_PER_MIN = 60; // OPS-001 기본안(EXC-OPS-01)
@@ -24,11 +27,16 @@ export class EntryRateLimitMiddleware implements NestMiddleware {
   constructor(
     private readonly rateLimitStore: EntryRateLimitStore,
     private readonly auditService: AuditService,
+    private readonly config: ConfigService,
   ) {}
 
   async use(req: Request, res: Response, next: NextFunction): Promise<void> {
-    // 출발지 IP 기준(express req.ip — TRUST_PROXY 설정 반영). 미판별 시 소켓 원 IP 폴백.
-    const sourceIp = req.ip ?? req.socket?.remoteAddress ?? 'unknown';
+    // 출발지(원 클라이언트) IP 기준으로 요청을 센다(OPS-001·FN-014). 관리자 IP 게이트(AdminIpMiddleware)와
+    // 동일 규칙으로 TRUST_PROXY 시 X-Forwarded-For 최좌측을, 아니면 소켓 원 IP 를 쓴다(source-ip.util).
+    // 과거 Express req.ip 직접 사용은 app.set('trust proxy') 미설정 시 전 출발지가 소켓 IP 단일 버킷을
+    // 공유해 XFF 를 무시했다(오류 #213). 공유 판별 유틸로 진입·관리자 경로 판별을 일치시킨다.
+    const trustProxy = isTrustProxyEnabled(this.config.get<string>('TRUST_PROXY'));
+    const sourceIp = normalizeIp(resolveClientIp(req, trustProxy)) || 'unknown';
     const allowed = this.rateLimitStore.hit(`entry:${sourceIp}`, ENTRY_LIMIT_PER_MIN);
     if (allowed) {
       next();
