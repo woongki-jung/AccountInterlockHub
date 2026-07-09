@@ -73,7 +73,7 @@
 | 검색어 | text input | (조회 조건) | N | `value.length <= 100` | "검색어가 너무 깁니다." |
 | 활성 필터 | select | (조회 조건) | N | `['ALL','ACTIVE','INACTIVE'].includes(value)` | (해당 없음) |
 
-> 조회 조건은 서버단에서 허용 문자·길이 재검증([SEC-004](../policies/policy_SEC.md#sec-004-입력-검증주입-방어)/FN-005)한다. 페이지네이션 규약은 build 확정([FN-015](../functions/function_FN-015.md)).
+> 조회 조건은 서버단에서 길이·형식 재검증([SEC-004](../policies/policy_SEC.md#sec-004-입력-검증주입-방어)/FN-005)한다(허용 문자 재검증 미요구 — 주입 문자 검색어도 바인딩으로 안전 처리·정상 조회). 페이지네이션 규약은 build 확정([FN-015](../functions/function_FN-015.md)).
 
 ### 조건부 표시
 
