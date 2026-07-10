@@ -289,9 +289,30 @@ if ($effort -and ($validEffort -notcontains $effort)) {
   $effort = ''
 }
 
+# --- ai-pm 전용 MCP 큐레이션 — 인증 필요한 claude.ai 커넥터(Figma·Google 등)와 Playwright MCP 는
+#     detached 세션의 MCP 초기화 단계를 막아 세션이 첫 턴에 도달하지 못하게 한다(ai/strategies/ai-pm.md
+#     §운영 연속성). ai-pm 은 Redmine MCP 만 필요하므로(Slack 은 post.js·토큰 직접), ~/.claude.json 의
+#     redmine 서버만 추린 설정으로 --strict-mcp-config 기동해 다른 MCP 소스를 전부 무시한다. ---
+$curatedMcp = Join-Path $sessionDir 'ai-pm.mcp.json'
+$mcpCurateJs = Join-Path $slackDir 'mcp-curate.js'
+$mcpArgs = @('--strict-mcp-config')
+if (Test-Path $mcpCurateJs) {
+  # node 로 ~/.claude.json 에서 redmine 서버만 추려 큐레이트 설정 생성(PS 5.1 ConvertFrom-Json 은 대용량 .claude.json 실패).
+  $curateOut = (& node $mcpCurateJs $curatedMcp) -join ''
+  if ($LASTEXITCODE -eq 0 -and $curateOut -match 'OK' -and (Test-Path $curatedMcp)) {
+    $mcpArgs += @('--mcp-config', $curatedMcp)
+    Write-Host "[ai-pm-session] MCP 큐레이션: Redmine 전용 (claude.ai 커넥터·Playwright 제외로 startup 블로킹 회피)" -ForegroundColor DarkGray
+  } else {
+    Write-Host "[ai-pm-session] MCP 큐레이션 결과='$curateOut' — Redmine 미발견/실패, MCP 없이 기동(--strict-mcp-config)" -ForegroundColor Yellow
+  }
+} else {
+  Write-Host "[ai-pm-session] mcp-curate.js 없음 — MCP 없이 기동(--strict-mcp-config)" -ForegroundColor Yellow
+}
+
 try {
   while ($true) {
     $claudeArgs = @('--dangerously-skip-permissions')
+    if ($mcpArgs) { $claudeArgs += $mcpArgs }
     if ($activeModel) { $claudeArgs += @('--model', $activeModel) }
     # 세션 도중 1차 모델 사용 불가(과부하·한도)에도 CLI 가 fallback 모델로 자동 전환하도록 지정
     if ($fallbackModel -and $activeModel -ne $fallbackModel) { $claudeArgs += @('--fallback-model', $fallbackModel) }

@@ -83,6 +83,7 @@ ai-pm 의 Slack 런타임은 자기완결 폴더 `ai/bots/ai-pm/` 에 둔다.
 - `ai/bots/ai-pm/ai-pm.md` — 봇 정의. 페르소나·명령/응답 규칙·채널 운용. 본 전략 문서가 운영 절차 정본이고, 봇 정의는 그 절차를 수행하는 페르소나를 담는다.
 - `ai/bots/ai-pm/_slack/app.js` — Slack Bolt Socket Mode 엔트리포인트(봇 1 프로세스 = Socket Mode 연결 1개). 수신 이벤트를 `runtime.log` 에 남기고, ai-pm 세션이 그 로그를 읽어 처리한다. **수신 전용**이다.
 - `ai/bots/ai-pm/_slack/post.js` — **발신 헬퍼**(`chat.postMessage`·`chat.update`). 본문을 UTF-8 파일에서 `[string]` 그대로 읽어 `@slack/web-api` 로 보낸다. 세션이 JSON 을 셸에서 손수 조립하지 않게 해 한글 인코딩 손상과 PowerShell ETS 누출(§글로벌 운영 원칙 — 발신은 반드시 `post.js` 로)을 원천 차단한다.
+- `ai/bots/ai-pm/_slack/mcp-curate.js` — 세션 기동 시 `~/.claude.json` 에서 **Redmine MCP 서버만** 추려 큐레이트 설정(`_session/ai-pm.mcp.json`)을 만든다. 래퍼가 `--strict-mcp-config` 로 이 설정만 로드해, 인증 필요한 claude.ai 커넥터·Playwright MCP 가 detached 세션 startup 을 막는 것을 회피한다(§운영 연속성 — 기동 블로킹 회피).
 - `ai/bots/ai-pm/_slack/config.json` — 봇 이름·표시이름·앱 식별자·워크스페이스·감시 채널·실행 장비(`exec_machine`) (선언적 설정).
 - `ai/bots/ai-pm/_slack/.env` — Slack 토큰(`SLACK_BOT_TOKEN`·`SLACK_APP_TOKEN`). git 비관리. 양식은 같은 폴더 `.env.example`.
 - `ai/bots/ai-pm/_slack/runtime.log` — 수신 이벤트 로그(세션이 tail). git 비관리. 래퍼 기동 시 10MB 초과면 `runtime.log.1` 로 회전.
@@ -128,6 +129,14 @@ ai-pm 세션은 대화형 에이전트라 한 턴을 마치면 다음 입력을 
 - 임계·쿨다운 기본값은 `ai-pm-session.ps1` 워치독 파라미터(`StallThresholdSec`·`StallCooldownSec`)로 조정한다.
 
 ①은 응답성이 좋지만 소프트(모델이 예약을 빠뜨릴 수 있음), ③은 느리지만 하드(외부 프로세스가 결정적으로 복구). 두 층을 겹쳐 단일 실패점을 없앤다.
+
+### 기동 블로킹 회피 (MCP 큐레이션)
+
+위 ①~③은 **기동한** 세션의 처리 지속을 다루지만, 세션이 아예 **기동(첫 턴 도달)에 실패**하는 경로도 막아야 한다. 인증 필요한 claude.ai 커넥터(Figma·Google 등)와 Playwright MCP 는 detached 세션의 MCP 초기화를 붙잡아 세션이 첫 턴에 도달하지 못하게 한다(무한 스피너·무처리·transcript 부재 = 발신·수신 전무). 래퍼는 기동 시 `mcp-curate.js` 로 `~/.claude.json` 에서 **Redmine MCP 만** 추린 설정(`_session/ai-pm.mcp.json`)을 만들고 `--strict-mcp-config` 로 그것만 로드한다 — ai-pm 은 Redmine 만 필요하고(Slack 은 `post.js`·토큰 직접) 다른 MCP 는 불필요·유해하므로 전부 무시한다. 서브에이전트가 Playwright 등 다른 MCP 를 쓰는 것은 그 하위 세션의 별도 구성 소관이다.
+
+### 부팅 실행 알림
+
+세션은 부팅(재기동·초기화)해 첫 턴에 도달하면 **즉시** 감시 메인 채널(`config.json` watch)에 '세션 기동/초기화 완료' 알림을 `post.js` 로 **무조건 1회** 게시한다(담당자의 재기동 확인용 — 대기 작업 유무와 무관). 대기 작업이 있으면 §재기동 후 중단 작업 처리 공지가 별도로 이어진다.
 
 ## 세션 리셋
 
