@@ -4,6 +4,8 @@
 
 | 일시 (KST) | 단계 | 산출물·결과 | 관련 일감 | 상태 |
 |---|---|---|---|---|
+| 2026-07-11 23:30 | spec | `tc_BAT-03.md` 개정 — 연동이력 생성 시점 진입 시→복호화 성공 후(PROC-203)·저장 키 {요청 키값·사용자 키값 원문}→연동 추적 키 단독(6항목→5항목·userKey 폐기)·surrogate PK. BR-203/EX-BIZ-007 결번 TC 제거·완료 기록(BR-303)·무변형·무저장·10 TC | `accountinterlockhub#222`·`#214` | 🚧 |
+| 2026-07-11 23:30 | spec ⓒ | (공통 반영) #214 검증 TC 사양 개정 — 복호화·전달·추적 키 단독·시드(encX/encY·mock B)·신규 BR/EX(204·SEC-006/007·BIZ-008) — common.md | `accountinterlockhub#222`·`#214` | ℹ️ |
 | 2026-07-11 22:30 | spec | `process_PROC-403.md` 개정(연동이력 기록) — 생성 진입 PROC-201→PROC-203(복호화 후)·키 userKey/requestKey→trackingKey·surrogate uuid PK + tracking_key 비유니크 인덱스·5항목 상한. 완료 기록 스코프 연동 추적 키 단독·surrogate id UPDATE 멱등(BR-303). 지정 값 누락 거부(EX-BIZ-007)·미지정 null 분기(BR-203) 결번(완결성은 FN-020/EX-BIZ-008)·EX-BIZ-006 유지 | `accountinterlockhub#221`·`#214` | 🚧 |
 | 2026-07-11 22:30 | spec ⓒ | (공통 반영) #214 프로세스 사양 개정 — 복호화·전달·추적 키 단독·연동이력 복호화 후 생성·보관 fallback — common.md | `accountinterlockhub#221`·`#214` | ℹ️ |
 | 2026-07-11 20:30 | spec | `function_FN-016.md` 개정(연동이력 생성 — 생성 시점 진입→**복호화 성공 후**(SVC-005·PROC-403)·저장 키 userKey/requestKey→trackingKey·5항목 상한 DATA-005-05·지정 파라미터 값 검증 EX-BIZ-007 폐기·추적 키 완결성은 FN-020 선검증)·`function_FN-018.md`(완료 기록 연동이력만 갱신 BIZ-004-11) | `accountinterlockhub#219`·`#214` | 🚧 |

@@ -4,6 +4,8 @@
 
 | 일시 (KST) | 단계 | 산출물·결과 | 관련 일감 | 상태 |
 |---|---|---|---|---|
+| 2026-07-11 23:30 | spec | `tc_USR-01.md` 개정 — 발송처 링크 진입(접근 주소=발송처)·생년월일 본인확인·동의/거부·승인 게이팅 재정의(요청 키값·회원 키 진입 폐기). 승인=POST /api/interlock/approve(접근 컨텍스트 본문). BR-201·전파 EX-SEC-006/007·EX-BIZ-008·EX-BIZ-004·거부/실패 레코드 미생성·약관 UI. 20→19 | `accountinterlockhub#222`·`#214` | 🚧 |
+| 2026-07-11 23:30 | spec ⓒ | (공통 반영) #214 검증 TC 사양 개정 — 복호화·전달·추적 키 단독·시드(encX/encY·mock B)·신규 BR/EX(204·SEC-006/007·BIZ-008) — common.md | `accountinterlockhub#222`·`#214` | ℹ️ |
 | 2026-07-11 22:30 | spec | `process_PROC-201.md`(진입·표시)·`PROC-202`(동의·거부·승인 게이팅) 개정 — 요청 키값(UUID) 발급·진입 컨텍스트 저장·진입 시 연동이력 생성(구 PROC-403) 폐기. 진입=GET /api/consent/:accessAddressId(무상태), 승인=POST /api/interlock/approve(접근 컨텍스트 encX·encY·생년월일 본문). FN-008 승인 게이팅(필수 동의 서버 재검증)·거부 시 복호화 미수행·상태/이력 미생성(감사만). EX-SEC-006/007·EX-BIZ-008·EX-BIZ-004 PROC-203 전파·BR-201 유지·BR-203/EX-BIZ-007/EX-DATA-002 결번 | `accountinterlockhub#221`·`#214` | 🚧 |
 | 2026-07-11 22:30 | spec ⓒ | (공통 반영) #214 프로세스 사양 개정 — 복호화·전달·추적 키 단독·연동이력 복호화 후 생성·보관 fallback — common.md | `accountinterlockhub#221`·`#214` | ℹ️ |
 | 2026-07-11 21:30 | spec | `screen_SCR-005.md` 개정(사용자 이용 동의) — 요청 키값 경로(`/consent/:requestKey`) 폐기·발송처 링크 진입(`/interlock/entry/:accessAddressId`+encX·encY, 접근 주소=발송처 판별). **생년월일 입력 필드 신설**(yyMMdd 6자리·형식 FE 검증·민감값 미노출 AUTH-004). 승인 제출=POST /api/interlock/approve(MDL-203+접근 컨텍스트 encX·encY·생년월일, PROC-202 내부 PROC-203 FN-020 복호화·FN-016·FN-012). 복호화 실패(EX-SEC-006) 화면 유지·생년월일 재입력 재시도(BR-204)·승인 게이팅(생년월일 형식+필수 동의 BIZ-002-06)·약관 [상세] 모달 유지 | `accountinterlockhub#220`·`#214` | 🚧 |

@@ -4,6 +4,8 @@
 
 | 일시 (KST) | 단계 | 산출물·결과 | 관련 일감 | 상태 |
 |---|---|---|---|---|
+| 2026-07-11 23:30 | spec | `tc_ADM-03.md` 검토·유지 — #214 무영향(IP 게이트·로그인·세션·계정 잠금). PROC-103/104·BR-105/106·EX-SEC-001·AUTH-001~004·16 TC 불변 확인 | `accountinterlockhub#222`·`#214` | 🚧 |
+| 2026-07-11 23:30 | spec ⓒ | (공통 반영) #214 검증 TC 사양 개정 — 복호화·전달·추적 키 단독·시드(encX/encY·mock B)·신규 BR/EX(204·SEC-006/007·BIZ-008) — common.md | `accountinterlockhub#222`·`#214` | ℹ️ |
 | 2026-07-11 21:30 | spec ⓒ | (공통 반영) #214 화면 사양 개정 — SCR-001 관리자 로그인 유지(변경 없음, AUTH 정책·PROC-103 정합), design-system 공통 갱신(생년월일 입력·상태 표현·민감값 마스킹) 반영 — common.md | `accountinterlockhub#220`·`#214` | ℹ️ |
 | 2026-07-11 18:30 | spec | `service_SVC-003.md` 개정 — 관리자 접근·로그인 유지(IP+로그인 기본안·AUTH-001~003·SEC-001 불변), 진입 전제를 '발송처 접근 주소 구성 관리'로 용어 정합 | `accountinterlockhub#217`·`#214` | 🚧 |
 | 2026-07-11 18:30 | spec ⓒ | (공통 반영) #214 서비스 목록문서 개정 — spec-services.md 사용자 정의 4역할·시나리오·의존관계·BR/EX/MDL/POL 카탈로그 — common.md | `accountinterlockhub#217`·`#214` | ℹ️ |

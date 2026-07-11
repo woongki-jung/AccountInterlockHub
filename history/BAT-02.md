@@ -4,6 +4,8 @@
 
 | 일시 (KST) | 단계 | 산출물·결과 | 관련 일감 | 상태 |
 |---|---|---|---|---|
+| 2026-07-11 23:30 | spec | `tc_BAT-02.md` 개정 — 보관 fallback two-pass(확인/수신+90일 또는 생성 created_at+180일 중 먼저·미확인/미수신 180일 절대 상한). BR-401/402 재정의(구 미확인/미수신 processed_at/requested_at+90일 폐기)·청크 커밋 멱등·MDL-402 각각 집계·삭제 후 404 정합·17 TC | `accountinterlockhub#222`·`#214` | 🚧 |
+| 2026-07-11 23:30 | spec ⓒ | (공통 반영) #214 검증 TC 사양 개정 — 복호화·전달·추적 키 단독·시드(encX/encY·mock B)·신규 BR/EX(204·SEC-006/007·BIZ-008) — common.md | `accountinterlockhub#222`·`#214` | ℹ️ |
 | 2026-07-11 22:30 | spec | `process_PROC-402.md` 개정(보관정책 배치) — 단일 90일→fallback two-pass: 처리상태 결과확인+90d/생성 created_at+180d·연동이력 수신+90d/생성+180d 중 먼저·미확인/미수신 180d 절대상한. IX_STATUS/HISTORY_RETENTION_CONFIRMED/RECEIVED 부분 + IX_*_RETENTION_CREATED 활용(구 PENDING 인덱스 폐기)·청크 DELETE 5,000행 멱등·BR-401/402 재정의(90일 갈래/180일 절대상한) | `accountinterlockhub#221`·`#214` | 🚧 |
 | 2026-07-11 22:30 | spec ⓒ | (공통 반영) #214 프로세스 사양 개정 — 복호화·전달·추적 키 단독·연동이력 복호화 후 생성·보관 fallback — common.md | `accountinterlockhub#221`·`#214` | ℹ️ |
 | 2026-07-11 20:30 | spec | `function_FN-011.md` 개정(보관 배치 — 단일 90일→**90/180일 fallback** two-pass: 처리상태 결과 확인+90d/생성+180d·연동이력 수신+90d/생성+180d 중 먼저·미확인/미수신 180d 절대 상한, 신규 인자 absoluteRetentionDays=180·IX_*_RETENTION_CREATED 활용·청크 DELETE 멱등 유지) | `accountinterlockhub#219`·`#214` | 🚧 |

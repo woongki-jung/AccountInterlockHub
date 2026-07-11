@@ -4,6 +4,8 @@
 
 | 일시 (KST) | 단계 | 산출물·결과 | 관련 일감 | 상태 |
 |---|---|---|---|---|
+| 2026-07-11 23:30 | spec | `tc_API-03.md` 개정 — 콜백 대상 특정 스코프 {구성+키값}→연동 추적 키 단독(MDL-305 trackingKey)·미수신 최신 1건·재통지 멱등·단일 404. BR-303·EX-SEC-003(수신처 자격)·EX-BIZ-006·처리상태 불변경·11 TC | `accountinterlockhub#222`·`#214` | 🚧 |
+| 2026-07-11 23:30 | spec ⓒ | (공통 반영) #214 검증 TC 사양 개정 — 복호화·전달·추적 키 단독·시드(encX/encY·mock B)·신규 BR/EX(204·SEC-006/007·BIZ-008) — common.md | `accountinterlockhub#222`·`#214` | ℹ️ |
 | 2026-07-11 22:30 | spec | `process_PROC-303.md` 개정(완료 콜백 API) — 대상 특정 스코프 {구성+키값}→연동 추적 키 단독(MDL-305 trackingKey 단독·FN-018→FN-019 pendingOnly=true 미수신 최신 1건). 인증 수신처 주체(SEC-003-03 발송처 자격 거부)·내부 PROC-403 완료 기록·surrogate id UPDATE 재통지 멱등(EXC-BIZ-10)·처리상태 불변경(BIZ-004-11)·EX-BIZ-006·BR-303 | `accountinterlockhub#221`·`#214` | 🚧 |
 | 2026-07-11 22:30 | spec ⓒ | (공통 반영) #214 프로세스 사양 개정 — 복호화·전달·추적 키 단독·연동이력 복호화 후 생성·보관 fallback — common.md | `accountinterlockhub#221`·`#214` | ℹ️ |
 | 2026-07-11 20:30 | spec | `function_FN-018.md` 개정(완료 콜백 대상 특정·완료 기록 — 스코프 {구성+키값}→**연동 추적 키 단독** 미수신 최신 1건 BIZ-004-09·MDL-305 trackingKey 단독)·`function_FN-019.md` 스코프 공유·`function_FN-004.md`(수신처 주체 인증 SEC-003-03). 재통지 멱등 성공 EXC-BIZ-10·처리상태 불변경 BIZ-004-11·EX-BIZ-006 | `accountinterlockhub#219`·`#214` | 🚧 |

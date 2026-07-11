@@ -4,6 +4,8 @@
 
 | 일시 (KST) | 단계 | 산출물·결과 | 관련 일감 | 상태 |
 |---|---|---|---|---|
+| 2026-07-11 23:30 | spec | `tc_API-01.md` 개정 — 조회 키 요청 키값(UUID)→연동 추적 키(tracking_key, 비공백·255·UUID 강제 폐지)·재사용 시 처리 일시 최신 1건. BR-301·EX-SEC-003·EX-DATA-002/003·마스킹. 9→10 | `accountinterlockhub#222`·`#214` | 🚧 |
+| 2026-07-11 23:30 | spec ⓒ | (공통 반영) #214 검증 TC 사양 개정 — 복호화·전달·추적 키 단독·시드(encX/encY·mock B)·신규 BR/EX(204·SEC-006/007·BIZ-008) — common.md | `accountinterlockhub#222`·`#214` | ℹ️ |
 | 2026-07-11 22:30 | spec | `process_PROC-301.md` 개정(처리상태 확인 API) — 조회 키 requestKey→trackingKey·FN-007 형식 검증(비공백·255, UUID 강제 아님)·FN-009 (tracking_key, processed_at DESC) 최신 1건·surrogate id 멱등 갱신. 인증 발송처 주체(FN-004 expectedActor=SERVICE_A·SEC-003-03)·EX-DATA-002 형식/EX-DATA-003 미존재·응답 4항목+추적 키 마스킹·BR-301 유지 | `accountinterlockhub#221`·`#214` | 🚧 |
 | 2026-07-11 22:30 | spec ⓒ | (공통 반영) #214 프로세스 사양 개정 — 복호화·전달·추적 키 단독·연동이력 복호화 후 생성·보관 fallback — common.md | `accountinterlockhub#221`·`#214` | ℹ️ |
 | 2026-07-11 20:30 | spec | `function_FN-007.md` 개정(요청 키값 발급·검증→**연동 추적 키 형식 검증·불투명 취급**: 발급·진입 컨텍스트 저장 폐기, NotBlank·MaxLength(255)·EX-DATA-002)·`function_FN-009.md`(requestKey→trackingKey·surrogate PK·처리 일시 최신 1건 조회·멱등 갱신)·`function_FN-004.md`(주체 분리 인증 expectedActor=SERVICE_A)·`function_FN-010.md`(응답 4항목+추적 키 에코·추적 키 마스킹) | `accountinterlockhub#219`·`#214` | 🚧 |

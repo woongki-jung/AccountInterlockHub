@@ -4,6 +4,8 @@
 
 | 일시 (KST) | 단계 | 산출물·결과 | 관련 일감 | 상태 |
 |---|---|---|---|---|
+| 2026-07-11 23:30 | spec | `tc_BAT-01.md` 개정 — 조회 키 요청 키값→tracking_key·surrogate uuid PK(재사용 시 요청별 1행·최신 1건)·거부 경로 상태 저장 폐기(복호화 성공 후 성공/실패만). BR-301·CHECK·개인식별 배제·9 TC | `accountinterlockhub#222`·`#214` | 🚧 |
+| 2026-07-11 23:30 | spec ⓒ | (공통 반영) #214 검증 TC 사양 개정 — 복호화·전달·추적 키 단독·시드(encX/encY·mock B)·신규 BR/EX(204·SEC-006/007·BIZ-008) — common.md | `accountinterlockhub#222`·`#214` | ℹ️ |
 | 2026-07-11 22:30 | spec | `process_PROC-401.md` 개정(처리상태 저장·결과확인 갱신) — 키 requestKey→trackingKey·내부 surrogate uuid PK + tracking_key 비유니크 인덱스. 저장 시점=복호화 성공 후 전달 결과 확정(성공/실패 1건), 거부 경로 저장(구 PROC-202→401) 폐기. 결과확인 갱신 surrogate id 멱등(BR-301)·DATA-003-04 개인식별 배제·CHECK 정합 | `accountinterlockhub#221`·`#214` | 🚧 |
 | 2026-07-11 22:30 | spec ⓒ | (공통 반영) #214 프로세스 사양 개정 — 복호화·전달·추적 키 단독·연동이력 복호화 후 생성·보관 fallback — common.md | `accountinterlockhub#221`·`#214` | ℹ️ |
 | 2026-07-11 20:30 | spec | `function_FN-009.md` 개정(처리상태 저장 — saveStatus 키 requestKey→trackingKey·내부 surrogate uuid PK·성공/실패 1건 EXC-BIZ-06·복호화 성공 후 SVC-005 저장·저장 항목 4+구성 참조·개인식별 배제 DATA-003-04) | `accountinterlockhub#219`·`#214` | 🚧 |
