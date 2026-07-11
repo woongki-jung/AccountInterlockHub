@@ -4,6 +4,8 @@
 
 | 일시 (KST) | 단계 | 산출물·결과 | 관련 일감 | 상태 |
 |---|---|---|---|---|
+| 2026-07-11 18:30 | spec | `service_SVC-004.md` 개정 — 이용 동의를 **접근·생년월일 입력·동의/거부·승인 게이팅**으로 재정의. 허브 발급 요청 키값(UUID)·진입 시 연동이력 생성(구 F-002/007)·지정 파라미터 검증(EX-BIZ-007) 폐기 — 연동이력 생성은 복호화 후 SVC-005 로 이동. AUTH-004 생년월일 복호화 요소·BIZ-002-06 필수 동의 게이팅·BIZ-002-07 거부 시 복호화 미수행 최소 기록·BR-201 재정의·BR-203 결번 | `accountinterlockhub#217`·`#214` | 🚧 |
+| 2026-07-11 18:30 | spec ⓒ | (공통 반영) #214 서비스 목록문서 개정 — spec-services.md 사용자 정의 4역할·시나리오·의존관계·BR/EX/MDL/POL 카탈로그 — common.md | `accountinterlockhub#217`·`#214` | ℹ️ |
 | 2026-07-11 16:20 | spec ⓒ | (공통 반영) #214 암호화 연동 정책 개정 — AUTH-004 생년월일 본인확인(비인증)·BIZ-002 승인 게이팅(필수 동의 체크·약관 선택·거부 시 복호화 미수행 최소기록)·OPS-001 사용자 진입 요청 제한 — common.md | `accountinterlockhub#216`·`#214` | ℹ️ |
 | 2026-07-09 09:35 | build | `apps/backend/src/user/interlock/entry-rate-limit.middleware.ts`·`common/middleware/source-ip.util.ts`(신규)·`admin-ip.middleware.ts` — **진입 요청제한 XFF 미반영 핫픽스(#213)**. EntryRateLimitMiddleware 가 Express `req.ip`(app.set('trust proxy') 미설정 시 소켓 ::1 단일 버킷) 대신 공유 `resolveClientIp`(TRUST_PROXY 시 XFF 최좌측, 아니면 소켓 IP)+normalizeIp 로 출발지 판별 → 원 출발지 IP 격리(OPS-001-01). AdminIpMiddleware 도 동일 유틸로 리팩터(판별 단일화·무거동변경). nest build 0 에러. 축약 재검증 🟢: XFF .201 61req→60통과+429·.202 독립 버킷 전부 통과·감사 마스킹이 실 XFF(`20*********01`) 반영 | `accountinterlockhub#213`·`#54` | ✅ |
 | 2026-07-09 09:20 | spec ⓒ | (공통 반영) SEC-004-01 바인딩 단독 방어 역전파 — `tc_USR-01.md` USR-01_007 개정(진입 파라미터 주입 문자 200 안전 저장/형식·크기 위반 400, 전송 검증 유지). 재검증 🟢(주입 param 값 200·ENT-007 원문 바인딩 저장/비문자열·512자 초과 400) — common.md | `accountinterlockhub#54` | ℹ️ |

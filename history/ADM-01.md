@@ -4,6 +4,8 @@
 
 | 일시 (KST) | 단계 | 산출물·결과 | 관련 일감 | 상태 |
 |---|---|---|---|---|
+| 2026-07-11 18:30 | spec | `service_SVC-001.md` 개정 — 연동 구성 등록·편집을 **발송처 접근 주소 구성**으로 재정의(고유 ID=발송처 식별자·수신처 B 전달 주소·동의 항목·약관 컨텐츠). 전달 파라미터 정의·사용자 키값 exactly-one 지정(`#33`)·개인정보 파라미터 경고 폐기(F-005/006·BR-102/107 결번)·BIZ-001-08/09/10/04·EXC-BIZ-14 매핑·EX-BIZ-001(필수·URL·동의항목)/EX-BIZ-002(고유ID 중복) 재정의 | `accountinterlockhub#217`·`#214` | 🚧 |
+| 2026-07-11 18:30 | spec ⓒ | (공통 반영) #214 서비스 목록문서 개정 — spec-services.md 사용자 정의 4역할·시나리오·의존관계·BR/EX/MDL/POL 카탈로그 — common.md | `accountinterlockhub#217`·`#214` | ℹ️ |
 | 2026-07-11 16:20 | spec ⓒ | (공통 반영) #214 암호화 연동 정책 개정 — BIZ-001 접근 주소 구성(수신처B 전달주소·동의항목·고유ID=발송처식별자; 전달 파라미터 정의·exactly-one 사용자 키값 지정 폐기)·SEC-004 바인딩 방어 유지 — common.md | `accountinterlockhub#216`·`#214` | ℹ️ |
 | 2026-07-09 09:20 | spec ⓒ | (공통 반영) SEC-004-01 바인딩 단독 방어 역전파 — `tc_ADM-01.md` ADM-01_009 개정(주입·허용문자 400 거부→200 정상 저장·바인딩 방어)·PROC-101·SVC-001 EX표 정합. 재검증 🟢(주입 configName·label·param 200 저장, 테이블 무손상) — common.md | `accountinterlockhub#211`·`#54` | ℹ️ |
 | 2026-07-09 03:15 | qa | ADM-01 21 TC 독립검증 (배포 v0.1.0/688fec2, 실 round-trip+DB 정합) → 🟢19·🔵0·🟣1·🔴1·🟠0 (집계 21). 🔴 ADM-01_009: config 텍스트 필드 SEC-004-01 허용문자·주입패턴 서버 재검증 미구현 — 주입/스크립트 입력이 400 EX-SEC-004 거부 대신 200 저장(파라미터 바인딩 SEC-004-02는 정상·테이블 무손상) → 오류일감 #211. 🟣 ADM-01_013: 트랜잭션 롤백 EX-FN-999 정적 trace(DB 주입 하네스 부재, valid 입력으로 DB제약 위반 유도 불가). spec-sync: ADM-01_019 '미실재 지정'은 isUserKey 플래그 모델상 와이어레벨 구조적 불가(realizable 0개 경로 422 정상·DB FK RESTRICT 안전망 실증). 012 유휴만료는 별포트 3111·idle=3s 인스턴스로 401 EX-AUTH-002 관측(종료). evidence: works/accountinterlockhub-54/evidence/A1QA/ | accountinterlockhub#54 | ❌ |
