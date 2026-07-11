@@ -46,7 +46,7 @@
 |------|--------|------------|------|------|
 | 입력 | accessAddressId | string | Y | 접근 주소 고유 ID(=발송처 식별자, config_code) |
 | 입력 | encX, encY | string | Y | 이중 암호값(불투명 URL 파라미터·FE 메모리·무저장) |
-| 출력 | consentItems | ConsentItem[] | - | 구성 소속 동의 항목(label·description·termsContent·required·order, display_order 오름차순) |
+| 출력 | consentView | { consentNotice?, items } | - | 동의 대상 설명 문구(consentNotice, 선택·BIZ-002-08) + 구성 소속 동의 항목(label·description·termsContent·required·order, display_order 오름차순) |
 
 ### 연관 데이터 및 외부 호출
 
@@ -77,7 +77,8 @@ F1. 동의 화면 mount → 접근 컨텍스트 수집 → 항목 조회   (SCR-
   진행 중 UI: Initial/Loading — 카드 Skeleton
 
 F2. 항목 응답 → 렌더
-  onSuccess(res→{ data: ConsentItem[] }):
+  onSuccess(res→{ consentNotice, items: ConsentItem[] }):
+    if (consentNotice) → 제목 아래 상단 안내 문구 렌더(동의 대상 설명 문구, BIZ-002-08)   // 미설정이면 미렌더
     본인확인 섹션 렌더: 생년월일 TextField(birthdate, 6자리 numeric)
     Checkbox 목록 렌더(각 항목 label·description·required 표시, order 정렬)
     항목별: if (item.termsContent 존재) → 라벨 우측에 [상세] 버튼 렌더(BIZ-002-05)
@@ -103,14 +104,14 @@ B1. 동의 화면 데이터 구성   (GET /api/consent/:accessAddressId, SCR-005
   입력 검증: FN-005_validateInput({ accessAddressId }, schema, rawSize)
         크기>1MB → 413 EX-SEC-005 / 형식 위반 → 400 EX-SEC-004
   FN-008_buildConsentView(accessAddressId):
-    config = SELECT id FROM TBL_INTERLOCK_CONFIG
+    config = SELECT id, consent_notice FROM TBL_INTERLOCK_CONFIG
              WHERE config_code = :accessAddressId AND is_active = true AND deleted_at IS NULL;   -- UQ_CONFIG_CODE
     if (config is null) → 400 EX-SEC-004 (유효하지 않은 접근 주소 참조 — 발송처 링크 오류)
     items = SELECT item_label, item_description, terms_content, is_required, display_order
             FROM TBL_INTERLOCK_CONSENT_ITEM
             WHERE config_id = :config.id ORDER BY display_order;   -- IX_CONSENT_CONFIG, 구성 외 노출 금지, 약관 컨텐츠 포함
-  응답: FN-015_ok(items)   -- ConsentItem[] = {label, description?, termsContent?, required, order}
-  정책 적용 지점: OPS-001(요청 제한), SEC-004(입력 검증), DATA-001(무저장·무상태 진입), BIZ-002-01(구성 소속 항목), BIZ-002-05(약관 컨텐츠 포함)
+  응답: FN-015_ok({ consentNotice: config.consent_notice, items })   -- 동의 대상 설명 문구(선택·NULL 가능, BIZ-002-08) + ConsentItem[] = {label, description?, termsContent?, required, order}
+  정책 적용 지점: OPS-001(요청 제한), SEC-004(입력 검증), DATA-001(무저장·무상태 진입), BIZ-002-01(구성 소속 항목), BIZ-002-05(약관 컨텐츠 포함), BIZ-002-08(동의 대상 설명 문구)
 
   // #214: 요청 키값(UUID) 발급·진입 컨텍스트 저장·연동이력 생성(구 내부 PROC-403)·지정 파라미터 값 검증(구 EX-BIZ-007)은 폐기.
   //        진입 상태를 서버에 저장하지 않으며(무상태), 승인 제출(PROC-202)이 접근 컨텍스트(encX·encY·생년월일)를 본문으로 전달한다.
@@ -122,8 +123,8 @@ B1. 동의 화면 데이터 구성   (GET /api/consent/:accessAddressId, SCR-005
 |----------|----------|----------|----------|-----------|
 | FE→요청 | FE 어댑터 | URL(accessAddressId·encX·encY) | 조회 요청(accessAddressId) | 경로 파라미터 추출, encX·encY 는 메모리 보유(요청 미포함) |
 | 요청→도메인 | BE 컨트롤러 | accessAddressId | 활성 구성 참조 | FN-005 검증, config_code→활성 구성 조회 |
-| ENT→도메인 | BE 리포지토리 | ENT-002 행 | ConsentItem[] | display_order 정렬·NULL(description·termsContent) 처리 |
-| 응답→FE | FE 어댑터 | 동의 항목 DTO | Checkbox 모델 | 라벨·필수 표식 매핑, 약관 컨텐츠 있으면 [상세]→약관 모달 바인딩 |
+| ENT→도메인 | BE 리포지토리 | ENT-001.consent_notice + ENT-002 행 | { consentNotice?, ConsentItem[] } | display_order 정렬·NULL(consent_notice·description·termsContent) 처리 |
+| 응답→FE | FE 어댑터 | 동의 대상 설명 문구 + 동의 항목 DTO | 상단 안내 + Checkbox 모델 | 문구 있으면 상단 렌더(BIZ-002-08), 라벨·필수 표식 매핑, 약관 컨텐츠 있으면 [상세]→약관 모달 바인딩 |
 
 #### 단계 통합 흐름
 
@@ -160,6 +161,6 @@ B1. 동의 화면 데이터 구성   (GET /api/consent/:accessAddressId, SCR-005
 ### 구현 가이드
 
 - 진입은 접근 주소 고유 ID(config_code)로 활성 구성을 특정하고 별도 발송처 선택 UI 를 두지 않는다(BIZ-001-11, 접근 주소=발송처 판별). 진입 상태를 서버에 저장하지 않으며(무상태), encX·encY 는 FE 메모리에만 두고 화면·로그·URL 재기록을 금지한다(SEC-005-06·SEC-006-06).
-- 동의 화면은 해당 구성에 설정된 동의 항목만 노출한다(구성 외 노출 금지). 동의 항목 조회 응답에 약관 컨텐츠(terms_content)를 포함하며, [상세] 버튼·약관 모달의 [동의]/[닫기]는 클라이언트(SCR-005) 전용으로 서버 호출을 추가하지 않는다(BIZ-002-05·EXC-BIZ-08).
+- 동의 화면은 해당 구성에 설정된 동의 항목만 노출한다(구성 외 노출 금지). 동의 항목 조회 응답에 약관 컨텐츠(terms_content)와 동의 대상 설명 문구(consent_notice)를 포함하며, 문구가 있으면 화면 상단(제목 아래)에 노출한다(BIZ-002-08). [상세] 버튼·약관 모달의 [동의]/[닫기]는 클라이언트(SCR-005) 전용으로 서버 호출을 추가하지 않는다(BIZ-002-05·EXC-BIZ-08).
 - 생년월일은 FE 형식(6자리·월/일 범위)만 검증하고 값의 정오는 승인 후 서버 복호화 성공/실패로 귀결한다(AUTH-004-01). 생년월일·encX·encY 는 승인 제출 시 요청 **본문**으로 전달하며(PROC-202) URL 재노출을 금지한다.
 - 요청 제한은 사용자 진입을 출발지 IP 기준으로 카운트한다. 접근 URL 의 정확한 파라미터 배치(경로/쿼리, encX·encY 쿼리 vs 본문, GET 파라미터 길이 한계 대응)는 build 확정 대상이다(EXC-SEC-08).

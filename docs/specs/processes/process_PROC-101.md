@@ -45,7 +45,7 @@
 | 구분 | 항목명 | 데이터 타입 | 필수 | 설명 |
 |------|--------|------------|------|------|
 | 입력 | mode | 'CREATE'/'EDIT' | Y | 경로·메서드로 결정(신규 POST / :id PUT) |
-| 입력 | config | MDL-101 | Y | configCode·configName·serviceBDeliveryUrl·serviceBHttpMethod·isActive·consentItems[] |
+| 입력 | config | MDL-101 | Y | configCode·configName·serviceBDeliveryUrl·serviceBHttpMethod·isActive·consentNotice(선택)·consentItems[] |
 | 입력 | selfId | string(UUID) | N | EDIT 시 대상 id(고유성 자기 제외) |
 | 출력 | result | MDL-101 | - | 저장된 구성(id 포함) |
 
@@ -71,7 +71,7 @@ F1. 저장 제출 트리거 → FE 검증 → 요청 DTO 변환   (SCR-003)
   진입 트리거: SCR-003 [저장] 버튼 제출 이벤트
   사용 상태/폼:
     form = { configCode, configName, serviceBDeliveryUrl,
-             serviceBHttpMethod, isActive, consentItems[] }
+             serviceBHttpMethod, isActive, consentNotice, consentItems[] }
     mode = route.startsWith('/admin/configs/new') ? 'CREATE' : 'EDIT'
   검증 로직(1차 방어, 서버 재검증 전제):
     if (blank(configCode) || len(configCode) > 64)        → 필드 에러 → 중단
@@ -84,6 +84,7 @@ F1. 저장 제출 트리거 → FE 검증 → 요청 DTO 변환   (SCR-003)
       configCode: trim(form.configCode), configName: trim(form.configName),
       serviceBDeliveryUrl: trim(form.serviceBDeliveryUrl),
       serviceBHttpMethod: form.serviceBHttpMethod || 'POST', isActive: form.isActive,
+      consentNotice: form.consentNotice ? trim(form.consentNotice) : null,   // 동의 대상 설명 문구(선택, BIZ-002-08)
       consentItems: form.consentItems.map((c,i)=>({ label:trim(c.label),
         description:c.description||null, termsContent:c.termsContent||null,   // 약관 컨텐츠(선택)
         required:!!c.required, order:i }))
@@ -132,14 +133,14 @@ B3. 트랜잭션 영속화   (부모+자식 원자적)
     if (mode=='CREATE'):
       INSERT INTO TBL_INTERLOCK_CONFIG
         (id, config_code, config_name, service_b_delivery_url, service_b_http_method,
-         is_active, created_at, created_by)
+         is_active, consent_notice, created_at, created_by)
       VALUES (gen_random_uuid(), :configCode, :configName, :bUrl, :method,
-              :isActive, now(), :session.username)
+              :isActive, :consentNotice, now(), :session.username)   // config_code=관리자 직접 입력값
       → configId = 삽입 id;
     else:  // EDIT
       UPDATE TBL_INTERLOCK_CONFIG
         SET config_name=:configName, service_b_delivery_url=:bUrl,
-            service_b_http_method=:method, is_active=:isActive,
+            service_b_http_method=:method, is_active=:isActive, consent_notice=:consentNotice,
             updated_at=now(), updated_by=:session.username
       WHERE id=:selfId AND deleted_at IS NULL;   // config_code 불변(BIZ-001-11)
       → configId = :selfId;
@@ -211,7 +212,7 @@ B4. 커밋 후 감사 → 응답 변환
 ### 구현 가이드
 
 - 부모·자식은 반드시 하나의 트랜잭션에서 처리하고, 편집은 자식 전량 교체(delete-and-reinsert) 또는 증분 갱신 중 build 택일하되 부모 updated_at/by 를 함께 갱신한다. `#214` 로 순환 FK(구 user_key_param_id)가 제거돼 자식 교체 시 지정 참조 정합 순서(NULL 초기화→재지정)가 불필요해졌다(ENT-001 §구현 가이드).
-- config_code(접근 주소 고유 ID)는 편집 시 변경을 막아 고유성·참조 안정성을 지킨다(BIZ-001-11, 발송처 식별자·1회 부여·불변). 고유성은 저장 직전 조회 + 부분 유니크 이중 방어로 확인한다.
+- config_code(접근 주소 고유 ID)는 관리자가 직접 입력하며(자동 생성 아님) 편집 시 변경을 막아 고유성·참조 안정성을 지킨다(BIZ-001-11, 발송처 식별자·직접 입력·불변). 중복 값은 저장 직전 조회 + 부분 유니크 이중 방어로 거부한다(BIZ-001-10, 409 EX-BIZ-002). 동의 대상 설명 문구(consent_notice)는 선택 입력으로 미입력(NULL)을 허용하고 부모 구성과 함께 영속화한다(BIZ-002-08).
 - 모든 검증은 FE 에 의존하지 않고 FN-005·FN-006 로 서버 재수행한다. DB 접근은 파라미터 바인딩만 사용한다(SEC-004-02).
 - 동의 항목의 약관 컨텐츠(terms_content)는 선택 입력이라 미입력(NULL)을 허용하고 필수·형식 차단을 두지 않는다(BIZ-001-06). 부모 구성과 같은 트랜잭션에서 영속화하며 편집 교체 시에도 함께 재삽입한다.
 - 발송처키·암호값(encX·encY)·전달 파라미터 정의는 어떤 컬럼에도 저장하지 않는다 — 회원 키·연동 추적 키는 발송처가 전달 데이터 X 안에 담아 전달하고 허브는 복호화 시점에만 다룬다(DATA-001·SEC-002·EXC-BIZ-14).
