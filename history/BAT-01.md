@@ -4,6 +4,8 @@
 
 | 일시 (KST) | 단계 | 산출물·결과 | 관련 일감 | 상태 |
 |---|---|---|---|---|
+| 2026-07-11 22:30 | spec | `process_PROC-401.md` 개정(처리상태 저장·결과확인 갱신) — 키 requestKey→trackingKey·내부 surrogate uuid PK + tracking_key 비유니크 인덱스. 저장 시점=복호화 성공 후 전달 결과 확정(성공/실패 1건), 거부 경로 저장(구 PROC-202→401) 폐기. 결과확인 갱신 surrogate id 멱등(BR-301)·DATA-003-04 개인식별 배제·CHECK 정합 | `accountinterlockhub#221`·`#214` | 🚧 |
+| 2026-07-11 22:30 | spec ⓒ | (공통 반영) #214 프로세스 사양 개정 — 복호화·전달·추적 키 단독·연동이력 복호화 후 생성·보관 fallback — common.md | `accountinterlockhub#221`·`#214` | ℹ️ |
 | 2026-07-11 20:30 | spec | `function_FN-009.md` 개정(처리상태 저장 — saveStatus 키 requestKey→trackingKey·내부 surrogate uuid PK·성공/실패 1건 EXC-BIZ-06·복호화 성공 후 SVC-005 저장·저장 항목 4+구성 참조·개인식별 배제 DATA-003-04) | `accountinterlockhub#219`·`#214` | 🚧 |
 | 2026-07-11 20:30 | spec ⓒ | (공통 반영) #214 기능·API 사양 개정 — FN-020 허브 복호화 신규·추적 키 단독 추적·무저장·에러 체계 — common.md | `accountinterlockhub#219`·`#214` | ℹ️ |
 | 2026-07-11 19:30 | spec | `data_ENT-004.md` 처리상태 저장(연동 추적 키 기준·복호화 성공 후 전달 결과 1건 생성·상태 4항목+생성일시·개인식별/복호화 원문 원천 배제 DATA-003-04)·`model_api.md` MDL-301 정합 | `accountinterlockhub#218`·`#214` | 🚧 |

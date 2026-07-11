@@ -4,6 +4,8 @@
 
 | 일시 (KST) | 단계 | 산출물·결과 | 관련 일감 | 상태 |
 |---|---|---|---|---|
+| 2026-07-11 22:30 | spec | `process_PROC-102.md`(조회·목록·상세)·`PROC-105`(활성 전환)·`PROC-106`(소프트 삭제) 개정 — ENT-003·전달 파라미터·service_a_entry_url 조회 폐기, 상세=수신처 B 주소·전달 방식·동의 항목. 용어 '발송처 접근 주소 구성' 정합·PROC-105/106 분리 채번 참조 정합(완료). read-only·소프트 삭제·멱등 UPDATE 불변 | `accountinterlockhub#221`·`#214` | 🚧 |
+| 2026-07-11 22:30 | spec ⓒ | (공통 반영) #214 프로세스 사양 개정 — 복호화·전달·추적 키 단독·연동이력 복호화 후 생성·보관 fallback — common.md | `accountinterlockhub#221`·`#214` | ℹ️ |
 | 2026-07-11 21:30 | spec | `screen_SCR-002.md`(목록)·`screen_SCR-004.md`(상세) 개정 — '연동 구성'→'발송처 접근 주소 구성' 용어 정합(구성 코드→접근 주소 고유 ID). SCR-004 에서 전달 파라미터 목록·사용자 키값 지정 표시·서비스 A 주소 제거, 접근 주소 고유 ID·수신처 B 주소·동의 항목만 표시. 목록 필드 구조 불변(MDL-102 요약)·마스킹 경계(EXC-SEC-05) 유지 | `accountinterlockhub#220`·`#214` | 🚧 |
 | 2026-07-11 21:30 | spec ⓒ | (공통 반영) #214 화면 사양 개정 — 화면 목록·경로·design-system(생년월일 입력·상태 표현·민감값 마스킹) — common.md | `accountinterlockhub#220`·`#214` | ℹ️ |
 | 2026-07-11 19:30 | spec | `spec-datas.md`·`model_admin.md` MDL-102(접근 주소 구성 목록/요약 — configCode=접근 주소 고유 ID·configName·활성 여부·동의 항목 수)·ENT-001 목록 조회 인덱스(IX_CONFIG_LIST is_active·created_at DESC 부분) 정합. 상세 조회 MDL-101 정합(전달 파라미터·serviceAEntryUrl 제거) | `accountinterlockhub#218`·`#214` | 🚧 |

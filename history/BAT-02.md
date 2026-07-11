@@ -4,6 +4,8 @@
 
 | 일시 (KST) | 단계 | 산출물·결과 | 관련 일감 | 상태 |
 |---|---|---|---|---|
+| 2026-07-11 22:30 | spec | `process_PROC-402.md` 개정(보관정책 배치) — 단일 90일→fallback two-pass: 처리상태 결과확인+90d/생성 created_at+180d·연동이력 수신+90d/생성+180d 중 먼저·미확인/미수신 180d 절대상한. IX_STATUS/HISTORY_RETENTION_CONFIRMED/RECEIVED 부분 + IX_*_RETENTION_CREATED 활용(구 PENDING 인덱스 폐기)·청크 DELETE 5,000행 멱등·BR-401/402 재정의(90일 갈래/180일 절대상한) | `accountinterlockhub#221`·`#214` | 🚧 |
+| 2026-07-11 22:30 | spec ⓒ | (공통 반영) #214 프로세스 사양 개정 — 복호화·전달·추적 키 단독·연동이력 복호화 후 생성·보관 fallback — common.md | `accountinterlockhub#221`·`#214` | ℹ️ |
 | 2026-07-11 20:30 | spec | `function_FN-011.md` 개정(보관 배치 — 단일 90일→**90/180일 fallback** two-pass: 처리상태 결과 확인+90d/생성+180d·연동이력 수신+90d/생성+180d 중 먼저·미확인/미수신 180d 절대 상한, 신규 인자 absoluteRetentionDays=180·IX_*_RETENTION_CREATED 활용·청크 DELETE 멱등 유지) | `accountinterlockhub#219`·`#214` | 🚧 |
 | 2026-07-11 20:30 | spec ⓒ | (공통 반영) #214 기능·API 사양 개정 — FN-020 허브 복호화 신규·추적 키 단독 추적·무저장·에러 체계 — common.md | `accountinterlockhub#219`·`#214` | ℹ️ |
 | 2026-07-11 19:30 | spec | `data_ENT-004.md`·`data_ENT-007.md` 보관 삭제 — 단일 90일→**90/180일 fallback**(결과확인/수신+90d 또는 생성+180d 중 먼저·미확인/미수신 180d 절대상한)·삭제 인덱스 재설계(결과확인일시·수신일시 부분 + **생성일시** IX_*_RETENTION_CREATED)·청크 DELETE 유지·`model_api.md` MDL-402(처리상태·연동이력 각각 집계) | `accountinterlockhub#218`·`#214` | 🚧 |

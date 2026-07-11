@@ -4,6 +4,8 @@
 
 | 일시 (KST) | 단계 | 산출물·결과 | 관련 일감 | 상태 |
 |---|---|---|---|---|
+| 2026-07-11 22:30 | spec | `process_PROC-302.md` 개정(연동 완료 확인 API) — 판정 스코프 {구성+지정 키값}→연동 추적 키 단독(FN-017→FN-019 pendingOnly=false, tracking_key 최신 1건). 요청 {trackingKey} 본문·인증 발송처 주체(SEC-003-03)·읽기 전용(이력/상태 무갱신)·응답 3항목(SEC-005-05)·EX-BIZ-005 단일 404·BR-302 유지 | `accountinterlockhub#221`·`#214` | 🚧 |
+| 2026-07-11 22:30 | spec ⓒ | (공통 반영) #214 프로세스 사양 개정 — 복호화·전달·추적 키 단독·연동이력 복호화 후 생성·보관 fallback — common.md | `accountinterlockhub#221`·`#214` | ℹ️ |
 | 2026-07-11 20:30 | spec | `function_FN-017.md` 개정(완료 확인 판정 — 스코프 {구성+지정 키값}→**연동 추적 키 단독** 최신 1건 BIZ-004-10)·`function_FN-019.md`(스코프 조회 tracking_key 단독·구성 지정 검증 폐기·{target,anyInScope} 반환)·`function_FN-004.md`(발송처 주체 인증). 응답 3항목 SEC-005-05·EX-BIZ-005·읽기 전용 유지 | `accountinterlockhub#219`·`#214` | 🚧 |
 | 2026-07-11 20:30 | spec ⓒ | (공통 반영) #214 기능·API 사양 개정 — FN-020 허브 복호화 신규·추적 키 단독 추적·무저장·에러 체계 — common.md | `accountinterlockhub#219`·`#214` | ℹ️ |
 | 2026-07-11 19:30 | spec | `data_ENT-007.md`·`model_api.md` MDL-304(완료 확인 — 판정 스코프 {구성+지정 키값}→**연동 추적 키 단독** 최신 1건 BIZ-004-10·판정 3항목 SEC-005-05·추적 키 원문/X 내용 배제)·IX_HISTORY_TRACKING(tracking_key, requested_at DESC) | `accountinterlockhub#218`·`#214` | 🚧 |

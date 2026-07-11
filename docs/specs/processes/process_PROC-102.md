@@ -2,8 +2,10 @@
 
 ## 개요
 
-- **정의 대상**: 연동 관리자가 등록된 연동 구성을 목록(MDL-102 요약)·상세(MDL-101 전체)로 조회하는 read-only 프로세스. 활성 전환·삭제는 단일 책임 분리로 PROC-105·PROC-106 이 담당한다.
-- **관련 PRD 요구사항**: [`../../prd/PRD.md`](../../prd/PRD.md) §성과 지표 "활성 연동 구성 수" / §수행 범위 "관리자 — 연동 구성 관리".
+- **정의 대상**: 연동 관리자가 등록된 발송처 접근 주소 구성을 목록(MDL-102 요약)·상세(MDL-101 전체)로 조회하는 read-only 프로세스. 활성 전환·삭제는 단일 책임 분리로 PROC-105·PROC-106 이 담당한다.
+- **관련 PRD 요구사항**: [`../../prd/PRD.md`](../../prd/PRD.md) §성과 지표 "활성 연동 구성(발송처 접근 주소) 수" / §수행 범위 1 "관리자 — 발송처 접근 주소 구성".
+
+> **2026-07-11 `#214` 개정**: 접근 주소 구성에서 **전달 파라미터 정의(구 ENT-003)·발송처 진입 URL(service_a_entry_url)을 폐기**했다 — 상세 응답은 수신처 B 전달 주소·전달 방식·동의 항목으로 한정한다.
 
 ---
 
@@ -29,7 +31,7 @@
 | 정책(policy) | SEC-001·AUTH-001/002·SEC-004·SEC-005 | IP·세션·조회 조건 검증·설정 데이터 노출 |
 | 공통 기능(FN) | FN-003(세션)·FN-005(조회 조건 검증)·FN-010(응답 선별)·FN-015(엔벨로프) | 호출 단위 로직 |
 | 데이터 모델(MDL) | MDL-102(목록 요약)·MDL-101(상세) | 응답 모델 |
-| DB 엔터티(ENT) | ENT-001·ENT-002·ENT-003 | 조회 대상 |
+| DB 엔터티(ENT) | ENT-001·ENT-002 | 조회 대상 |
 | 화면(SCR) | SCR-002·SCR-004·SCR-003(편집 프리필) | 트리거 화면 |
 
 ### 진입점 및 진입 조건
@@ -50,7 +52,7 @@
 ### 연관 데이터 및 외부 호출
 
 - **호출 API**: 외부 호출 없음.
-- **데이터 조회 대상**: ENT-001(목록·상세), ENT-002·ENT-003(상세 자식), ENT-002 COUNT(목록 요약).
+- **데이터 조회 대상**: ENT-001(목록·상세), ENT-002(상세 자식 동의 항목), ENT-002 COUNT(목록 요약).
 - **데이터 변경 대상(CRUD)**: 없음(read-only). 감사 미기록(조회는 OPS-002 대상 아님).
 
 ### 실행 제약사항
@@ -58,7 +60,7 @@
 - **트랜잭션 경계**: 없음(단순 SELECT, 자동 커밋). 락 미사용.
 - **동시성 제어**: 조회 전용으로 경합 없음. 삭제된 구성(deleted_at)은 목록·상세 모두 제외.
 - **성능 요구**: IX_CONFIG_LIST(is_active, created_at DESC) 부분 인덱스 활용. 페이지네이션 규약은 build 확정(MVP 활성 필터·생성일 정렬 기본).
-- **보안 요구**: IP+세션. 응답은 설정 데이터만(회원 키·처리 상태 배제). 서비스 A/B URL 은 마스킹 예외(EXC-SEC-05).
+- **보안 요구**: IP+세션. 응답은 설정 데이터만(회원 키·처리 상태 배제). 수신처 B URL·접근 주소 고유 ID 는 마스킹 예외(EXC-SEC-05).
 
 ### 로직 실행 순서
 
@@ -87,10 +89,10 @@ F3. 상세 mount → 요청 → 렌더   (SCR-004 / SCR-003 편집)
   진입 트리거: SCR-004 mount(/admin/configs/:id) 또는 SCR-003 편집 mount(:id/edit)
   호출 수단: query → GET /api/admin/configs/:id (캐시 키 ["admin","configs",id])
   onSuccess(res→{ data: MDL-101 }):
-    SCR-004 → Card 렌더(기본 정보·A/B 주소·파라미터·동의 항목 테이블)
-    SCR-003 편집 → 폼 프리필(consentItems·parameters 반복 행 매핑)
+    SCR-004 → Card 렌더(기본 정보·수신처 B 주소·전달 방식·동의 항목 테이블)
+    SCR-003 편집 → 폼 프리필(consentItems 반복 행 매핑)   // #214: parameters 반복 행 폐기
   onError: 대상 없음(빈 결과) → "대상 구성을 찾을 수 없습니다" + 목록 이동 / 4xx·5xx → Banner
-  정책 적용 지점: 서비스 A/B URL 마스킹 없음(EXC-SEC-05), 회원 키·상태 미표시
+  정책 적용 지점: 수신처 B URL·고유 ID 마스킹 없음(EXC-SEC-05), 회원 키·상태 미표시
 ```
 
 #### BE 측 처리 (의사코드)
@@ -116,19 +118,18 @@ B2. 목록 조회 (GET /api/admin/configs)
   → rows → MDL-102[]
 
 B3. 상세 조회 (GET /api/admin/configs/:id)
-  SELECT id, config_code, config_name, service_a_entry_url, service_b_delivery_url,
+  SELECT id, config_code, config_name, service_b_delivery_url,
          service_b_http_method, is_active, created_at
-  FROM TBL_INTERLOCK_CONFIG WHERE id = :id AND deleted_at IS NULL;
+  FROM TBL_INTERLOCK_CONFIG WHERE id = :id AND deleted_at IS NULL;   -- #214: service_a_entry_url 폐기
   if (row is null) → 200 { data: null } (대상 없음, 오류 아님)
-  items = SELECT item_label, item_description, is_required, display_order
+  items = SELECT item_label, item_description, terms_content, is_required, display_order
           FROM TBL_INTERLOCK_CONSENT_ITEM WHERE config_id=:id ORDER BY display_order;   -- IX_CONSENT_CONFIG
-  params = SELECT param_name, source_key_a, deliver_to_b, is_required, display_order
-           FROM TBL_INTERLOCK_PARAMETER WHERE config_id=:id ORDER BY display_order;      -- IX_PARAM_CONFIG
-  → MDL-101 (자식 포함)
+  // #214: 전달 파라미터(구 TBL_INTERLOCK_PARAMETER) 조회 폐기 — 구성에 파라미터 부재
+  → MDL-101 (동의 항목 자식 포함)
 
 B4. 응답 변환
   응답 DTO: FN-015_ok(list | detail)
-  FN-010_selectStatusResponse 미적용(설정 데이터). 서비스 A/B URL 마스킹 제외(EXC-SEC-05)
+  FN-010_selectStatusResponse 미적용(설정 데이터). 수신처 B URL·고유 ID 마스킹 제외(EXC-SEC-05)
   정책 적용 지점: SEC-005(설정 데이터 노출·개인정보 미포함)
 ```
 

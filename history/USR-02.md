@@ -4,6 +4,8 @@
 
 | 일시 (KST) | 단계 | 산출물·결과 | 관련 일감 | 상태 |
 |---|---|---|---|---|
+| 2026-07-11 22:30 | spec | `process_PROC-203.md` 개정(연동 실행·복호화·수신처 B 전달) — FN-020 복호화(생년월일→encY→키→encX→X·추적 키 추출)→FN-016 연동이력 생성(복호화 후·전달에 앞서 BIZ-004-07)→FN-012 수신처 B 서버-서버 POST(재시도 2회·SEC-007 브라우저 미경유)→FN-009 상태 저장 오케스트레이션. BR-204(복호화 성공/실패)·BR-202·EX-SEC-006/007·EX-BIZ-008·EX-BIZ-004. 회원 키 리매핑·전달 파라미터(ENT-003) 폐기·원문/암호값/생년월일 전량 미기록(전달 후 즉시 폐기) | `accountinterlockhub#221`·`#214` | 🚧 |
+| 2026-07-11 22:30 | spec ⓒ | (공통 반영) #214 프로세스 사양 개정 — 복호화·전달·추적 키 단독·연동이력 복호화 후 생성·보관 fallback — common.md | `accountinterlockhub#221`·`#214` | ℹ️ |
 | 2026-07-11 21:30 | spec | `screen_SCR-006.md` 개정(동의 결과) — 요청 키값 결과 경로 폐기·`/interlock/result`(민감값 미포함 client-state). 결과 유형에 **링크 오류(EX-SEC-007·EX-BIZ-008 발송처 문의·재입력 불가)** 추가 — 완료(success)·거부(info)·전달 실패(EX-BIZ-004 재시도)·링크 오류(error)·Fallback. 회원 키·연동 추적 키·처리 상태 미노출(SEC-007-02·DATA-001)·전달 실패/거부 상태 기록 정합(EXC-BIZ-06/11). 복호화 실패(EX-SEC-006)는 SCR-005 재입력이라 본 화면 미도달 | `accountinterlockhub#220`·`#214` | 🚧 |
 | 2026-07-11 21:30 | spec ⓒ | (공통 반영) #214 화면 사양 개정 — 화면 목록·경로·design-system(생년월일 입력·상태 표현·민감값 마스킹) — common.md | `accountinterlockhub#220`·`#214` | ℹ️ |
 | 2026-07-11 20:30 | spec | `function_FN-020.md` 신설(허브 복호화·연동 추적 키 추출 — 생년월일→encY→키→encX→X, normalize32/iv16 `_` 우패딩·AES-256-CBC·PKCS#7·추적 키 X 필드 추출·완결성 검증·전량 미기록, EX-SEC-007/006·EX-BIZ-008)·`function_FN-012.md` 개정(회원키 직전달→복호화 원문 X 서버-서버 POST SEC-007·재시도 2회·상태 저장)·`function_FN-016.md`(복호화 후 이력 생성·userKey 폐기·5항목)·`function_FN-009.md`(상태 저장 trackingKey). 승인 경로 PROC-203 오케스트레이션 FN-020→016→012→009 | `accountinterlockhub#219`·`#214` | 🚧 |
