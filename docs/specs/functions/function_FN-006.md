@@ -38,7 +38,7 @@ function FN-006_validateConfig (
 
 | 구분 | 항목명 | 데이터 타입 | 필수 | 제약 | 설명 |
 |------|--------|------------|------|------|------|
-| 입력 | config | MDL-101 | Y | FN-005 통과 후 | 검증 대상 구성(configCode·serviceBDeliveryUrl·serviceBHttpMethod·isActive·consentItems) |
+| 입력 | config | MDL-101 | Y | FN-005 통과 후 | 검증 대상 구성(configCode·serviceBDeliveryUrl·serviceBHttpMethod·isActive·consentNotice(선택)·consentItems) |
 | 입력 | mode | enum | Y | CREATE/EDIT | 고유성 범위 분기 |
 | 입력 | selfId | string(UUID) | N | EDIT 시 필수 | 자기 충돌 제외 |
 | 출력 | (void) | - | - | 통과 시 반환 | 검증 결과 |
@@ -65,10 +65,10 @@ function FN-006_validateConfig (
         → throw ConfigDuplicateError (409, EX-BIZ-002)
 
 5. 통과
-   return   // 호출 PROC-101 은 영속화 진행(고유 ID 1회 부여·불변 BIZ-001-11, 자식 ENT-002 동의 항목 동일 트랜잭션)
+   return   // 호출 PROC-101 은 영속화 진행(관리자 직접 입력 고유 ID·불변 BIZ-001-11, 자식 ENT-002 동의 항목 동일 트랜잭션)
 ```
 
-> 접근 주소 고유 ID(config_code)는 발송처 식별자로 접근 주소 생성 시 1회 부여하고 이후 불변이다(BIZ-001-11) — 사용자가 진입한 접근 주소(고유 ID)가 곧 발송처 구분값이다. 접근 URL 은 `허브 접근 주소(고유 ID) + encX·encY 파라미터`로 구성되며, 발송처키·암호값·회원 키·연동 추적 키는 구성에 저장하지 않는다(DATA-001·SEC-002·EXC-BIZ-14). 동의 항목의 약관 컨텐츠(termsContent)는 선택 입력이라 본 검증에서 필수·형식으로 차단하지 않는다(BIZ-001-06). 크기 상한(1MB)은 진입 검증(FN-005 SEC-004-03)이 담당한다.
+> 접근 주소 고유 ID(config_code)는 발송처 식별자로 **관리자가 등록 시 직접 입력**하고 등록 시 중복 검사(4단계)로 유일성을 강제하며 이후 불변이다(BIZ-001-10·11, 자동 생성 아님) — 사용자가 진입한 접근 주소(고유 ID)가 곧 발송처 구분값이다. 동의 대상 설명 문구(consentNotice)는 선택 입력이라 본 검증에서 필수·형식으로 차단하지 않고(BIZ-002-08) 부모 구성과 함께 영속화한다(크기 상한 1MB 는 FN-005 담당). 접근 URL 은 `허브 접근 주소(고유 ID) + encX·encY 파라미터`로 구성되며, 발송처키·암호값·회원 키·연동 추적 키는 구성에 저장하지 않는다(DATA-001·SEC-002·EXC-BIZ-14). 동의 항목의 약관 컨텐츠(termsContent)는 선택 입력이라 본 검증에서 필수·형식으로 차단하지 않는다(BIZ-001-06). 크기 상한(1MB)은 진입 검증(FN-005 SEC-004-03)이 담당한다.
 
 ### API 인터페이스
 

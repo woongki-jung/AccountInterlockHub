@@ -27,7 +27,7 @@
 ```
 function FN-008_buildConsentView (
   accessAddressId: string,   // 진입한 접근 주소 고유 ID(발송처 식별자, ENT-001.config_code)
-): ConsentItem[]             // 구성 소속 동의 항목만(display_order 오름차순, 약관 컨텐츠 포함)
+): ConsentView               // { consentNotice?, items: ConsentItem[] } — 동의 대상 설명 문구(선택) + 구성 소속 동의 항목만(display_order 오름차순, 약관 컨텐츠 포함)
 
 function FN-008_processDecision (
   decision: ConsentResult,   // MDL-203 (accessAddressId·decision·requiredConsentMet)
@@ -42,20 +42,20 @@ function FN-008_processDecision (
 | 입력 | accessAddressId | string | Y | 유효 활성 구성 참조 | 진입 접근 주소 고유 ID(발송처 식별자) |
 | 입력 | decision | MDL-203 | Y | AGREE/REJECT + requiredConsentMet | 동의/거부 결정·필수 충족 여부 |
 | 입력 | now | DateTime | Y | UTC | 감사 시각 |
-| 출력 | ConsentItem[] | ENT-002 파생 | - | 구성 소속만 | 화면 노출 항목(label·description·termsContent·required·order) |
+| 출력 | ConsentView | ENT-001/002 파생 | - | 구성 소속만 | 동의 대상 설명 문구(consentNotice, 선택) + 화면 노출 항목(label·description·termsContent·required·order) |
 | 출력 | ApprovalOutcome | 구조 | - | { approved } | 승인 여부(승인만 SVC-005 진행) |
 
 ### 처리 흐름 (의사코드)
 
 ```
-화면 구성 — buildConsentView, POL BIZ-002-01/05 (transform)
-1. config = SELECT id FROM TBL_INTERLOCK_CONFIG
+화면 구성 — buildConsentView, POL BIZ-002-01/05/08 (transform)
+1. config = SELECT id, consent_notice FROM TBL_INTERLOCK_CONFIG
             WHERE config_code = :accessAddressId AND is_active = true AND deleted_at IS NULL;
    // 접근 주소 유효성(활성 구성 실재)은 진입(PROC-201·FN-005)에서 선검증(유효하지 않으면 EX-SEC-004)
 2. items = SELECT item_label, item_description, terms_content, is_required, display_order
            FROM TBL_INTERLOCK_CONSENT_ITEM
            WHERE config_id = :config.id ORDER BY display_order;   // 구성 외 노출 금지, 약관 컨텐츠 포함
-3. return items          // ConsentItem[] = {label, description?, termsContent?, required, order}
+3. return { consentNotice: config.consent_notice, items }   // 동의 대상 설명 문구(선택·NULL 가능, BIZ-002-08) + ConsentItem[] = {label, description?, termsContent?, required, order}
 
 동의/거부·승인 게이팅 — processDecision, POL BIZ-002-06/07/04 (validate·transform·audit)
 1. config = SELECT id, deleted_at, is_active FROM TBL_INTERLOCK_CONFIG
@@ -88,7 +88,7 @@ function FN-008_processDecision (
 | HTTP 메서드 | GET / POST |
 | 인증 요구 | Public(발송처 링크 진입 컨텍스트) — 요청 제한(FN-014)·입력 검증(FN-005) 선적용 |
 | 요청 DTO | GET: accessAddressId / POST: MDL-203(동의 결과) + 접근 컨텍스트(encX·encY·생년월일, 승인 시 SVC-005 복호화 입력) |
-| 응답 DTO (200) | GET: 동의 항목 배열 / POST: 승인→SVC-005 실행 결과 / 거부·미충족→{ success:true }(종료 안내) |
+| 응답 DTO (200) | GET: { consentNotice(선택), items: 동의 항목 배열 } / POST: 승인→SVC-005 실행 결과 / 거부·미충족→{ success:true }(종료 안내) |
 | 응답 DTO (4xx) | 공통 에러 엔벨로프(FN-015): EX-SEC-004(진입) / 승인 후 복호화·전달 EX 는 SVC-005(EX-SEC-006/007·EX-BIZ-008/004) |
 
 ### 에러 처리 (에러 코드 카탈로그)
@@ -111,5 +111,5 @@ function FN-008_processDecision (
 
 ### 구현 가이드
 
-- 동의 화면은 접근 주소 구성에 설정된 동의 항목만 노출하고(구성 외 노출 금지, BIZ-002-01), 약관 컨텐츠(terms_content)가 있는 항목만 [상세] 버튼·약관 모달을 화면이 렌더한다(BIZ-002-05). 모달의 [동의]/[닫기] 는 제출 전 클라이언트 상태 조작으로 별도 서버 호출을 만들지 않는다(EXC-BIZ-08).
+- 동의 화면은 접근 주소 구성에 설정된 동의 항목만 노출하고(구성 외 노출 금지, BIZ-002-01), 약관 컨텐츠(terms_content)가 있는 항목만 [상세] 버튼·약관 모달을 화면이 렌더한다(BIZ-002-05). 모달의 [동의]/[닫기] 는 제출 전 클라이언트 상태 조작으로 별도 서버 호출을 만들지 않는다(EXC-BIZ-08). 구성의 동의 대상 설명 문구(consent_notice)가 있으면 buildConsentView 응답(consentNotice)에 실어 화면 상단 안내로 노출한다(BIZ-002-08, 없으면 미노출).
 - 결과 검증은 서버가 구성 매칭 근거와 필수 동의 충족을 재검증한다(화면 값 단독 신뢰 금지, BIZ-002-06). 거부·미충족은 오류가 아닌 200 정상 종료로 처리하고, 복호화를 수행하지 않아 추적 키·처리상태·연동이력을 남기지 않는다(EXC-BIZ-11). `#214` 로 구 요청 키값(UUID) 발급·진입 컨텍스트 저장·거부 시 처리상태 저장·진입 시 연동이력 생성은 폐기·이동했다(연동이력 생성은 복호화 성공 후 SVC-005).
