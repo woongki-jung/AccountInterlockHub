@@ -28,7 +28,7 @@
 | 단계 | 실행 | 입력 | 기대 결과 | 매핑 PROC |
 |--|--|--|--|--|
 | 1 | 헬퍼로 규약대로 생성한 (encX·encY·생년월일) 쌍 승인 | encY 평문=encX 키 문자열(발송처키+생년월일) | encY 복호화(키=normalize32(생년월일))→키 문자열 복원→encX 복호화(키=normalize32(키 문자열))→X | B2 |
-| 2 | 추적 키 추출 | X[TRACKING_KEY_FIELD] | trackingKey 정확 추출 | B2 |
+| 2 | 추적 키 추출 | X["trackingKey"] | trackingKey 정확 추출 | B2 |
 
 - **데이터 검증**: 키 32B(`_`(0x5F) 우패딩·초과 절단)·IV 16B 정규화·AES-256-CBC·PKCS#7 규약 재현(SEC-006-01/02/03). 정적 IV 파생·생년월일 저강도는 알려진 제약(SEC-008, 검증 대상 아님).
 

@@ -94,7 +94,7 @@ B2. 허브 복호화·연동 추적 키 추출 — FN-020_decryptInterlock(ctx.e
   //   ③ keyX=normalize32(keyXstr); ivX=iv16(keyXstr)
   //      Xjson = AES-256-CBC-decrypt(rawX, key=keyX, iv=ivX, pad=PKCS7)           → 패딩·키 불일치 throw EX-SEC-006(400)
   //   ④ X = JSON.parse(Xjson)                                                     → 파싱 실패 throw EX-BIZ-008(400)
-  //      trackingKey = X[TRACKING_KEY_FIELD] ; if (blank) throw EX-BIZ-008(400)
+  //      trackingKey = X["trackingKey"] ; if (blank) throw EX-BIZ-008(400)
   //   ⑤ DECRYPT_SUCCESS 감사(target=accessAddressId, detail=trackingKey 마스킹) — 암호값·생년월일·원문 미기록(SEC-005-06)
   { X, trackingKey } = FN-020(...)               // 메모리 전용 반환
   // 전파: EX-SEC-007(암호 파라미터 형식)·EX-SEC-006(복호화 실패·생년월일 재입력)·EX-BIZ-008(추적 키 누락) → 이력·상태 미생성(추적 키 없음)

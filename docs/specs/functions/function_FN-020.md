@@ -76,7 +76,7 @@ FN-020_decryptInterlock(encX, encY, birthDate, accessAddressId):
 4. X 파싱·연동 추적 키 추출·검증 — BIZ-004-08·DATA-002-05 (validate)
    try { X = JSON.parse(Xjson) }
    catch (파싱·형식 오류)                                → goto FAIL_SENDER_DATA   // 복호화는 됐으나 X 가 유효 JSON 아님(발송처 데이터 오류)
-   trackingKey = X[TRACKING_KEY_FIELD]                  // 규약 고정 필드명(external-apis §암호화 연동 규약)
+   trackingKey = X["trackingKey"]                       // 규약 고정 필드명 trackingKey (external-apis §암호화 연동 규약)
    if (trackingKey is null OR blank(trackingKey))       → goto FAIL_SENDER_DATA   // 추적 키 필드 누락·공백
 
 5. 성공 감사 — AUTH-004-03·OPS-002-04·SEC-008-01 (audit, 원문 미기록)
@@ -127,5 +127,5 @@ FAIL_SENDER_DATA: — BIZ-004-08·EXC-BIZ-13 (validate)
 ### 구현 가이드
 
 - 복호화 함수의 입력은 encX·encY·생년월일뿐이며 출력 X 는 수신처 전달 페이로드(FN-012)로만 사용하고 저장하지 않는다(DATA-001-04·SEC-002·SEC-007). 키 32B·IV 16B 정규화(`_` 우패딩·초과 절단)와 encY→encX→X 복호화 순서를 결정론적으로 구현한다(SEC-006-02/04). 발송처키는 encY 로부터 생년월일로 일시 복원할 뿐 저장·검증하지 않는다(SEC-002-04).
-- 연동 추적 키 필드명(TRACKING_KEY_FIELD)은 발송처↔허브 암호화 연동 규약이 고정하는 값이다([`../../prd/devspec/external-apis.md`](../../prd/devspec/external-apis.md) §암호화 연동 규약). 추적 키는 불투명 문자열로 해석·변형·복호화·해시하지 않고 원문 그대로 상위(FN-016·FN-012)에 넘긴다(DATA-002-06).
+- 연동 추적 키 필드명은 발송처↔허브 암호화 연동 규약이 고정한 `trackingKey` 다 — X 내부 지정 필드는 `X["trackingKey"]` 로 추출한다([`../../prd/devspec/external-apis.md`](../../prd/devspec/external-apis.md) §암호화 연동 규약). 추적 키는 불투명 문자열로 해석·변형·복호화·해시하지 않고 원문 그대로 상위(FN-016·FN-012)에 넘긴다(DATA-002-06).
 - 정적 IV 파생(IV 를 키 문자열에서 결정론적으로 유도) + 생년월일 저강도의 오프라인 전수대입 취약은 알려진 제약으로 초기 범위에서 수용한다(SEC-008-01·EXC-SEC-06). 링크 TTL·1회성·발송처 서명 검증은 후속 보완 항목이다(SEC-008-02).
