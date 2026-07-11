@@ -4,6 +4,8 @@
 
 | 일시 (KST) | 단계 | 산출물·결과 | 관련 일감 | 상태 |
 |---|---|---|---|---|
+| 2026-07-11 21:30 | spec | `screen_SCR-005.md` 개정(사용자 이용 동의) — 요청 키값 경로(`/consent/:requestKey`) 폐기·발송처 링크 진입(`/interlock/entry/:accessAddressId`+encX·encY, 접근 주소=발송처 판별). **생년월일 입력 필드 신설**(yyMMdd 6자리·형식 FE 검증·민감값 미노출 AUTH-004). 승인 제출=POST /api/interlock/approve(MDL-203+접근 컨텍스트 encX·encY·생년월일, PROC-202 내부 PROC-203 FN-020 복호화·FN-016·FN-012). 복호화 실패(EX-SEC-006) 화면 유지·생년월일 재입력 재시도(BR-204)·승인 게이팅(생년월일 형식+필수 동의 BIZ-002-06)·약관 [상세] 모달 유지 | `accountinterlockhub#220`·`#214` | 🚧 |
+| 2026-07-11 21:30 | spec ⓒ | (공통 반영) #214 화면 사양 개정 — 화면 목록·경로·design-system(생년월일 입력·상태 표현·민감값 마스킹) — common.md | `accountinterlockhub#220`·`#214` | ℹ️ |
 | 2026-07-11 20:30 | spec | `function_FN-008.md` 개정(사용자 동의 처리) — buildConsentView accessAddressId(고유 ID) 기반·processDecision 승인 게이팅(BIZ-002-06 서버 재검증). 구 요청 키값(UUID) 발급·진입 컨텍스트 저장·거부 시 처리상태 저장·FN-012 직접 호출 폐기 — 거부·필수 미충족은 복호화 미수행·최소 감사(CONSENT_REJECT)·추적 키 없어 상태/이력 미생성(EXC-BIZ-11). 승인은 SVC-005(PROC-203) 트리거 | `accountinterlockhub#219`·`#214` | 🚧 |
 | 2026-07-11 20:30 | spec ⓒ | (공통 반영) #214 기능·API 사양 개정 — FN-020 허브 복호화 신규·추적 키 단독 추적·무저장·에러 체계 — common.md | `accountinterlockhub#219`·`#214` | ℹ️ |
 | 2026-07-11 19:30 | spec | `model_user.md` MDL-201(진입 요청→**접근 컨텍스트(무저장)**: accessAddressId·encX·encY·생년월일 — 메모리 전용·전량 미기록 SEC-005-06)·MDL-203(동의 결과 — 요청 키값 폐기, decision·accessAddressId·requiredConsentMet 재검증). 복호화 이전이라 추적 키 없어 처리상태·연동이력 미생성(감사만) | `accountinterlockhub#218`·`#214` | 🚧 |

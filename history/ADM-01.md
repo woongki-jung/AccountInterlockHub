@@ -4,6 +4,8 @@
 
 | 일시 (KST) | 단계 | 산출물·결과 | 관련 일감 | 상태 |
 |---|---|---|---|---|
+| 2026-07-11 21:30 | spec | `screen_SCR-003.md` 개정(발송처 접근 주소 구성 등록·편집 폼) — 서비스 A 진입 주소·전달 파라미터 정의·사용자 키값 exactly-one 라디오(`#33`) 폐기. 3섹션(기본 정보 고유 ID·구성명·활성 / 수신처 B 전달 주소·메서드 / 동의 항목 RepeatableRows). 접근 주소 고유 ID 편집 읽기전용(BIZ-001-11)·입력 폼 검증(BIZ-001-08/09/10/04·EX-BIZ-001/002 재정의)·상태 전이(FN-006 PROC-101) 갱신 | `accountinterlockhub#220`·`#214` | 🚧 |
+| 2026-07-11 21:30 | spec ⓒ | (공통 반영) #214 화면 사양 개정 — 화면 목록·경로·design-system(생년월일 입력·상태 표현·민감값 마스킹) — common.md | `accountinterlockhub#220`·`#214` | ℹ️ |
 | 2026-07-11 20:30 | spec | `function_FN-006.md` 개정(접근 주소 구성 입력 검증·고유성) — 전달 파라미터·사용자 키값 exactly-one·발송처 진입 URL·개인정보 파라미터 경고(구 BIZ-001-05/07·EXC-BIZ-09) 폐기, 필수=수신처 B 주소·동의 항목(BIZ-001-08)·URL(09)·동의 항목≥1(04)·고유 ID 고유성(10)·불변(11) 한정. ENT-003 참조 제거·EX-BIZ-007 폐기·EX-BIZ-001/002 재정의·`spec-functions.md` 카탈로그 정합 | `accountinterlockhub#219`·`#214` | 🚧 |
 | 2026-07-11 20:30 | spec ⓒ | (공통 반영) #214 기능·API 사양 개정 — FN-020 허브 복호화 신규·추적 키 단독 추적·무저장·에러 체계 — common.md | `accountinterlockhub#219`·`#214` | ℹ️ |
 | 2026-07-11 19:30 | spec | `data_ENT-001.md` 재정의(연동 구성→**발송처 접근 주소 구성**: config_code=접근 주소 고유 ID·발송처 식별자·불변, `service_a_entry_url`·`user_key_param_id` 제거·수신처 B 주소·method·is_active·소프트 삭제 유지)·`data_ENT-002.md`(부모=접근 주소 구성 정합·거부 시 상태/이력 미생성)·`data_ENT-003.md` **삭제(전달 파라미터 폐기·결번 EXC-BIZ-14)**·`model_admin.md` MDL-101(serviceAEntryUrl·parameters·isUserKey 폐기, consentItems 유지)·순환 FK 제거로 편집 교체 단순화 | `accountinterlockhub#218`·`#214` | 🚧 |
