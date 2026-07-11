@@ -133,14 +133,14 @@ a{color:var(--primary);text-decoration:none}
       <div class="top"><span class="scr">SCR-005</span><span class="ia">USR-01</span></div>
       <h3>사용자 이용 동의</h3>
       <p class="path">/interlock/entry/:accessAddressId (+ ?encX·encY, 화면 미표시)</p>
-      <p class="desc">생년월일(YYMMDD) 본인확인 입력 + 동의 항목 확인([상세] 약관 모달) + 승인/거부. Skeleton·Submitting·복호화 실패 재입력·형식오류·요청제한 상태를 시연합니다. (#214 신설: 생년월일 입력)</p>
+      <p class="desc">동의 대상 설명 문구(상단·#215) + 생년월일(YYMMDD) 본인확인 입력 + 동의 항목 확인([상세] 약관 모달) + 승인/거부. Skeleton·Submitting·복호화 실패 재입력·전달 실패 재시도(#215)·형식오류·요청제한 상태를 시연합니다. (#214 신설: 생년월일 입력)</p>
       <span class="go">화면 열기 →</span>
     </a>
     <a class="card" href="SCR-006.html">
       <div class="top"><span class="scr">SCR-006</span><span class="ia">USR-02</span></div>
       <h3>동의 결과</h3>
       <p class="path">/interlock/result</p>
-      <p class="desc">연동 완료·거부(취소)·전달 실패(502)·링크 오류(400, #214 신설)·Fallback(직접 진입) 5개 결과를 안내합니다. 회원 정보·처리 상태 값·추적 키는 표시하지 않습니다.</p>
+      <p class="desc">연동 완료·거부(취소)·링크 오류(400, #214 신설)·Fallback(직접 진입) 결과를 안내합니다(전달 실패는 #215 로 SCR-005 재시도로 이관). 회원 정보·처리 상태 값·추적 키는 표시하지 않습니다.</p>
       <span class="go">화면 열기 →</span>
     </a>
   </div>

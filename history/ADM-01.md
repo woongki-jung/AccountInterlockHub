@@ -4,6 +4,7 @@
 
 | 일시 (KST) | 단계 | 산출물·결과 | 관련 일감 | 상태 |
 |---|---|---|---|---|
+| 2026-07-12 10:30 | spec | `#215` 목업 리뷰 보완(2건) — ① **동의 대상 설명 문구(consentNotice)** 신규 속성: `ENT-001.consent_notice`(varchar1000·NULL)·`MDL-101.consentNotice`(선택)·**BIZ-002-08 신설**·FN-006 입력 통과·PROC-101 INSERT/UPDATE 영속화·SVC-001 F-007·SCR-003 textarea 입력(폼)·tc_ADM-01_001 검증. ⑤ **접근 주소 고유 ID=관리자 직접 입력 확정**(자동 생성 폐기)·등록 시 중복 검사로 유일성 강제(409 EX-BIZ-002·BIZ-001-10)·BIZ-001-11 개정 — ENT-001·model_admin·spec-models·policy_BIZ·spec-policies·FN-006·PROC-101·SVC-001·SCR-003·tc_ADM-01 정합(깨진 참조 0) | `accountinterlockhub#215` | 🚧 |
 | 2026-07-11 23:30 | spec | `tc_ADM-01.md` 개정 — 전달 파라미터·사용자 키값 exactly-one 지정(`#33`)·개인정보 파라미터 경고(BR-102) TC 폐기(구 008·017~021 6건, 21→15). 고유 ID·수신처 B 주소·동의 항목·약관 컨텐츠 한정. BR-101·EX-BIZ-001/002·SEC-004 바인딩·EX-AUTH/FN-999·EXC-BIZ-14(암호값·파라미터 컬럼 부재) 유지 | `accountinterlockhub#222`·`#214` | 🚧 |
 | 2026-07-11 23:30 | spec ⓒ | (공통 반영) #214 검증 TC 사양 개정 — 복호화·전달·추적 키 단독·시드(encX/encY·mock B)·신규 BR/EX(204·SEC-006/007·BIZ-008) — common.md | `accountinterlockhub#222`·`#214` | ℹ️ |
 | 2026-07-11 22:30 | spec | `process_PROC-101.md` 개정(발송처 접근 주소 구성 등록·편집) — 전달 파라미터(구 ENT-003)·사용자 키값 exactly-one(BR-107)·발송처 진입 URL(service_a_entry_url)·개인정보 파라미터 경고(BR-102) 폐기. 부모 ENT-001+동의 항목 ENT-002 단일 트랜잭션(순환 FK 제거로 자식 교체 단순화)·FN-006 검증(수신처 B 주소·URL·동의 항목 개수·고유성)·EX-BIZ-001/002·BR-101 유지 | `accountinterlockhub#221`·`#214` | 🚧 |

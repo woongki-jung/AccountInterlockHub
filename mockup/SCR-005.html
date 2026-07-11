@@ -83,14 +83,20 @@ h1{font-size:22px;line-height:30px;font-weight:700;margin:0 0 8px}
 .sk{background:linear-gradient(90deg,#eef0f2 25%,#f6f7f8 37%,#eef0f2 63%);background-size:400% 100%;animation:sh 1.2s infinite;border-radius:4px}
 @keyframes sh{0%{background-position:100% 0}100%{background-position:-100% 0}}
 .sk-line{height:14px;margin:12px 0}
+/* 동의 대상 설명 문구(consentNotice, 구성 설정값·선택 — BIZ-002-08) */
+.notice{background:var(--primary-weak);color:#1E40AF;border:1px solid #BFDBFE;border-radius:var(--r-md);padding:12px 14px;font-size:14px;line-height:20px;margin:0 0 20px}
+/* 전달 실패 재시도 배너(#215 — SCR-006 이동 없이 본 화면 재시도) */
+.deliver-banner{display:none}
 /* state */
 .state{display:none}
 body[data-state="loaded"] .state-loaded,
 body[data-state="submitting"] .state-loaded,
 body[data-state="err-decrypt"] .state-loaded,
+body[data-state="err-deliver"] .state-loaded,
 body[data-state="initial"] .state-skeleton,
 body[data-state="err-format"] .state-error-format,
 body[data-state="err-rate"] .state-error-rate{display:block}
+body[data-state="err-deliver"] .deliver-banner{display:flex}
 body[data-state="submitting"] .btn-primary .spinner,
 body[data-state="submitting"] .btn-secondary .spinner2{display:inline-block}
 body[data-state="submitting"] .consent-list,
@@ -119,6 +125,7 @@ body[data-state="submitting"] .bdfield input{pointer-events:none;opacity:.7}
   <button data-s="initial" onclick="setState('initial')">Initial(Skeleton)</button>
   <button data-s="submitting" onclick="setState('submitting')">Submitting</button>
   <button data-s="err-decrypt" onclick="setState('err-decrypt')">복호화 실패·재입력</button>
+  <button data-s="err-deliver" onclick="setState('err-deliver')">전달 실패·재시도</button>
   <button data-s="err-format" onclick="setState('err-format')">형식·크기 오류(400/413)</button>
   <button data-s="err-rate" onclick="setState('err-rate')">요청 제한(429)</button>
   <span class="tag">SCR-005 · /interlock/entry/:accessAddressId</span>
@@ -131,7 +138,11 @@ body[data-state="submitting"] .bdfield input{pointer-events:none;opacity:.7}
     <!-- Loaded -->
     <div class="state state-loaded">
       <h1>서비스 연동 동의</h1>
-      <p class="lead">발송처를 통해 접근하신 연동 서비스 이용을 위해 본인확인과 아래 동의 항목 확인이 필요합니다. 확인 후 진행 여부를 선택해 주세요.</p>
+      <!-- 동의 대상 설명 문구(consentNotice) — 관리자 구성(SCR-003)에서 설정한 자유 텍스트를 상단에 노출(선택·BIZ-002-08). 미설정 시 이 블록 생략 -->
+      <p class="notice">[페이링크] 결제 연동을 위해 주문·결제 식별 정보를 파트너 수신처(서비스 B)에 전달합니다. 본인확인(생년월일) 후 아래 동의 항목을 확인하고 진행 여부를 선택해 주세요.</p>
+
+      <!-- 전달 실패 재시도 배너(#215) — 수신처 전달 실패 시 SCR-006 이동 없이 본 화면에서 알림·재승인 허용 -->
+      <div class="banner banner-err deliver-banner" role="alert"><span>⚠</span><span>동의 처리에 실패했습니다. 다시 시도해주세요.</span></div>
 
       <!-- 본인확인 섹션 -->
       <h2 class="sec-title">본인확인</h2>
@@ -241,8 +252,8 @@ var TERMS={
   // c2(마케팅 활용 동의): 약관 컨텐츠 미설정 → [상세] 버튼 없음
 };
 var termsCurrent=null;
-var BD_ERR_DEFAULT='생년월일 6자리(YYMMDD)를 정확히 입력해 주세요.';
-var BD_ERR_DECRYPT='본인확인 정보가 올바르지 않습니다. 생년월일을 확인 후 다시 시도해 주세요.';
+var BD_ERR_DEFAULT='생년월일 6자리(YYMMDD)를 정확히 입력해 주세요.';   // FE 형식 검증 안내(#215: 복호화 실패 문구와 구분)
+var BD_ERR_DECRYPT='사용자 정보가 일치하지 않습니다.';                 // 서버 복호화 실패(EX-SEC-006) 문구 — #215 로 고정
 
 function setState(s){
   document.body.dataset.state=s;

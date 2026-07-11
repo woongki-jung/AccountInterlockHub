@@ -46,6 +46,7 @@ h1{font-size:22px;line-height:30px;font-weight:700;margin:0 0 24px}
 .field.full{grid-column:1/-1}
 label{display:block;font-size:14px;line-height:20px;font-weight:500;margin-bottom:6px}
 label .req{color:var(--danger);margin-left:2px}
+label .opt-lbl{color:var(--muted);font-weight:400;font-size:13px;margin-left:4px}
 input[type=text],input[type=url],select{width:100%;height:40px;padding:10px 14px;font-size:15px;border:1px solid var(--border);border-radius:var(--r-md);background:#fff;color:var(--text)}
 input:focus,select:focus,textarea:focus{outline:2px solid var(--primary);outline-offset:2px;border-color:var(--primary)}
 textarea.terms{width:100%;min-height:64px;padding:10px 14px;font-size:14px;line-height:20px;border:1px solid var(--border);border-radius:var(--r-md);background:#fff;color:var(--text);resize:vertical;font-family:inherit}
@@ -174,13 +175,13 @@ body[data-err="format"] .banner-err{display:flex}
     <!-- (1) 기본 정보 -->
     <div class="card">
       <h2>기본 정보</h2>
-      <p class="desc">발송처 접근 주소 구성을 식별하는 고유 ID와 이름, 활성 여부를 설정합니다.</p>
+      <p class="desc">발송처 접근 주소 구성을 식별하는 고유 ID(관리자 직접 입력)와 이름, 활성 여부, 사용자 동의 화면 상단 안내 문구를 설정합니다.</p>
       <div class="grid2">
         <div class="field f-code">
           <label>접근 주소 고유 ID <span class="req">*</span></label>
           <input type="text" id="fCode" placeholder="예: CFG-PAYLINK-01" value="CFG-PAYLINK-01">
-          <div class="hint only-edit">접근 주소 고유 ID는 1회 부여 후 변경할 수 없어 편집 시 읽기전용입니다(발송처 식별자, BIZ-001-11).</div>
-          <div class="hint only-new">영문·숫자·하이픈. 최대 64자. (자동 생성/관리자 지정 방식은 build 확정 대상)</div>
+          <div class="hint only-edit">접근 주소 고유 ID는 관리자가 직접 입력한 값으로, 등록 후 변경할 수 없어 편집 시 읽기전용입니다(발송처 식별자, BIZ-001-11).</div>
+          <div class="hint only-new">관리자가 직접 입력합니다(자동 생성 아님). 영문·숫자·하이픈, 최대 64자. 이미 등록된 값과 중복이면 실패합니다(중복 검사, BIZ-001-10).</div>
           <div class="cap-err" id="errCode">이미 존재하는 접근 주소 고유 ID 입니다.</div>
         </div>
         <div class="field">
@@ -191,6 +192,11 @@ body[data-err="format"] .banner-err{display:flex}
           <label>구성명 <span class="req">*</span></label>
           <input type="text" id="fName" placeholder="예: 결제 연동 - 페이링크" value="결제 연동 - 페이링크">
           <div class="cap-err" id="errName">구성명을 입력해주세요(최대 100자).</div>
+        </div>
+        <div class="field full">
+          <label>동의 대상 설명 문구 <span class="opt-lbl">(선택)</span></label>
+          <textarea class="terms" id="fNotice" placeholder="사용자 동의 화면 상단에 노출할 안내 문구를 입력하세요(선택). 미입력 시 표시되지 않습니다.">[페이링크] 결제 연동을 위해 주문·결제 식별 정보를 파트너 수신처(서비스 B)에 전달합니다. 본인확인 후 동의 항목을 확인해 주세요.</textarea>
+          <div class="hint">입력하면 사용자 동의 화면(SCR-005) 상단(제목 아래)에 표시됩니다(BIZ-002-08). 최대 1000자.</div>
         </div>
       </div>
     </div>

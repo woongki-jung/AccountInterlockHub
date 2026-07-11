@@ -50,7 +50,6 @@ h1{font-size:22px;line-height:30px;font-weight:700;margin:0 0 12px}
 .res{display:none}
 body[data-res="success"] .res-success,
 body[data-res="reject"] .res-reject,
-body[data-res="fail"] .res-fail,
 body[data-res="linkerr"] .res-linkerr,
 body[data-res="fallback"] .res-fallback{display:block}
 </style>
@@ -74,7 +73,6 @@ body[data-res="fallback"] .res-fallback{display:block}
   <span class="lbl">결과 유형:</span>
   <button data-r="success" class="active" onclick="setRes('success')">연동 완료</button>
   <button data-r="reject" onclick="setRes('reject')">거부(취소)</button>
-  <button data-r="fail" onclick="setRes('fail')">전달 실패(502)</button>
   <button data-r="linkerr" onclick="setRes('linkerr')">링크 오류(400)</button>
   <button data-r="fallback" onclick="setRes('fallback')">Fallback(직접 진입)</button>
   <span class="tag">SCR-006 · /interlock/result</span>
@@ -102,16 +100,7 @@ body[data-res="fallback"] .res-fallback{display:block}
       <p class="foot">거부는 정상 종료로 처리됩니다(BIZ-002-07 EXC-BIZ-03).</p>
     </div>
 
-    <!-- 전달 실패 -->
-    <div class="res res-fail">
-      <div class="ico warn">⚠️</div>
-      <span class="badge badge-error">전달 실패</span>
-      <h1>연동 처리 중 오류가 발생했습니다</h1>
-      <div class="banner banner-err" role="alert"><span>⚠</span><span>연동 처리 중 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.</span></div>
-      <p class="msg">동의는 정상 접수되었으나 수신처로의 전달에 실패했습니다(재시도 2회 후 실패 확정). (502 EX-BIZ-004)</p>
-      <p class="foot">실패 결과도 처리 상태 1건으로 기록됩니다(EXC-BIZ-06·EXC-DATA-03).</p>
-      <a class="btn" href="SCR-005.html">발송처 링크로 다시 시도</a>
-    </div>
+    <!-- 전달 실패 결과 유형은 #215 로 SCR-005 재시도 알림으로 이관되어 본 화면에서 제거됨(완료·거부·링크오류·Fallback 만 표시) -->
 
     <!-- 링크 오류 -->
     <div class="res res-linkerr">
@@ -143,7 +132,7 @@ function setRes(r){
 // SCR-005 제출 결과 상태를 쿼리로 전달받아 초기 표시(목업 시연용)
 (function(){
   var m=location.search.match(/result=(\w+)/);
-  if(m){var v=m[1];if(v==='success')setRes('success');else if(v==='reject')setRes('reject');else if(v==='fail')setRes('fail');else if(v==='linkerr')setRes('linkerr');}
+  if(m){var v=m[1];if(v==='success')setRes('success');else if(v==='reject')setRes('reject');else if(v==='linkerr')setRes('linkerr');}
 })();
 </script>
 </body>
