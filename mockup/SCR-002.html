@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>SCR-002 연동 구성 목록 · 목업</title>
+<title>SCR-002 발송처 접근 주소 구성 목록 · 목업</title>
 <style>
 :root{
   --primary:#2563EB;--primary-hover:#1D4ED8;--primary-weak:#DBEAFE;
@@ -107,9 +107,9 @@ body[data-state="error"] .state-error{display:block}
   <a class="mn-home" href="index.html">🗂 목업 인덱스</a>
   <span class="mn-grp">관리자</span>
   <a href="SCR-001.html" data-scr>로그인</a>
-  <a href="SCR-002.html" data-scr>구성 목록</a>
+  <a href="SCR-002.html" data-scr>접근주소 목록</a>
   <a href="SCR-003.html" data-scr>등록·편집</a>
-  <a href="SCR-004.html" data-scr>구성 상세</a>
+  <a href="SCR-004.html" data-scr>접근주소 상세</a>
   <span class="mn-grp">사용자</span>
   <a href="SCR-005.html" data-scr>이용 동의</a>
   <a href="SCR-006.html" data-scr>동의 결과</a>
@@ -134,13 +134,13 @@ body[data-state="error"] .state-error{display:block}
 
 <div class="container">
   <div class="pagehead">
-    <h1>연동 구성 목록</h1>
+    <h1>발송처 접근 주소 구성 목록</h1>
     <span class="sp"></span>
-    <a class="btn btn-primary" href="SCR-003.html">+ 연동 구성 등록</a>
+    <a class="btn btn-primary" href="SCR-003.html">+ 발송처 접근 주소 등록</a>
   </div>
 
   <div class="toolbar">
-    <input type="text" placeholder="구성명 · 구성 코드 검색" aria-label="검색어">
+    <input type="text" placeholder="구성명 · 접근 주소 고유 ID 검색" aria-label="검색어">
     <select aria-label="활성 필터">
       <option value="ALL">전체</option>
       <option value="ACTIVE" selected>활성만</option>
@@ -154,7 +154,7 @@ body[data-state="error"] .state-error{display:block}
       <table>
         <thead>
           <tr>
-            <th>구성 코드</th><th>구성명</th><th>활성 여부</th><th>동의 항목 수</th><th>생성 일시</th><th>액션</th>
+            <th>접근 주소 고유 ID</th><th>구성명</th><th>활성 여부</th><th>동의 항목 수</th><th>생성 일시</th><th>액션</th>
           </tr>
         </thead>
         <tbody>
@@ -200,7 +200,7 @@ body[data-state="error"] .state-error{display:block}
   <div class="state state-skeleton">
     <div class="tablewrap">
       <table>
-        <thead><tr><th>구성 코드</th><th>구성명</th><th>활성 여부</th><th>동의 항목 수</th><th>생성 일시</th><th>액션</th></tr></thead>
+        <thead><tr><th>접근 주소 고유 ID</th><th>구성명</th><th>활성 여부</th><th>동의 항목 수</th><th>생성 일시</th><th>액션</th></tr></thead>
         <tbody>
           <tr><td><div class="sk" style="width:110px"></div></td><td><div class="sk" style="width:160px"></div></td><td><div class="sk" style="width:90px"></div></td><td><div class="sk" style="width:24px"></div></td><td><div class="sk" style="width:120px"></div></td><td><div class="sk" style="width:48px"></div></td></tr>
           <tr><td><div class="sk" style="width:110px"></div></td><td><div class="sk" style="width:140px"></div></td><td><div class="sk" style="width:90px"></div></td><td><div class="sk" style="width:24px"></div></td><td><div class="sk" style="width:120px"></div></td><td><div class="sk" style="width:48px"></div></td></tr>
@@ -214,9 +214,9 @@ body[data-state="error"] .state-error{display:block}
   <div class="state state-empty">
     <div class="panel">
       <div class="ico">📭</div>
-      <h2>등록된 연동 구성이 없습니다</h2>
-      <p>첫 연동 구성을 등록해 서비스 A ↔ 서비스 B 연동을 시작하세요.</p>
-      <a class="btn btn-primary" href="SCR-003.html">+ 연동 구성 등록</a>
+      <h2>등록된 발송처 접근 주소가 없습니다</h2>
+      <p>첫 발송처 접근 주소를 등록해 연동을 시작하세요.</p>
+      <a class="btn btn-primary" href="SCR-003.html">+ 발송처 접근 주소 등록</a>
     </div>
   </div>
 
@@ -232,7 +232,7 @@ body[data-state="error"] .state-error{display:block}
 <!-- 삭제 확인 Modal -->
 <div class="scrim" id="scrim">
   <div class="modal" role="dialog" aria-modal="true">
-    <h2>연동 구성 삭제</h2>
+    <h2>발송처 접근 주소 삭제</h2>
     <p><strong id="delname">구성</strong> 을(를) 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.</p>
     <div class="actions">
       <button class="btn btn-secondary" onclick="closeModal()">취소</button>

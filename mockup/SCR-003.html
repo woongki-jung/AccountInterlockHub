@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>SCR-003 연동 구성 등록·편집 폼 · 목업</title>
+<title>SCR-003 발송처 접근 주소 구성 등록·편집 폼 · 목업</title>
 <style>
 :root{
   --primary:#2563EB;--primary-hover:#1D4ED8;--primary-weak:#DBEAFE;
@@ -46,6 +46,7 @@ h1{font-size:22px;line-height:30px;font-weight:700;margin:0 0 24px}
 .field.full{grid-column:1/-1}
 label{display:block;font-size:14px;line-height:20px;font-weight:500;margin-bottom:6px}
 label .req{color:var(--danger);margin-left:2px}
+label .opt-lbl{color:var(--muted);font-weight:400;font-size:13px;margin-left:4px}
 input[type=text],input[type=url],select{width:100%;height:40px;padding:10px 14px;font-size:15px;border:1px solid var(--border);border-radius:var(--r-md);background:#fff;color:var(--text)}
 input:focus,select:focus,textarea:focus{outline:2px solid var(--primary);outline-offset:2px;border-color:var(--primary)}
 textarea.terms{width:100%;min-height:64px;padding:10px 14px;font-size:14px;line-height:20px;border:1px solid var(--border);border-radius:var(--r-md);background:#fff;color:var(--text);resize:vertical;font-family:inherit}
@@ -62,28 +63,15 @@ input[readonly]{background:var(--disabled);color:var(--muted);cursor:not-allowed
 .tgl.off{background:#CBD5E1}
 .tgl::after{content:"";position:absolute;top:2px;left:20px;width:18px;height:18px;border-radius:50%;background:#fff;transition:left .15s}
 .tgl.off::after{left:2px}
-/* repeatable rows */
+/* repeatable rows (동의 항목 전용 — 전달 파라미터 입력은 #214 로 폐기) */
 .rrow{border:1px solid var(--border);border-radius:var(--r-md);padding:16px;margin-bottom:12px;background:var(--subtle)}
 .rrow .rgrid{display:grid;gap:12px;align-items:end}
-.rrow .rgrid.param{grid-template-columns:1fr 1fr auto auto auto}
 .rrow .rgrid.consent{grid-template-columns:1fr 1.4fr auto auto}
-@media(max-width:640px){.rrow .rgrid.param,.rrow .rgrid.consent{grid-template-columns:1fr}}
+@media(max-width:640px){.rrow .rgrid.consent{grid-template-columns:1fr}}
 .chkline{display:flex;align-items:center;gap:8px;height:40px;font-size:14px;white-space:nowrap}
 .chkline input{width:18px;height:18px;accent-color:var(--primary)}
 .rmbtn{height:40px;width:40px;border:1px solid var(--border);background:#fff;border-radius:var(--r-md);color:var(--danger);cursor:pointer;font-size:16px}
 .addbtn{background:transparent;border:1px dashed var(--primary);color:var(--primary);border-radius:var(--r-md);padding:10px 14px;font-size:14px;cursor:pointer;width:100%}
-/* user key designation (전달 파라미터 중 정확히 1개, 필수) */
-.ukbar{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px;padding:10px 14px;background:var(--primary-weak);border:1px solid #BFDBFE;border-radius:var(--r-md);margin-bottom:12px;font-size:14px}
-.ukbar .uki{display:flex;flex-wrap:wrap;align-items:center;gap:6px}
-.ukbar .uki b{color:#1E3A8A}
-.ukbar .uki .note{color:#1E3A8A;font-size:13px;font-weight:400}
-.uk-req-err{display:none;color:var(--danger);font-size:13px;font-weight:600;white-space:nowrap}
-.ukbar.err{border-color:#FCA5A5;background:var(--danger-weak)}
-.ukline{display:flex;align-items:center;gap:8px;height:40px;font-size:14px;white-space:nowrap}
-.ukline input{width:18px;height:18px;accent-color:var(--primary)}
-.userkey-badge{display:none;align-items:center;gap:4px;height:22px;padding:0 8px;border-radius:var(--r-sm);font-size:12px;font-weight:600;background:#1E40AF;color:#fff;margin-left:6px}
-.rrow.userkey-on{border-color:var(--primary);background:var(--primary-weak)}
-.rrow.userkey-on .userkey-badge{display:inline-flex}
 /* buttons */
 .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:40px;padding:0 18px;border-radius:var(--r-md);font-size:15px;font-weight:500;border:1px solid transparent;cursor:pointer;line-height:1}
 .btn-primary{background:var(--primary);color:#fff}
@@ -95,7 +83,6 @@ input[readonly]{background:var(--disabled);color:var(--muted);cursor:not-allowed
 .formactions{display:flex;justify-content:flex-end;gap:10px;margin-top:8px}
 /* banners */
 .banner{display:flex;align-items:flex-start;gap:10px;padding:12px 14px;border-radius:var(--r-md);font-size:14px;line-height:20px;margin-bottom:20px}
-.banner-warn{background:#FEF3C7;color:#92400E;border:1px solid #FCD34D}
 .banner-err{background:var(--danger-weak);color:#991B1B;border:1px solid #FCA5A5;display:none}
 /* skeleton */
 .sk{background:linear-gradient(90deg,#eef0f2 25%,#f6f7f8 37%,#eef0f2 63%);background-size:400% 100%;animation:sh 1.2s infinite;border-radius:4px}
@@ -113,9 +100,6 @@ body[data-state="submitting"] .state-form fieldset{opacity:.6;pointer-events:non
 body[data-mode="new"] .only-edit{display:none}
 body[data-mode="edit"] .only-new{display:none}
 /* error toggles */
-body[data-err="validate"] .field.f-name,
-body[data-err="validate"] .field.f-aurl{}
-body[data-err="dup"] .field.f-code{}
 body[data-err="format"] .banner-err{display:flex}
 .toast{position:fixed;left:50%;bottom:32px;transform:translateX(-50%);background:#111827;color:#fff;padding:12px 18px;border-radius:var(--r-md);font-size:14px;box-shadow:var(--sh-md);display:none;z-index:70}
 .toast.show{display:block}
@@ -128,9 +112,9 @@ body[data-err="format"] .banner-err{display:flex}
   <a class="mn-home" href="index.html">🗂 목업 인덱스</a>
   <span class="mn-grp">관리자</span>
   <a href="SCR-001.html" data-scr>로그인</a>
-  <a href="SCR-002.html" data-scr>구성 목록</a>
+  <a href="SCR-002.html" data-scr>접근주소 목록</a>
   <a href="SCR-003.html" data-scr>등록·편집</a>
-  <a href="SCR-004.html" data-scr>구성 상세</a>
+  <a href="SCR-004.html" data-scr>접근주소 상세</a>
   <span class="mn-grp">사용자</span>
   <a href="SCR-005.html" data-scr>이용 동의</a>
   <a href="SCR-006.html" data-scr>동의 결과</a>
@@ -163,8 +147,8 @@ body[data-err="format"] .banner-err{display:flex}
 </div>
 
 <div class="container">
-  <div class="crumb"><a href="SCR-002.html">연동 구성 목록</a> / <span class="only-edit">결제 연동 - 페이링크 / 편집</span><span class="only-new">신규 등록</span></div>
-  <h1><span class="only-new">연동 구성 등록</span><span class="only-edit">연동 구성 편집</span></h1>
+  <div class="crumb"><a href="SCR-002.html">발송처 접근 주소 목록</a> / <span class="only-edit">결제 연동 - 페이링크 / 편집</span><span class="only-new">신규 등록</span></div>
+  <h1><span class="only-new">발송처 접근 주소 등록</span><span class="only-edit">발송처 접근 주소 편집</span></h1>
 
   <!-- Skeleton (편집 로드) -->
   <div class="state state-skeleton">
@@ -177,25 +161,28 @@ body[data-err="format"] .banner-err{display:flex}
       <div class="sk sk-label"></div><div class="sk sk-field"></div>
       <div class="sk sk-label"></div><div class="sk sk-field"></div>
     </div>
+    <div class="card">
+      <div class="sk sk-label"></div><div class="sk sk-field"></div>
+    </div>
   </div>
 
   <!-- 폼 -->
   <div class="state state-form">
     <fieldset style="border:0;padding:0;margin:0">
 
-    <div class="banner banner-err" role="alert"><span>⚠</span><span>입력 형식 또는 요청 크기가 올바르지 않습니다. 주소 형식·입력 길이를 확인해 주세요. (400 EX-SEC-004 / 413 EX-SEC-005)</span></div>
+    <div class="banner banner-err" role="alert"><span>⚠</span><span>입력 형식 또는 요청 크기가 올바르지 않습니다. 수신처 B 주소 형식·입력 길이를 확인해 주세요. (400 EX-SEC-004 / 413 EX-SEC-005)</span></div>
 
     <!-- (1) 기본 정보 -->
     <div class="card">
       <h2>기본 정보</h2>
-      <p class="desc">연동 구성을 식별하는 코드와 이름, 활성 여부를 설정합니다.</p>
+      <p class="desc">발송처 접근 주소 구성을 식별하는 고유 ID(관리자 직접 입력)와 이름, 활성 여부, 사용자 동의 화면 상단 안내 문구를 설정합니다.</p>
       <div class="grid2">
         <div class="field f-code">
-          <label>구성 코드 <span class="req">*</span></label>
+          <label>접근 주소 고유 ID <span class="req">*</span></label>
           <input type="text" id="fCode" placeholder="예: CFG-PAYLINK-01" value="CFG-PAYLINK-01">
-          <div class="hint only-edit">편집 시 고유성·참조 안정성을 위해 읽기전용입니다(BIZ-001-03, 권장안).</div>
-          <div class="hint only-new">영문·숫자·하이픈. 최대 64자.</div>
-          <div class="cap-err" id="errCode">이미 존재하는 구성입니다.</div>
+          <div class="hint only-edit">접근 주소 고유 ID는 관리자가 직접 입력한 값으로, 등록 후 변경할 수 없어 편집 시 읽기전용입니다(발송처 식별자, BIZ-001-11).</div>
+          <div class="hint only-new">관리자가 직접 입력합니다(자동 생성 아님). 영문·숫자·하이픈, 최대 64자. 이미 등록된 값과 중복이면 실패합니다(중복 검사, BIZ-001-10).</div>
+          <div class="cap-err" id="errCode">이미 존재하는 접근 주소 고유 ID 입니다.</div>
         </div>
         <div class="field">
           <label>활성 여부</label>
@@ -206,56 +193,34 @@ body[data-err="format"] .banner-err{display:flex}
           <input type="text" id="fName" placeholder="예: 결제 연동 - 페이링크" value="결제 연동 - 페이링크">
           <div class="cap-err" id="errName">구성명을 입력해주세요(최대 100자).</div>
         </div>
+        <div class="field full">
+          <label>동의 대상 설명 문구 <span class="opt-lbl">(선택)</span></label>
+          <textarea class="terms" id="fNotice" placeholder="사용자 동의 화면 상단에 노출할 안내 문구를 입력하세요(선택). 미입력 시 표시되지 않습니다.">[페이링크] 결제 연동을 위해 주문·결제 식별 정보를 파트너 수신처(서비스 B)에 전달합니다. 본인확인 후 동의 항목을 확인해 주세요.</textarea>
+          <div class="hint">입력하면 사용자 동의 화면(SCR-005) 상단(제목 아래)에 표시됩니다(BIZ-002-08). 최대 1000자.</div>
+        </div>
       </div>
     </div>
 
-    <!-- (2) 서비스 A 진입 -->
+    <!-- (2) 수신처 B 전달 -->
     <div class="card">
-      <h2>서비스 A 진입</h2>
-      <p class="desc">사용자가 진입하는 서비스 A 호출(진입) 주소입니다.</p>
-      <div class="field f-aurl">
-        <label>서비스 A 호출 주소 <span class="req">*</span></label>
-        <input type="url" id="fAUrl" placeholder="https://service-a.example.com/interlock/entry" value="https://service-a.example.com/interlock/entry">
-        <div class="cap-err" id="errAUrl">http/https 로 시작하는 주소를 입력해주세요.</div>
+      <h2>수신처 B 전달</h2>
+      <p class="desc">동의 승인 후 허브가 복호화한 데이터를 전달할 수신처(서비스 B) 주소와 전달 방식입니다.</p>
+      <div class="grid2">
+        <div class="field full f-burl">
+          <label>수신처 B 전달 주소 <span class="req">*</span></label>
+          <input type="url" id="fBUrl" placeholder="https://service-b.example.com/receive" value="https://service-b.example.com/receive">
+          <div class="cap-err" id="errBUrl">http/https 로 시작하는 수신처 B 주소를 입력해 주세요.</div>
+        </div>
+        <div class="field">
+          <label>전달 방식 <span class="req">*</span></label>
+          <select>
+            <option>GET</option><option selected>POST</option><option>PUT</option><option>PATCH</option>
+          </select>
+        </div>
       </div>
     </div>
 
-    <!-- (3) 전달 파라미터 정의 -->
-    <div class="card">
-      <h2>전달 파라미터 정의</h2>
-      <p class="desc">서비스 A 원천 키에서 값을 취해 서비스 B로 전달할 파라미터를 정의합니다. 최소 1개.</p>
-      <div class="banner banner-warn"><span>ⓘ</span><span>일부 파라미터명(예: <b>memberCi</b>)이 개인정보성 명칭 패턴에 해당할 수 있습니다. 안내이며 저장을 차단하지 않습니다(BIZ-001-05).</span></div>
-      <div class="ukbar" id="ukBar">
-        <div class="uki">
-          <span>사용자 키값 파라미터 <span style="color:var(--danger)">*</span>:</span> <b id="ukCurrent">memberCi</b>
-          <span class="note">(필수 · 구성당 정확히 1개 · 반드시 1개 지정 · 지정 값이 연동이력·완료 확인/콜백의 사용자 키값 근거, BIZ-001-07)</span>
-        </div>
-        <span class="uk-req-err" id="ukReqErr">⚠ 사용자 키값 파라미터를 1개 지정해주세요.</span>
-      </div>
-      <div id="paramRows">
-        <div class="rrow">
-          <div class="rgrid param">
-            <div class="field" style="margin:0"><label>파라미터명 <span class="req">*</span></label><input type="text" value="orderId" placeholder="예: orderId"></div>
-            <div class="field" style="margin:0"><label>서비스 A 원천 키명 <span class="req">*</span></label><input type="text" value="a_order_id" placeholder="예: a_order_id"></div>
-            <label class="chkline"><input type="checkbox" checked> 서비스 B 전달</label>
-            <label class="ukline"><input type="radio" name="userKey" onchange="selectUserKey(this)"> 사용자 키값<span class="userkey-badge">지정됨</span></label>
-            <button class="rmbtn" title="행 삭제" onclick="removeRow(this)">✕</button>
-          </div>
-        </div>
-        <div class="rrow userkey-on">
-          <div class="rgrid param">
-            <div class="field" style="margin:0"><label>파라미터명 <span class="req">*</span></label><input type="text" value="memberCi" placeholder="예: memberCi"></div>
-            <div class="field" style="margin:0"><label>서비스 A 원천 키명 <span class="req">*</span></label><input type="text" value="a_member_ci" placeholder="예: a_member_ci"></div>
-            <label class="chkline"><input type="checkbox" checked> 서비스 B 전달</label>
-            <label class="ukline"><input type="radio" name="userKey" checked onchange="selectUserKey(this)"> 사용자 키값<span class="userkey-badge">지정됨</span></label>
-            <button class="rmbtn" title="행 삭제" onclick="removeRow(this)">✕</button>
-          </div>
-        </div>
-      </div>
-      <button class="addbtn" onclick="addParam()">+ 파라미터 행 추가</button>
-    </div>
-
-    <!-- (4) 사용자 동의 항목 -->
+    <!-- (3) 사용자 동의 항목 -->
     <div class="card">
       <h2>사용자 동의 항목</h2>
       <p class="desc">사용자 동의 화면(SCR-005)에 노출할 동의 항목입니다. 최소 1개(BIZ-001-04).</p>
@@ -263,13 +228,13 @@ body[data-err="format"] .banner-err{display:flex}
         <div class="rrow">
           <div class="rgrid consent">
             <div class="field" style="margin:0"><label>동의 항목 라벨 <span class="req">*</span></label><input type="text" value="결제 정보 제공 동의" placeholder="예: 결제 정보 제공 동의"></div>
-            <div class="field" style="margin:0"><label>설명</label><input type="text" value="주문·결제 식별 정보를 서비스 B로 전달합니다." placeholder="보조 설명(선택)"></div>
+            <div class="field" style="margin:0"><label>설명</label><input type="text" value="주문·결제 식별 정보를 수신처로 전달합니다." placeholder="보조 설명(선택)"></div>
             <label class="chkline"><input type="checkbox" checked> 필수</label>
             <button class="rmbtn" title="행 삭제" onclick="removeRow(this)">✕</button>
           </div>
           <div class="consent-terms">
             <label>약관 컨텐츠 <span class="opt">(선택 · 전체 약관 본문 — 입력 시 동의 화면에 [상세] 노출)</span></label>
-            <textarea class="terms" placeholder="전체 약관 본문을 입력하세요(선택).">제1조(목적) 본 약관은 결제 연동을 위하여 주문·결제 식별 정보를 서비스 B에 제공하는 데 필요한 사항을 정합니다.
+            <textarea class="terms" placeholder="전체 약관 본문을 입력하세요(선택).">제1조(목적) 본 약관은 결제 연동을 위하여 주문·결제 식별 정보를 수신처(서비스 B)에 제공하는 데 필요한 사항을 정합니다.
 제2조(제공 항목) 주문번호, 결제수단 식별자, 결제금액 등 최소 항목.
 제3조(보유 기간) 처리 완료 후 관련 법령이 정한 기간까지 보관합니다.</textarea>
           </div>
@@ -288,24 +253,6 @@ body[data-err="format"] .banner-err{display:flex}
         </div>
       </div>
       <button class="addbtn" onclick="addConsent()">+ 동의 항목 행 추가</button>
-    </div>
-
-    <!-- (5) 서비스 B 전달 -->
-    <div class="card">
-      <h2>서비스 B 전달</h2>
-      <p class="desc">동의 완료 시 요청을 전달할 서비스 B 주소와 전달 방식입니다.</p>
-      <div class="grid2">
-        <div class="field full">
-          <label>서비스 B 전달 주소 <span class="req">*</span></label>
-          <input type="url" placeholder="https://service-b.example.com/receive" value="https://service-b.example.com/receive">
-        </div>
-        <div class="field">
-          <label>전달 방식 <span class="req">*</span></label>
-          <select>
-            <option>GET</option><option selected>POST</option><option>PUT</option><option>PATCH</option>
-          </select>
-        </div>
-      </div>
     </div>
 
     <div class="formactions">
@@ -335,46 +282,19 @@ function setErr(e){
   document.body.dataset.err=e;
   document.querySelectorAll('.mock-bar [data-e]').forEach(function(b){b.classList.toggle('active',b.dataset.e===e)});
   document.querySelector('.f-name').classList.toggle('err',e==='validate');
-  document.querySelector('.f-aurl').classList.toggle('err',e==='validate');
+  document.querySelector('.f-burl').classList.toggle('err',e==='validate');
   document.querySelector('.f-code').classList.toggle('err',e==='dup');
-  if(e==='validate'){document.getElementById('errName').textContent='구성명을 입력해주세요(최대 100자).';document.getElementById('errAUrl').textContent='http/https 로 시작하는 주소를 입력해주세요.';}
+  if(e==='validate'){document.getElementById('errName').textContent='구성명을 입력해주세요(최대 100자).';document.getElementById('errBUrl').textContent='http/https 로 시작하는 수신처 B 주소를 입력해 주세요.';}
 }
 function syncActive(){var t=document.getElementById('fActive');document.getElementById('activeLbl').textContent=t.classList.contains('off')?'비활성':'활성';}
-function addParam(){
-  var wrap=document.getElementById('paramRows');
-  var d=document.createElement('div');d.className='rrow';
-  d.innerHTML='<div class="rgrid param"><div class="field" style="margin:0"><label>파라미터명 <span class="req">*</span></label><input type="text" placeholder="예: orderId"></div><div class="field" style="margin:0"><label>서비스 A 원천 키명 <span class="req">*</span></label><input type="text" placeholder="예: a_order_id"></div><label class="chkline"><input type="checkbox" checked> 서비스 B 전달</label><label class="ukline"><input type="radio" name="userKey" onchange="selectUserKey(this)"> 사용자 키값<span class="userkey-badge">지정됨</span></label><button class="rmbtn" onclick="removeRow(this)">✕</button></div>';
-  wrap.appendChild(d);
-}
 function addConsent(){
   var wrap=document.getElementById('consentRows');
   var d=document.createElement('div');d.className='rrow';
   d.innerHTML='<div class="rgrid consent"><div class="field" style="margin:0"><label>동의 항목 라벨 <span class="req">*</span></label><input type="text" placeholder="라벨"></div><div class="field" style="margin:0"><label>설명</label><input type="text" placeholder="보조 설명(선택)"></div><label class="chkline"><input type="checkbox"> 필수</label><button class="rmbtn" onclick="removeRow(this)">✕</button></div><div class="consent-terms"><label>약관 컨텐츠 <span class="opt">(선택 · 전체 약관 본문 — 입력 시 동의 화면에 [상세] 노출)</span></label><textarea class="terms" placeholder="전체 약관 본문을 입력하세요(선택)."></textarea></div>';
   wrap.appendChild(d);
 }
-function removeRow(btn){btn.closest('.rrow').remove();syncUserKey();}
-// 사용자 키값 파라미터 지정: 전달 파라미터 반복 행 전체를 단일 라디오 그룹으로 묶어 구성당 정확히 1개 필수(BIZ-001-07). 미선택(0개)은 저장 차단(EXC-BIZ-09 — 2026-07-08 필수 확정).
-function selectUserKey(radio){
-  document.querySelectorAll('#paramRows .rrow').forEach(function(r){r.classList.remove('userkey-on')});
-  radio.closest('.rrow').classList.add('userkey-on');
-  syncUserKey();
-}
-function syncUserKey(){ // 지정 요약·필수 경고 동기화(지정 행 삭제 시 미선택→경고 표시)
-  var checked=document.querySelector('#paramRows input[name="userKey"]:checked');
-  var cur=document.getElementById('ukCurrent'),bar=document.getElementById('ukBar'),err=document.getElementById('ukReqErr');
-  if(checked){
-    var nameInput=checked.closest('.rrow').querySelector('.rgrid.param input[type="text"]');
-    cur.textContent=(nameInput&&nameInput.value.trim())||'(파라미터명 미입력)';
-    bar.classList.remove('err');err.style.display='none';
-  }else{
-    cur.textContent='미지정';
-    bar.classList.add('err');err.style.display='inline';
-  }
-}
-document.addEventListener('DOMContentLoaded',syncUserKey);
+function removeRow(btn){btn.closest('.rrow').remove();}
 function save(){
-  var checked=document.querySelector('#paramRows input[name="userKey"]:checked');
-  if(!checked){ syncUserKey(); document.getElementById('ukBar').scrollIntoView({behavior:'smooth',block:'center'}); return; }  // 필수 — 정확히 1개 지정해야 저장(BIZ-001-07)
   setState('submitting');setTimeout(function(){setState('ready');var t=document.getElementById('toast');t.classList.add('show');setTimeout(function(){t.classList.remove('show');location.href='SCR-004.html';},900);},1000);
 }
 </script>

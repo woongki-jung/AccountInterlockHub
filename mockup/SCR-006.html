@@ -33,6 +33,7 @@ body{margin:0;font-family:system-ui,-apple-system,"Segoe UI",sans-serif;color:va
 .ico.ok{background:#DCFCE7}
 .ico.info{background:#CFFAFE}
 .ico.warn{background:#FEF3C7}
+.ico.err{background:var(--danger-weak)}
 .ico.neutral{background:#F3F4F6}
 .badge{display:inline-flex;align-items:center;gap:5px;height:26px;padding:0 12px;border-radius:var(--r-sm);font-size:13px;font-weight:500;margin-bottom:12px}
 .badge-success{background:#DCFCE7;color:#166534}
@@ -44,12 +45,12 @@ h1{font-size:22px;line-height:30px;font-weight:700;margin:0 0 12px}
 .banner{display:flex;align-items:flex-start;gap:8px;padding:12px 14px;border-radius:var(--r-md);font-size:14px;line-height:20px;margin-bottom:20px;text-align:left}
 .banner-err{background:var(--danger-weak);color:#991B1B;border:1px solid #FCA5A5}
 .foot{font-size:13px;color:var(--muted);margin-top:8px}
-.btn{display:inline-flex;align-items:center;justify-content:center;height:44px;padding:0 20px;border-radius:var(--r-md);font-size:15px;font-weight:500;border:1px solid var(--border);background:#fff;color:var(--text);cursor:pointer;text-decoration:none}
+.btn{display:inline-flex;align-items:center;justify-content:center;height:44px;padding:0 20px;border-radius:var(--r-md);font-size:15px;font-weight:500;border:1px solid var(--border);background:#fff;color:var(--text);cursor:pointer;text-decoration:none;margin-top:4px}
 /* result visibility */
 .res{display:none}
 body[data-res="success"] .res-success,
 body[data-res="reject"] .res-reject,
-body[data-res="fail"] .res-fail,
+body[data-res="linkerr"] .res-linkerr,
 body[data-res="fallback"] .res-fallback{display:block}
 </style>
 </head>
@@ -60,9 +61,9 @@ body[data-res="fallback"] .res-fallback{display:block}
   <a class="mn-home" href="index.html">🗂 목업 인덱스</a>
   <span class="mn-grp">관리자</span>
   <a href="SCR-001.html" data-scr>로그인</a>
-  <a href="SCR-002.html" data-scr>구성 목록</a>
+  <a href="SCR-002.html" data-scr>접근주소 목록</a>
   <a href="SCR-003.html" data-scr>등록·편집</a>
-  <a href="SCR-004.html" data-scr>구성 상세</a>
+  <a href="SCR-004.html" data-scr>접근주소 상세</a>
   <span class="mn-grp">사용자</span>
   <a href="SCR-005.html" data-scr>이용 동의</a>
   <a href="SCR-006.html" data-scr>동의 결과</a>
@@ -70,43 +71,45 @@ body[data-res="fallback"] .res-fallback{display:block}
 <script>(function(){var f=(location.pathname.split('/').pop()||'index.html').toLowerCase();document.querySelectorAll('.mock-nav a[data-scr]').forEach(function(a){if(a.getAttribute('href').toLowerCase()===f)a.classList.add('current');});})();</script>
 <div class="mock-bar">
   <span class="lbl">결과 유형:</span>
-  <button data-r="success" class="active" onclick="setRes('success')">동의 완료</button>
-  <button data-r="reject" onclick="setRes('reject')">거부 종료</button>
-  <button data-r="fail" onclick="setRes('fail')">전달 실패(502)</button>
+  <button data-r="success" class="active" onclick="setRes('success')">연동 완료</button>
+  <button data-r="reject" onclick="setRes('reject')">거부(취소)</button>
+  <button data-r="linkerr" onclick="setRes('linkerr')">링크 오류(400)</button>
   <button data-r="fallback" onclick="setRes('fallback')">Fallback(직접 진입)</button>
-  <span class="tag">SCR-006 · /consent/:requestKey/result</span>
+  <span class="tag">SCR-006 · /interlock/result</span>
 </div>
 </div><!-- /mock-chrome -->
 
 <div class="wrap">
   <div class="card">
 
-    <!-- 동의 완료 -->
+    <!-- 연동 완료 -->
     <div class="res res-success">
       <div class="ico ok">✅</div>
-      <span class="badge badge-success">동의 완료</span>
+      <span class="badge badge-success">연동 완료</span>
       <h1>연동이 완료되었습니다</h1>
-      <p class="msg">동의해 주셔서 감사합니다. 연동 대상으로 요청이 정상 전달되었습니다. 이 창을 닫고 서비스 A로 돌아가셔도 됩니다.</p>
-      <p class="foot">처리 결과 안내 화면입니다. 회원 정보·처리 상태 값은 표시되지 않습니다.</p>
+      <p class="msg">동의해 주셔서 감사합니다. 수신처로 요청이 정상 전달되었습니다. 이 창을 닫고 발송처 화면으로 돌아가셔도 됩니다.</p>
+      <p class="foot">처리 결과 안내 화면입니다. 회원 정보·연동 추적 키·처리 상태 값은 표시되지 않습니다(SEC-007-02).</p>
     </div>
 
-    <!-- 거부 종료 -->
+    <!-- 거부(취소) -->
     <div class="res res-reject">
-      <div class="ico neutral">🚫</div>
-      <span class="badge badge-neutral">거부</span>
+      <div class="ico info">🚫</div>
+      <span class="badge badge-info">거부</span>
       <h1>연동이 취소되었습니다</h1>
-      <p class="msg">동의하지 않아 연동을 진행하지 않고 종료했습니다. 연동 대상으로 전달된 정보는 없습니다. 이 창을 닫으셔도 됩니다.</p>
-      <p class="foot">거부는 정상 종료로 처리됩니다(EXC-BIZ-03).</p>
+      <p class="msg">동의하지 않아 연동을 진행하지 않고 종료했습니다. 수신처로 전달된 정보는 없습니다. 이 창을 닫으셔도 됩니다.</p>
+      <p class="foot">거부는 정상 종료로 처리됩니다(BIZ-002-07 EXC-BIZ-03).</p>
     </div>
 
-    <!-- 전달 실패 -->
-    <div class="res res-fail">
-      <div class="ico warn">⚠️</div>
-      <span class="badge badge-error">전달 실패</span>
-      <h1>연동 대상 처리에 실패했습니다</h1>
-      <div class="banner banner-err" role="alert"><span>⚠</span><span>동의는 정상 접수되었으나, 연동 대상으로의 전달에 실패했습니다. 잠시 후 서비스 A에서 다시 시도해 주세요.</span></div>
-      <p class="msg">재시도 후에도 전달이 완료되지 않았습니다. (502 EX-BIZ-004)</p>
-      <p class="foot">실패 결과도 처리 상태 1건으로 기록됩니다(EXC-DATA-03).</p>
+    <!-- 전달 실패 결과 유형은 #215 로 SCR-005 재시도 알림으로 이관되어 본 화면에서 제거됨(완료·거부·링크오류·Fallback 만 표시) -->
+
+    <!-- 링크 오류 -->
+    <div class="res res-linkerr">
+      <div class="ico err">⛔</div>
+      <span class="badge badge-error">링크 오류</span>
+      <h1>연동 링크가 올바르지 않습니다</h1>
+      <div class="banner banner-err" role="alert"><span>⚠</span><span>연동 링크가 올바르지 않습니다. 발송처에 문의해 주세요.</span></div>
+      <p class="msg">암호화 파라미터 형식 오류 또는 연동에 필요한 값 누락으로 처리를 진행할 수 없습니다. 재입력으로는 해결되지 않습니다. (400 EX-SEC-007 / EX-BIZ-008)</p>
+      <p class="foot">발송처 링크·데이터 구성 문제로 사용자가 직접 정정할 수 없습니다(EXC-BIZ-13).</p>
     </div>
 
     <!-- Fallback (직접 진입/새로고침) -->
@@ -114,7 +117,7 @@ body[data-res="fallback"] .res-fallback{display:block}
       <div class="ico neutral">🔄</div>
       <span class="badge badge-neutral">안내</span>
       <h1>표시할 결과가 없습니다</h1>
-      <p class="msg">동의 처리 결과 정보가 없습니다. 새로고침하거나 URL로 직접 접근한 경우일 수 있습니다. 서비스 A에서 다시 진입해 주세요.</p>
+      <p class="msg">동의 처리 결과 정보가 없습니다. 새로고침하거나 URL로 직접 접근한 경우일 수 있습니다. 발송처에서 다시 진입해 주세요.</p>
       <a class="btn" href="SCR-005.html">동의 화면으로 이동</a>
     </div>
 
@@ -129,7 +132,7 @@ function setRes(r){
 // SCR-005 제출 결과 상태를 쿼리로 전달받아 초기 표시(목업 시연용)
 (function(){
   var m=location.search.match(/result=(\w+)/);
-  if(m){var v=m[1];if(v==='success')setRes('success');else if(v==='reject')setRes('reject');else if(v==='fail')setRes('fail');}
+  if(m){var v=m[1];if(v==='success')setRes('success');else if(v==='reject')setRes('reject');else if(v==='linkerr')setRes('linkerr');}
 })();
 </script>
 </body>
