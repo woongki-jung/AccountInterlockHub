@@ -15,11 +15,11 @@
 
 | 단계 | 실행 | 입력 | 기대 결과 | 매핑 PROC |
 |--|--|--|--|--|
-| 1 | SCR-003 신규 폼 저장 제출 | 유효 config(고유 ID·구성명·수신처 B URL·method·동의항목1) | FE 검증 통과·요청 DTO 변환 | F1 |
+| 1 | SCR-003 신규 폼 저장 제출 | 유효 config(관리자 직접 입력 고유 ID·구성명·수신처 B URL·method·동의 대상 설명 문구(선택)·동의항목1) | FE 검증 통과·요청 DTO 변환 | F1 |
 | 2 | POST /api/admin/configs | MDL-101 | 200 `{success:true,data:MDL-101}` id 포함 | B1~B4 |
 | 3 | 응답 처리 | — | Toast·SCR-004 이동, 캐시 무효화 | F2 |
 
-- **데이터 검증**: `SELECT` ENT-001 1건(config_code 일치·is_active·created_by=세션) + ENT-002 ≥1행(config_id FK) + ENT-006 CONFIG_CREATE 감사 1건. ENT-001 에 발송처키·암호값(encX·encY)·전달 파라미터·회원 키 컬럼 부재(설정 데이터, EXC-BIZ-14).
+- **데이터 검증**: `SELECT` ENT-001 1건(config_code=관리자 직접 입력값·is_active·created_by=세션·consent_notice=입력 문구(미설정 시 NULL)) + ENT-002 ≥1행(config_id FK) + ENT-006 CONFIG_CREATE 감사 1건. ENT-001 에 발송처키·암호값(encX·encY)·전달 파라미터·회원 키 컬럼 부재(설정 데이터, EXC-BIZ-14).
 
 ### ADM-01_002 편집 정상(config_code 불변·자식 교체)
 - **유형/우선순위/자동화**: Positive · 높음 · 자동(INTG)
@@ -63,6 +63,7 @@
 | 1 | POST /configs | 기존 유효 구성과 동일 config_code(고유 ID) | 409 EX-BIZ-002, 롤백 | B2 (BIZ-001-10) |
 
 - **데이터 검증**: 중복 config_code(deleted_at IS NULL) 존재 시 신규 INSERT 미발생. 부분 유니크 UQ_CONFIG_CODE 최종 방어.
+- **비고**: 접근 주소 고유 ID 는 관리자가 직접 입력한다(자동 생성 아님, BIZ-001-11) — 입력값이 기존 유효 구성과 중복이면 409 EX-BIZ-002 로 실패(BIZ-001-10).
 
 ### ADM-01_007 접근 주소 고유 ID 길이 경계
 - **유형/우선순위/자동화**: Boundary · 보통 · 자동 | **PROC/분기**: PROC-101 / EX-BIZ-001·SEC-004

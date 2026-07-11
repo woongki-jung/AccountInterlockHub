@@ -15,9 +15,9 @@
 | 단계 | 실행 | 입력 | 기대 결과 | 매핑 PROC |
 |--|--|--|--|--|
 | 1 | 발송처 링크로 SCR-005 mount | `/interlock/entry/:accessAddressId?encX=…&encY=…` | accessAddressId·encX·encY 메모리 수집(화면 미표시) | F1 |
-| 2 | GET /api/consent/:accessAddressId | accessAddressId(=config_code) | 200 ConsentItem[](구성 소속만, display_order 정렬, 각 항목 termsContent 포함) + 생년월일 입력 필드 렌더 | B1(FN-008) |
+| 2 | GET /api/consent/:accessAddressId | accessAddressId(=config_code) | 200 `{ consentNotice(설정 시), items: ConsentItem[] }`(구성 소속만, display_order 정렬, termsContent 포함) — 동의 대상 설명 문구는 카드 상단(제목 아래) 노출·생년월일 입력 필드 렌더 | B1(FN-008) |
 
-- **데이터 검증**: 해당 config_id 동의 항목만 노출(BIZ-002-01), 타 구성 항목 미포함. 진입 상태 서버 무저장(무상태), 처리 상태(ENT-004)·연동이력(ENT-007) 미생성(복호화 이전). encX·encY·생년월일 화면 미렌더·미로깅(SEC-005-06·SEC-006-06).
+- **데이터 검증**: 해당 config_id 동의 항목만 노출(BIZ-002-01), 타 구성 항목 미포함. consentNotice 는 구성 consent_notice 값(설정 시 노출·미설정 NULL·미렌더, BIZ-002-08). 진입 상태 서버 무저장(무상태), 처리 상태(ENT-004)·연동이력(ENT-007) 미생성(복호화 이전). encX·encY·생년월일 화면 미렌더·미로깅(SEC-005-06·SEC-006-06).
 
 ### USR-01_002 유효하지 않은 접근 주소 진입
 - **유형/우선순위/자동화**: Negative · 높음 · 자동 | **PROC/분기**: PROC-201 / EX-SEC-004
@@ -124,7 +124,7 @@
 | 단계 | 실행 | 입력 | 기대 결과 | 매핑 PROC |
 |--|--|--|--|--|
 | 1 | POST /api/interlock/approve | AGREE, 유효 encX·encY + 틀린 생년월일 | 400 EX-SEC-006(내부 PROC-203 복호화 실패 전파) | B3b(PROC-203 BR-204) |
-| 2 | 결과 전이 | — | **SCR-005 유지** + 생년월일 인라인 에러, 재입력·재제출 허용(하드 잠금 없음) | F2 |
+| 2 | 결과 전이 | — | **SCR-005 유지** + 생년월일 인라인 에러("사용자 정보가 일치하지 않습니다.", FE 형식 안내와 구분), 재입력·재제출 허용(하드 잠금 없음) | F2 |
 
 - **데이터 검증**: 복호화 이전 실패 — 추적 키 없어 처리 상태·연동이력 미생성(감사만). 재제출은 동일 encX·encY 에 생년월일만 갱신(암호값 재수신 불요). 복호화 내부 상세는 [tc_USR-02_003](tc_USR-02.md).
 
@@ -154,7 +154,7 @@
 | 단계 | 실행 | 입력 | 기대 결과 | 매핑 PROC |
 |--|--|--|--|--|
 | 1 | POST /api/interlock/approve | AGREE, mock 수신처 B 실패(재시도 2회 후) | 502 EX-BIZ-004(내부 PROC-203 전파) | B3b |
-| 2 | 결과 전이 | — | SCR-006 전달 실패 안내(재시도) | F2 |
+| 2 | 결과 전이 | — | **SCR-005 유지** + 전달 실패 Banner("동의 처리에 실패했습니다. 다시 시도해주세요.") + 승인 재제출(재승인) 허용(SCR-006 이동 없음, `#215`) | F2 |
 
 - **데이터 검증**: 복호화 성공 이후라 처리 상태 1건(is_success=false)·연동이력 1건이 **반드시 저장**됨(EXC-BIZ-06·EXC-BIZ-11). 상세는 [tc_USR-02_008](tc_USR-02.md).
 
@@ -170,6 +170,7 @@
 
 | 검증 항목 | 화면(SCR) | 검증 내용 | 기대 결과 |
 |--|--|--|--|
+| 동의 대상 설명 문구 | SCR-005 | 구성 consentNotice 설정/미설정 | 설정 시 제목 아래 상단 안내 문구 노출, 미설정 시 생략(BIZ-002-08) |
 | 본인확인 필드 | SCR-005 | 생년월일 TextField(6자리 numeric·YYMMDD) | 형식(월/일 범위) 검증·값 미에코·미로깅(AUTH-004-03) |
 | 항목 노출 | SCR-005 | 구성 소속 동의 항목 | 라벨·설명·필수 표식(*)만, 구성 외 미노출(BIZ-002-01) |
 | 무노출 | SCR-005 | encX·encY·생년월일·회원 키·추적 키 | 화면 미표시(경로/메모리만, 복호화 이전 추적 키 부재) |
