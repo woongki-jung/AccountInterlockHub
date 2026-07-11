@@ -46,7 +46,7 @@
 
 | MDL | 후보 대비 | 확정/변경 내용 |
 |-----|-----------|----------------|
-| **MDL-101** | **변경** | 발송처 접근 주소 구성. **serviceAEntryUrl·parameters[]·isUserKey(사용자 키값 exactly-one 지정) 폐기** — configCode(접근 주소 고유 ID·발송처 식별자·불변)·serviceBDeliveryUrl·serviceBHttpMethod·isActive·consentItems 로 한정. 매핑 ENT 에서 ENT-003 제거 |
+| **MDL-101** | **변경** | 발송처 접근 주소 구성. **serviceAEntryUrl·parameters[]·isUserKey(사용자 키값 exactly-one 지정) 폐기** — configCode(접근 주소 고유 ID·발송처 식별자·관리자 직접 입력·불변)·serviceBDeliveryUrl·serviceBHttpMethod·isActive·consentNotice(`#215` 동의 대상 설명 문구·선택)·consentItems 로 한정. 매핑 ENT 에서 ENT-003 제거 |
 | **MDL-201** | **변경** | 진입 요청→**접근 컨텍스트(무저장)**. accessAddressId(고유 ID)·encX·encY·birthDate — 전량 비영속·미저장·미기록(SEC-005-06). 구 memberKey·parameters 필드 폐기(회원 키는 X 안에) |
 | **MDL-202** | **변경** | 요청 키값(UUID)→**연동 추적 키**. X 내부 지정 필드 원문(불투명·허브 미발급·미해석), ENT-004·007 의 tracking_key 매핑, NotBlank·MaxLength(255)·앞2뒤2 마스킹 |
 | **MDL-203** | **변경** | 동의 결과. 구 requestKey 폐기(복호화 이전 단계라 추적 키 없음) — decision·accessAddressId·requiredConsentMet. 증빙 미저장(Q3) 유지 |

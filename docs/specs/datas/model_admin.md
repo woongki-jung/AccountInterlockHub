@@ -2,7 +2,7 @@
 
 ## 개요
 
-- **모델 목적**: 관리자 도메인(발송처 접근 주소 구성 관리·접근/로그인)이 다루는 입력/출력/도메인 모델을 정의한다. 발송처 접근 주소 구성(MDL-101)·구성 목록(MDL-102)·관리자 계정(MDL-103)·관리자 세션(MDL-104). `#214` 로 구성에서 **전달 파라미터 정의·사용자 키값 exactly-one 지정·서비스 A 진입 주소를 폐기**했다.
+- **모델 목적**: 관리자 도메인(발송처 접근 주소 구성 관리·접근/로그인)이 다루는 입력/출력/도메인 모델을 정의한다. 발송처 접근 주소 구성(MDL-101)·구성 목록(MDL-102)·관리자 계정(MDL-103)·관리자 세션(MDL-104). `#214` 로 구성에서 **전달 파라미터 정의·사용자 키값 exactly-one 지정·서비스 A 진입 주소를 폐기**했다. `#215` 로 **동의 대상 설명 문구(consentNotice, 선택)**를 추가했다.
 - **관련 서비스**: SVC-001, SVC-002, SVC-003.
 
 > 변환 지점은 6 지점(FE→요청 / 요청→도메인 / 도메인→ENT / ENT→도메인 / 도메인→응답 / 응답→FE) 중 해당을 명시하며, PROC 데이터 변환 흐름과 1:1 정합한다.
@@ -33,6 +33,7 @@
 | serviceBDeliveryUrl | string | Y | - | http/https 절대 URL, MaxLength(2048) | 마스킹 제외(EXC-SEC-05) | 수신처 B 전달 주소(서버-서버 POST 대상) |
 | serviceBHttpMethod | enum('GET','POST','PUT','PATCH') | Y | 'POST' | 허용값 | - | 전달 방식 |
 | isActive | boolean | Y | true | - | - | 활성 여부 |
+| consentNotice | string | N | - | MaxLength(1000) | - | **동의 대상 설명 문구**(자유 텍스트, 선택). 사용자 동의 화면(SCR-005) 상단 안내 문구(BIZ-002-08) |
 | consentItems | ConsentItem[] | Y | - | 1개 이상(BIZ-001-04) | - | 동의 항목(label·description·termsContent·required·order) |
 
 > 중첩 ConsentItem = {label, description?, termsContent?, required, order}. termsContent(전체 약관 본문)는 선택(BIZ-001-06) — 동의 화면은 값이 있는 항목에만 [상세] 모달을 노출한다(BIZ-002-05).
@@ -42,11 +43,12 @@
 
 | 모델 속성 | 엔터티(ENT) | 엔터티 속성 | 변환 지점 | 변환 규칙 |
 |-----------|-------------|-------------|-----------|-----------|
-| configCode | ENT-001 | config_code | 요청→도메인 / 도메인→ENT | 직접 매핑(고유성 사전 조회·1회 부여 후 불변) |
+| configCode | ENT-001 | config_code | 요청→도메인 / 도메인→ENT | 직접 매핑(관리자 직접 입력·고유성 사전 조회 후 불변) |
 | configName | ENT-001 | config_name | 도메인→ENT | 직접 매핑 |
 | serviceBDeliveryUrl | ENT-001 | service_b_delivery_url | 도메인→ENT | URL 검증 후 저장 |
 | serviceBHttpMethod | ENT-001 | service_b_http_method | 도메인→ENT | 허용값 매핑 |
 | isActive | ENT-001 | is_active | 도메인→ENT / ENT→도메인 | 직접 매핑 |
+| consentNotice | ENT-001 | consent_notice | 도메인→ENT / ENT→도메인 | 직접 매핑(선택·NULL 허용) |
 | consentItems | ENT-002 | (행 N) | 도메인→ENT / ENT→도메인 | 부모 config_id 로 자식 교체·조회 |
 
 ### 사용처
@@ -60,7 +62,7 @@
 ### 구현 가이드
 
 - 요청 DTO·응답 DTO·도메인 모델을 분리하되 속성 명명을 통일(camelCase)한다. 자식(consentItems)은 부모와 동일 트랜잭션에서 영속화한다.
-- 회원 키·처리 상태·암호값·전달 파라미터 필드를 본 모델에 두지 않는다(설정 데이터 전용). 접근 주소 고유 ID(configCode)는 등록 시 1회 부여하고 편집 시 읽기 전용(불변, BIZ-001-11)이다.
+- 회원 키·처리 상태·암호값·전달 파라미터 필드를 본 모델에 두지 않는다(설정 데이터 전용). 접근 주소 고유 ID(configCode)는 관리자가 직접 입력하며 등록 시 중복 검사로 유일성을 강제하고(BIZ-001-10), 편집 시 읽기 전용(불변, BIZ-001-11)이다. 동의 대상 설명 문구(consentNotice)는 선택 입력이며 사용자 동의 화면 상단 안내로만 쓰인다(마스킹·개인정보 대상 아님).
 - `#214` 로 순환 FK(구 user_key_param_id)가 제거돼 편집 시 자식(consentItems) 전량 교체의 별도 지정 참조 정합 순서가 불필요해졌다([`data_ENT-001.md`](data_ENT-001.md) §구현 가이드).
 
 ---

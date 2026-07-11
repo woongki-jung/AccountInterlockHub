@@ -27,11 +27,12 @@
 | 속성명 | 데이터 타입 | 길이/precision | NULL | 기본값 | CHECK 제약 | 키 | 설명 |
 |--------|-----------|----------------|------|--------|-----------|----|------|
 | id | uuid | - | NOT NULL | gen_random_uuid() | - | PK | 구성 고유 식별자(내부 참조 키) |
-| config_code | varchar | 64 | NOT NULL | - | length(config_code) > 0 | UK(부분) | **접근 주소 고유 ID = 발송처 식별자**(고유·불변, BIZ-001-10·11). 사용자가 진입한 접근 주소(고유 ID)가 발송처 구분값 |
+| config_code | varchar | 64 | NOT NULL | - | length(config_code) > 0 | UK(부분) | **접근 주소 고유 ID = 발송처 식별자**(관리자 직접 입력·고유·불변, BIZ-001-10·11). 사용자가 진입한 접근 주소(고유 ID)가 발송처 구분값 |
 | config_name | varchar | 100 | NOT NULL | - | length(config_name) > 0 | - | 구성명(표시용) |
 | service_b_delivery_url | varchar | 2048 | NOT NULL | - | LIKE 'http://%' OR LIKE 'https://%' | - | 수신처 B 전달 주소(서버-서버 POST 대상, BIZ-001-09·BIZ-003-02·SEC-007-01) |
 | service_b_http_method | varchar | 10 | NOT NULL | 'POST' | IN ('GET','POST','PUT','PATCH') | - | 수신처 B 전달 방식(HTTP 메서드) |
 | is_active | boolean | - | NOT NULL | true | - | - | 활성 여부(성과 지표 "활성 연동 구성 수" 근거) |
+| consent_notice | varchar | 1000 | NULL | NULL | - | - | **동의 대상 설명 문구**(자유 텍스트, 선택). 사용자 동의 화면(SCR-005) 상단에 노출하는 안내 문구(BIZ-002-08). NULL·빈 문자열이면 미노출 |
 | created_at | timestamptz | 3 | NOT NULL | now() | - | - | 생성 일시(감사) |
 | created_by | varchar | 64 | NOT NULL | - | - | - | 생성자 관리자 계정(ENT-005.username) |
 | updated_at | timestamptz | 3 | NULL | NULL | - | - | 최종 수정 일시(감사) |
@@ -64,7 +65,7 @@
 
 ### 데이터 생명주기
 
-- **생성 조건**: PROC-101(접근 주소 구성 등록·편집) · "고유 ID 부여·DB 접근·출력 생성" 단계에서 신규 등록 시 INSERT. 필수(수신처 B 주소·동의 항목)·URL·고유성 검증 통과가 선행(BIZ-001-08/09/10/04). 접근 주소 고유 ID(config_code)는 등록 시 1회 부여(자동 생성 또는 관리자 지정)하고 이후 불변(BIZ-001-11).
+- **생성 조건**: PROC-101(접근 주소 구성 등록·편집) · "고유 ID 검증·DB 접근·출력 생성" 단계에서 신규 등록 시 INSERT. 필수(수신처 B 주소·동의 항목)·URL·고유성 검증 통과가 선행(BIZ-001-08/09/10/04). 접근 주소 고유 ID(config_code)는 **관리자가 등록 시 직접 입력**하며 중복 값이면 실패한다(409 EX-BIZ-002, BIZ-001-10). 등록 후 불변(BIZ-001-11). 동의 대상 설명 문구(consent_notice)는 선택 입력이라 미입력(NULL) 가능.
 - **수정 조건**: PROC-101 편집 시 config_name·수신처 B 주소·method·자식(동의 항목) UPDATE(updated_at/by 갱신). 접근 주소 고유 ID(config_code)는 불변. PROC-105 · "활성/비활성 전환"(BR-103) 시 is_active UPDATE.
 - **삭제/보관 조건**: PROC-106 · "삭제"(BR-104) 시 deleted_at 설정(소프트 삭제). 물리 삭제는 수행하지 않으며 감사 로그(OPS-002)에 기록한다.
 
@@ -75,8 +76,9 @@
 | BIZ-001-08 | 필수 항목(수신처 B 전달 주소·동의 항목) 누락 거부 | 응용 검증(PROC-101) + NOT NULL |
 | BIZ-001-09 | service_b_delivery_url http/https 절대 URL | 응용 검증(PROC-101) + CHECK(LIKE http/https) |
 | BIZ-001-10 | config_code(접근 주소 고유 ID) 고유성 | DB 무결성(UQ_CONFIG_CODE 부분 유니크) + 응용 사전 조회 |
-| BIZ-001-11 | 접근 주소 고유 ID 1회 부여·불변·발송처 식별자 | 응용 가공(PROC-101 부여) + 편집 시 불변 처리 |
+| BIZ-001-11 | 접근 주소 고유 ID 관리자 직접 입력·불변·발송처 식별자 | 응용 검증(PROC-101 직접 입력값·고유성) + 편집 시 불변 처리 |
 | BIZ-001-04 | 동의 항목 1개 이상 | 응용 검증(PROC-101, 자식 카운트 — ENT-002) |
+| BIZ-002-08 | consent_notice 동의 대상 설명 문구(선택 저장·사용자 동의 화면 상단 노출) | 응용 저장(PROC-101) + 응용 렌더(PROC-201·SCR-005) |
 | BIZ-003-02 | service_b_delivery_url = 전달 대상 한정 | 응용 검증(PROC-203, 구성 외 주소 전달 금지) |
 | SEC-004-01/02 | 전 입력 컬럼 길이·형식·주입 방어 | 응용 검증(DTO) + 파라미터 바인딩 |
 | EXC-SEC-05 | 수신처 B URL·고유 ID 마스킹 예외 | 마스킹 제외(설정 데이터) |
@@ -88,4 +90,4 @@
 - id 는 uuid PK(기본값 gen_random_uuid())로 확정한다 — 본 엔터티는 소규모 마스터(구성 수십~수백 건 규모)라 랜덤 UUID PK 의 B-tree 삽입 분산 영향이 무시 가능해 추가 물리 튜닝(fillfactor·파티셔닝 등)을 두지 않는다(공통 근거 [`spec-datas.md`](spec-datas.md) §PostgreSQL 물리 설계·운영 전제). config_code(접근 주소 고유 ID) UNIQUE 는 부분 인덱스(partial index)로 소프트 삭제와 양립시킨다.
 - 필수(수신처 B 주소·동의 항목)·URL·고유성 검증은 화면에 의존하지 않고 서버단(PROC-101)에서 재수행한다. 자식(ENT-002)은 부모 구성과 동일 트랜잭션에서 등록·편집한다.
 - 편집 시 자식 항목은 전량 교체(delete-and-reinsert) 또는 증분 갱신 중 build 단계에서 택일하되, 부모 updated_at/by 를 함께 갱신한다. `#214` 로 순환 FK(구 user_key_param_id)가 제거돼 전량 교체 시 별도 지정 참조 정합 순서(NULL 초기화→재지정)가 불필요해졌다.
-- 접근 주소 고유 ID(config_code)의 자동 생성/관리자 지정 방식·형식은 화면 도메인과 정합되게 확정한다(BIZ-001-11). 발송처키·암호값·서명 검증 키는 어떤 컬럼에도 저장하지 않는다(DATA-001·SEC-002, 서명 검증 키 등록은 보안 후속 보완 SEC-008).
+- 접근 주소 고유 ID(config_code)는 **관리자가 직접 입력**하며 등록 시 중복 검사(BIZ-001-10, 부분 유니크 + 사전 조회)로 유일성을 강제한다(중복 값이면 409 EX-BIZ-002 로 실패). 허용 문자·형식 세부 규칙은 build 확정 대상이나 자동 생성은 하지 않는다. 발송처키·암호값·서명 검증 키는 어떤 컬럼에도 저장하지 않는다(DATA-001·SEC-002, 서명 검증 키 등록은 보안 후속 보완 SEC-008).
