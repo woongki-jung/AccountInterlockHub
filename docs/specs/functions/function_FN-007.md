@@ -1,37 +1,33 @@
-# 요청 키값 발급·검증 공통 기능 정의
+# 연동 추적 키 형식 검증·불투명 취급 공통 기능 정의
 
 ## 개요
 
-- **기능 목적**: 서비스 A 진입 시 회원 키와 수학적 연관이 없는 불투명 UUID v4 요청 키값을 자체 발급하고, 진입 컨텍스트(구성 참조·회원 키·파라미터)를 비영속 메모리에만 연결한다. 처리상태 조회 시에는 요청 키값의 UUID 형식을 검증한다. 회원 키를 요청 키값으로 쓰지 않는다(역추적 불가).
-- **관련 PRD 요구사항**: [`../../prd/PRD.md`](../../prd/PRD.md) §데이터 원칙(무저장·요청 키값) / 정책 DATA-002·DATA-001.
-- **담당자 확정 대기 (Q2·신규 해석)**: 요청 키값 = 허브 발급 UUID v4. 진입 컨텍스트 일시 저장 수단·TTL 은 build 확정(무저장 정합).
+- **기능 목적**: 처리상태 확인 API(API-01)의 조회 요청이 담은 연동 추적 키를 형식 검증(비어있지 않음·최대 길이)한 뒤 조회 키로 넘긴다. 추적 키는 발송처가 전달 데이터 X 내부에 넣은 **불투명 문자열 원문**이므로 허브는 발급·해석·변형·복호화·해시하지 않는다(DATA-002-06). `#214` 로 **허브 발급 요청 키값(UUID v4)·진입 컨텍스트 일시 저장을 폐기**하고 — 추적 키는 복호화 성공 후 X 에서 추출(FN-020)해 확보하므로 — 본 FN 은 조회 요청 키의 형식 검증·불투명 취급만 담당한다.
+- **관련 PRD 요구사항**: [`../../prd/PRD.md`](../../prd/PRD.md) §수행 범위 5(처리상태 확인 API — 연동 추적 키 기준 조회) / 정책 DATA-002.
+- **담당자 확정 대기**: 추적 키 최대 길이(255)는 ENT-004·007 의 tracking_key varchar(255)와 정합한 확정 기본안이다(DATA-002-07 스키마 상한 위임).
 
 ---
 
-## FN-007 요청 키값 발급·검증
+## FN-007 연동 추적 키 형식 검증·불투명 취급
 
 ### 기본 정보
 
 | 항목 | 내용 |
 |------|------|
-| 기능명 | 요청 키값 발급·검증 |
+| 기능명 | 연동 추적 키 형식 검증·불투명 취급 |
 | 분류 | POL |
-| 사용 서비스 | SVC-004, SVC-006 |
-| 호출 PROC | PROC-201(발급), PROC-301(검증) |
-| 연관 정책 | [DATA-002](../policies/policy_DATA.md#data-002-요청-키값-발급불투명성)(01·02·03·04), [DATA-001-01](../policies/policy_DATA.md#data-001-회원-키-무저장개인정보-최소화) |
-| 참조 데이터 | [MDL-202](../datas/model_user.md) 요청 키값, [MDL-201](../datas/model_user.md) 진입 요청(메모리 경유) |
-| 관련 IA 항목 | USR-01, API-01 |
+| 사용 서비스 | SVC-006 |
+| 호출 PROC | PROC-301 |
+| 연관 정책 | [DATA-002](../policies/policy_DATA.md#data-002-연동-추적-키-취급불투명성)(05·06·07) |
+| 참조 데이터 | [MDL-202](../datas/model_user.md) 연동 추적 키 |
+| 관련 IA 항목 | API-01 |
 
 ### 시그니처
 
 ```
-function FN-007_issueRequestKey (
-  entry: EntryRequest,    // MDL-201 (configCode·memberKey·parameters, 메모리 경유)
-): RequestKey             // MDL-202 (UUID v4)
-
-function FN-007_validateRequestKeyFormat (
-  raw: string,            // 조회 요청의 요청 키값
-): RequestKey             // 형식 검증된 요청 키값
+function FN-007_validateTrackingKeyFormat (
+  raw: string,            // 조회 요청(URL 경로 파라미터)의 연동 추적 키
+): TrackingKey            // MDL-202 (형식 검증된 불투명 추적 키)
   throws InvalidKeyFormatError { code: EX-DATA-002, http: 400 }
 ```
 
@@ -39,59 +35,39 @@ function FN-007_validateRequestKeyFormat (
 
 | 구분 | 항목명 | 데이터 타입 | 필수 | 제약 | 설명 |
 |------|--------|------------|------|------|------|
-| 입력 | entry | MDL-201 | Y | FN-005 통과 | 진입 요청(회원 키 포함, 무저장) |
-| 입력 | raw | string | Y | 조회 시 | 검증 대상 요청 키값 |
-| 출력 | RequestKey | MDL-202 | - | UUID v4 | 발급·검증된 불투명 키 |
+| 입력 | raw | string | Y | 조회 시 | 검증 대상 연동 추적 키(URL 경로 파라미터) |
+| 출력 | TrackingKey | MDL-202 | - | NotBlank, MaxLength(255) | 형식 검증된 불투명 조회 키 |
 
 ### 처리 흐름 (의사코드)
 
 ```
-발급 — issueRequestKey, POL DATA-002-01/02/03 (transform)
-1. requestKey = uuidV4()                     // 표준 라이브러리, 예측 불가
-   assert(requestKey ≠ derivedFrom(entry.memberKey))  // 역추적 불가(DATA-002-02)
-2. 진입 컨텍스트 일시 연결 — DATA-001-01 (무저장)
-   entryContextStore.put(requestKey, {
-       configCode: entry.configCode,
-       memberKey: entry.memberKey,          // 메모리 전용, 어떤 ENT 에도 미저장
-       parameters: entry.parameters
-   }, ttl)                                    // 비영속(세션/캐시, build 확정)
-3. return requestKey                          // 진입 응답으로 서비스 A 반환(DATA-002-03)
-
-검증 — validateRequestKeyFormat, POL DATA-002-04 (validate)
-1. if (!isUuidV4(raw))                         → throw InvalidKeyFormatError (400, EX-DATA-002)
-2. return raw as RequestKey                    // 미존재(404)는 FN-009 상태 조회에서 판정(EXC-DATA-02)
+검증 — validateTrackingKeyFormat, POL DATA-002-07 (validate)
+1. if (raw is null OR blank(raw))              → throw InvalidKeyFormatError (400, EX-DATA-002)
+2. if (len(raw) > 255)                          → throw InvalidKeyFormatError (400, EX-DATA-002)
+   // UUID 등 특정 형식 강제 아님(발송처 구성 자유) — 비어있음·최대 길이만 검증(DATA-002-06/07)
+3. return raw as TrackingKey                     // 미존재(404)는 FN-009 상태 조회에서 판정(EXC-DATA-02)
 ```
 
-> 진입 컨텍스트는 처리 완료(FN-012 전달·FN-009 상태 저장)까지만 메모리에서 유지하고 이후 폐기한다. 회원 키는 어떤 테이블·로그에도 원문 저장하지 않는다(로그 노출 시 FN-010 마스킹).
+> 연동 추적 키는 불투명 문자열로 취급한다 — 허브는 값을 해석·변형·복호화·해시하지 않는다(DATA-002-06, 값 신뢰성·개인정보 비포함 구성은 발송처 책임). 형식은 맞으나 미존재(보관 만료 삭제 포함)는 본 FN 이 아닌 FN-009 상태 조회에서 404 EX-DATA-003 으로 판정한다(EXC-DATA-02). 로그·응답 노출 시 앞2·뒤2 마스킹한다(SEC-005-04, FN-010).
 
 ### API 인터페이스
 
-| 항목 | 내용 |
-|------|------|
-| 엔드포인트 | GET /interlock/entry (발급) · GET/POST /api/consent/:requestKey (컨텍스트 조회) |
-| HTTP 메서드 | GET(발급·컨텍스트 조회) |
-| 인증 요구 | Public(서비스 A 진입) — 요청 제한(FN-014)·입력 검증(FN-005) 선적용 |
-| 요청 DTO | MDL-201(진입 요청) |
-| 응답 DTO (200) | MDL-202(요청 키값) — 진입 응답으로 서비스 A 반환 |
-| 응답 DTO (4xx) | 공통 에러 엔벨로프(FN-015): EX-DATA-002(조회 시) |
+해당 없음 — 처리상태 확인 API(GET /api/status/:trackingKey) 진입점(PROC-301)의 조회 키 형식 검증 단위 로직으로 독립 엔드포인트가 아니다. 인증(FN-004)·요청 제한(FN-014) 이후, 상태 조회(FN-009) 이전에 선수행된다. 완료 확인(API-02)·완료 콜백(API-03)의 추적 키는 요청 본문 DTO 로 수신돼 FN-005(SEC-004) 스키마 검증을 거친다.
 
 ### 에러 처리 (에러 코드 카탈로그)
 
 | HTTP status | EX 코드 | 발생 조건 | 사용자 메시지 | 개발자 노트 |
 |-------------|---------|-----------|---------------|-------------|
-| 400 | EX-DATA-002 | 요청 키값 UUID 형식 불일치 | "요청 키값 형식이 올바르지 않습니다." | DATA-002-04(조회 진입) |
-| 500 | EX-FN-999 | UUID 생성·컨텍스트 저장 오류 | "잠시 후 다시 시도해주세요." | - |
+| 400 | EX-DATA-002 | 연동 추적 키 형식 위반(공백·최대 길이 255 초과) | "연동 추적 키 형식이 올바르지 않습니다." | DATA-002-07(조회 진입) |
+| 500 | EX-FN-999 | 검증 오류 | "잠시 후 다시 시도해주세요." | - |
 
 - 형식은 맞으나 미존재(만료 삭제 포함)는 본 FN 이 아닌 FN-009 상태 조회에서 404 EX-DATA-003 으로 판정한다(EXC-DATA-02).
 
 ### 의존 기능
 
-| FN 코드 | 호출 시점 | 동기/비동기 | 실패 시 처리 |
-|---------|----------|------------|--------------|
-| FN-005 | 발급 전(진입 검증) | 동기 | 형식·크기·주입 선검증 |
-| FN-013 | 발급 감사(내부 차단 기록) | 동기 | 감사 실패는 발급에 영향 없음 |
+없음(leaf) — 순수 형식 검증만 수행한다. 마스킹·조회는 각각 FN-010·FN-009 가 담당한다.
 
 ### 구현 가이드
 
-- UUID 는 표준 라이브러리로 v4 생성하고 예측 가능한 시퀀스·타임스탬프 노출식 식별자를 쓰지 않는다. 요청 키값은 진입 응답 반환 후 조회 키로만 사용한다.
-- 진입 컨텍스트 저장 수단(단일 인메모리/공유 캐시)·TTL 은 build 단계에서 확정한다. 무저장 원칙상 DB 영속화는 금지한다.
+- 추적 키는 복호화된 X 의 지정 필드에서 추출(FN-020)돼 상태·이력의 조회 키가 되며, 본 FN 은 조회 요청이 담은 값의 형식만 검증한다(비어있음·길이). UUID 등 특정 형식을 강제하지 않는다(발송처 구성 자유, DATA-002-06). 예측 가능성·역추적 위험 판단은 발송처 책임이며 허브는 값을 해석하지 않는다.
+- `#214` 로 허브 발급 요청 키값(UUID v4)·진입 컨텍스트 일시 저장은 폐기됐다 — 진입~승인 구간의 encX·encY·생년월일은 비영속 접근 컨텍스트(MDL-201)로 메모리 경유하고(무저장), 조회·통지·이력의 키는 복호화 후 X 에서 얻는 연동 추적 키로 단일화한다(DATA-002-05).

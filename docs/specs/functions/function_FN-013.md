@@ -2,7 +2,7 @@
 
 ## 개요
 
-- **기능 목적**: 관리자 인증·연동 구성 변경·IP 차단·API 인증 실패·연동 전달 실패·배치 실행 등 운영 이벤트를 감사 로그(ENT-006)에 append-only 로 기록한다. 기록 직전 민감값(회원 키·자격·요청 키값)을 마스킹(FN-010)하며 개인정보를 포함하지 않는다. 전 도메인이 횡단으로 호출하는 공통 기록 기능이다.
+- **기능 목적**: 관리자 인증·접근 주소 구성 변경·IP 차단·API 인증 실패·복호화 시도(성공·실패)·수신처 전달 결과·완료 콜백 수신·배치 실행 등 운영 이벤트를 감사 로그(ENT-006)에 append-only 로 기록한다. 기록 직전 민감값(연동 추적 키·인증 자격)을 마스킹(FN-010, SEC-005-04)하며, 암호값(encX·encY)·생년월일·복호화 원문 X·회원 키는 전량 미기록으로 원천 배제한다(SEC-005-06). 전 도메인이 횡단으로 호출하는 공통 기록 기능이다.
 - **관련 PRD 요구사항**: [`../../prd/PRD.md`](../../prd/PRD.md) §제공 가치(처리 추적)·시스템 제약(운영) / 정책 OPS-002·SEC-005.
 - **담당자 확정 대기**: 감사 로그 보존 기간(1년)은 기본안(EXC-OPS-02). 보존 초과분 삭제 수단은 MVP 미정의 — 도입 시 spec 리비전으로 확정한다([ENT-006](../datas/data_ENT-006.md)).
 
@@ -17,8 +17,8 @@
 | 기능명 | 감사 로그 기록 |
 | 분류 | CRS |
 | 사용 서비스 | 전 SVC(공통) |
-| 호출 PROC | PROC-101, PROC-103, PROC-104, PROC-105, PROC-106, PROC-203, PROC-301, PROC-402 |
-| 연관 정책 | [OPS-002](../policies/policy_OPS.md#ops-002-감사-로그)(01·02·03), [SEC-005](../policies/policy_SEC.md#sec-005-민감값-마스킹), [DATA-001-03](../policies/policy_DATA.md#data-001-회원-키-무저장개인정보-최소화) |
+| 호출 PROC | PROC-101, PROC-103, PROC-104, PROC-105, PROC-106, PROC-203, PROC-301, PROC-302, PROC-303, PROC-402 |
+| 연관 정책 | [OPS-002](../policies/policy_OPS.md#ops-002-감사-로그)(03·04·05), [SEC-005](../policies/policy_SEC.md#sec-005-민감값-마스킹미기록)(04·06), [DATA-001-06](../policies/policy_DATA.md#data-001-무저장개인정보-최소화) |
 | 참조 데이터 | [ENT-006](../datas/data_ENT-006.md) 감사 로그, [MDL-401](../datas/model_common.md) 감사 로그 항목 |
 | 관련 IA 항목 | 공통 |
 
@@ -34,10 +34,10 @@ function FN-013_writeAudit (
 
 | 구분 | 항목명 | 데이터 타입 | 필수 | 제약 | 설명 |
 |------|--------|------------|------|------|------|
-| 입력 | entry.eventType | string | Y | 정의된 코드값 | LOGIN_SUCCESS·CONFIG_CREATE·IP_BLOCK·API_AUTH_FAIL·DELIVERY_FAIL·BATCH_RUN 등 |
+| 입력 | entry.eventType | string | Y | 정의된 코드값 | LOGIN_SUCCESS·CONFIG_CREATE·IP_BLOCK·API_AUTH_FAIL·DECRYPT_SUCCESS·DECRYPT_FAIL·DELIVERY_SUCCESS·DELIVERY_FAIL·HISTORY_CREATE·COMPLETION_CHECK·CALLBACK_RECORDED·CALLBACK_IDEMPOTENT·BATCH_RUN 등 |
 | 입력 | entry.actorType | enum | Y | ADMIN/SERVICE/SYSTEM/BATCH | 행위자 유형 |
 | 입력 | entry.actorId | string\|null | N | MaxLength(64)·마스킹 | 관리자 username·서비스 식별 |
-| 입력 | entry.target | string\|null | N | MaxLength(200)·마스킹 | 구성 코드·요청 키값 등 |
+| 입력 | entry.target | string\|null | N | MaxLength(200)·마스킹 | 접근 주소 고유 ID·연동 추적 키(마스킹) 등 |
 | 입력 | entry.result | enum | Y | SUCCESS/FAIL/BLOCKED/INFO | 처리 결과 |
 | 입력 | entry.detail | string\|null | N | MaxLength(1000)·마스킹 | 부가 상세 |
 | 출력 | (void) | - | - | best-effort | 기록 결과 |
@@ -45,11 +45,11 @@ function FN-013_writeAudit (
 ### 처리 흐름 (의사코드)
 
 ```
-1. 마스킹 — POL SEC-005-01·DATA-001-03·OPS-002-02 (mask)
-   entry.actorId = FN-010_mask(entry.actorId)     // 자격·회원 키 원문 배제
-   entry.target  = FN-010_mask(entry.target)      // 요청 키값 등 마스킹
-   entry.detail  = maskSensitive(entry.detail)    // 개인정보·회원 키 배제
-   assert(no memberKey plaintext in entry)         // DATA-001-03
+1. 마스킹·미기록 — POL SEC-005-04/06·DATA-001-06·OPS-002-05 (mask)
+   entry.actorId = FN-010_mask(entry.actorId)     // 인증 자격 원문 배제
+   entry.target  = FN-010_mask(entry.target)      // 연동 추적 키 등 앞2·뒤2 마스킹
+   entry.detail  = maskSensitive(entry.detail)    // 추적 키 마스킹·개인정보 배제
+   assert(no encX/encY/birthDate/decryptedX/memberKey/발송처키 in entry)   // 전량 미기록(SEC-005-06·DATA-001-06)
 
 2. 기록 — POL OPS-002-01/02 (audit)
    INSERT INTO TBL_AUDIT_LOG

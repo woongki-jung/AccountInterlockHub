@@ -2,7 +2,7 @@
 
 ## 개요
 
-- **기능 목적**: 서비스 대면 API(처리상태 확인)와 사용자 진입(이용 동의)에 대해 출발지(또는 인증 주체) 기준 분당 60회를 초과하는 요청을 거부한다. 제한 초과 이벤트는 감사 로그에 기록한다. 관리자 경로는 IP 제한(FN-001)으로 1차 보호되어 본 제한의 우선 대상이 아니다.
+- **기능 목적**: 서비스 대면 API(처리상태 확인·완료 확인·완료 콜백)와 사용자 진입·생년월일 재입력 재시도에 대해 출발지(또는 인증 주체) 기준 분당 60회를 초과하는 요청을 거부한다. 사용자 진입 제한은 생년월일 전수대입·재시도 남용의 1차 억제 수단이다(SEC-008·EXC-OPS-04, 본인확인 잠금 아님). 제한 초과 이벤트는 감사 로그에 기록한다. 관리자 경로는 IP 제한(FN-001)으로 1차 보호되어 본 제한의 우선 대상이 아니다.
 - **관련 PRD 요구사항**: [`../../prd/PRD.md`](../../prd/PRD.md) §성과 지표(안정적 처리)·시스템 제약 / 정책 OPS-001.
 - **담당자 확정 대기**: 분당 60회 임계치는 기본안(EXC-OPS-01).
 
@@ -16,18 +16,18 @@
 |------|------|
 | 기능명 | 요청 제한 (Rate Limiting) |
 | 분류 | CRS |
-| 사용 서비스 | SVC-004, SVC-006 |
-| 호출 PROC | PROC-201, PROC-301 |
+| 사용 서비스 | SVC-004, SVC-006, SVC-008, SVC-009 |
+| 호출 PROC | PROC-201, PROC-301, PROC-302, PROC-303 |
 | 연관 정책 | [OPS-001](../policies/policy_OPS.md#ops-001-요청-제한-rate-limiting)(01·02) |
 | 참조 데이터 | 요청 카운터(런타임·비 ENT), [MDL-401](../datas/model_common.md) 감사 로그 |
-| 관련 IA 항목 | API-01, USR-01 |
+| 관련 IA 항목 | API-01, API-02, API-03, USR-01 |
 
 ### 시그니처
 
 ```
 function FN-014_checkRateLimit (
   subject: string,        // 출발지 IP 또는 인증 주체(FN-004 caller)
-  scope: string,          // 대상 경로 스코프(entry / status)
+  scope: string,          // 대상 경로 스코프(entry / status / completion / callback)
   now: DateTime,
   limitPerMin: number,    // 분당 임계치(기본안 60)
 ): void
@@ -59,11 +59,11 @@ function FN-014_checkRateLimit (
    return   // 다음 처리(FN-005·007·009 등)로 진행
 ```
 
-> 관리자 경로는 IP 제한(SEC-001·FN-001)으로 1차 보호되어 본 제한의 우선 대상이 아니다(EXC-OPS-01). 요청 제한은 사용자 진입(PROC-201)·서비스 대면 API(PROC-301)에 적용한다.
+> 관리자 경로는 IP 제한(SEC-001·FN-001)으로 1차 보호되어 본 제한의 우선 대상이 아니다(EXC-OPS-01). 요청 제한은 사용자 진입·생년월일 재시도(PROC-201)·서비스 대면 API(PROC-301 처리상태·PROC-302 완료 확인·PROC-303 완료 콜백)에 적용한다.
 
 ### API 인터페이스
 
-해당 없음 — 진입점 미들웨어 계층의 공통 가드다. GET /interlock/entry·GET /api/status/:requestKey 진입 시 선적용되며 독립 엔드포인트가 아니다.
+해당 없음 — 진입점 미들웨어 계층의 공통 가드다. 사용자 진입(GET /interlock/entry)·처리상태 확인(GET /api/status/:trackingKey)·완료 확인(POST /api/interlock/completion)·완료 콜백(POST /api/interlock/callback) 진입 시 선적용되며 독립 엔드포인트가 아니다.
 
 ### 에러 처리 (에러 코드 카탈로그)
 

@@ -4,6 +4,8 @@
 
 | 일시 (KST) | 단계 | 산출물·결과 | 관련 일감 | 상태 |
 |---|---|---|---|---|
+| 2026-07-11 20:30 | spec | `function_FN-009.md` 개정(처리상태 저장 — saveStatus 키 requestKey→trackingKey·내부 surrogate uuid PK·성공/실패 1건 EXC-BIZ-06·복호화 성공 후 SVC-005 저장·저장 항목 4+구성 참조·개인식별 배제 DATA-003-04) | `accountinterlockhub#219`·`#214` | 🚧 |
+| 2026-07-11 20:30 | spec ⓒ | (공통 반영) #214 기능·API 사양 개정 — FN-020 허브 복호화 신규·추적 키 단독 추적·무저장·에러 체계 — common.md | `accountinterlockhub#219`·`#214` | ℹ️ |
 | 2026-07-11 19:30 | spec | `data_ENT-004.md` 처리상태 저장(연동 추적 키 기준·복호화 성공 후 전달 결과 1건 생성·상태 4항목+생성일시·개인식별/복호화 원문 원천 배제 DATA-003-04)·`model_api.md` MDL-301 정합 | `accountinterlockhub#218`·`#214` | 🚧 |
 | 2026-07-11 19:30 | spec ⓒ | (공통 반영) #214 데이터 사양 개정 — 무저장 강화·비영속 컨텍스트·연동 추적 키·surrogate PK·보관 fallback·ENT-003 폐기 — common.md | `accountinterlockhub#218`·`#214` | ℹ️ |
 | 2026-07-11 18:30 | spec | `service_SVC-005.md` 개정 — 처리상태 저장을 **연동 추적 키 기준**으로 전환(요청 키값 폐기). 복호화 성공 후 전달 결과를 처리상태 4항목에 1건 저장(DATA-003-05·PROC-401), 복호화 이전 거부·복호화 실패는 추적 키 없어 미저장(감사만·EXC-DATA-03) | `accountinterlockhub#217`·`#214` | 🚧 |

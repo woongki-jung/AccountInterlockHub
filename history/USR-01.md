@@ -4,6 +4,8 @@
 
 | 일시 (KST) | 단계 | 산출물·결과 | 관련 일감 | 상태 |
 |---|---|---|---|---|
+| 2026-07-11 20:30 | spec | `function_FN-008.md` 개정(사용자 동의 처리) — buildConsentView accessAddressId(고유 ID) 기반·processDecision 승인 게이팅(BIZ-002-06 서버 재검증). 구 요청 키값(UUID) 발급·진입 컨텍스트 저장·거부 시 처리상태 저장·FN-012 직접 호출 폐기 — 거부·필수 미충족은 복호화 미수행·최소 감사(CONSENT_REJECT)·추적 키 없어 상태/이력 미생성(EXC-BIZ-11). 승인은 SVC-005(PROC-203) 트리거 | `accountinterlockhub#219`·`#214` | 🚧 |
+| 2026-07-11 20:30 | spec ⓒ | (공통 반영) #214 기능·API 사양 개정 — FN-020 허브 복호화 신규·추적 키 단독 추적·무저장·에러 체계 — common.md | `accountinterlockhub#219`·`#214` | ℹ️ |
 | 2026-07-11 19:30 | spec | `model_user.md` MDL-201(진입 요청→**접근 컨텍스트(무저장)**: accessAddressId·encX·encY·생년월일 — 메모리 전용·전량 미기록 SEC-005-06)·MDL-203(동의 결과 — 요청 키값 폐기, decision·accessAddressId·requiredConsentMet 재검증). 복호화 이전이라 추적 키 없어 처리상태·연동이력 미생성(감사만) | `accountinterlockhub#218`·`#214` | 🚧 |
 | 2026-07-11 19:30 | spec ⓒ | (공통 반영) #214 데이터 사양 개정 — 무저장 강화·비영속 컨텍스트·연동 추적 키·surrogate PK·보관 fallback·ENT-003 폐기 — common.md | `accountinterlockhub#218`·`#214` | ℹ️ |
 | 2026-07-11 18:30 | spec | `service_SVC-004.md` 개정 — 이용 동의를 **접근·생년월일 입력·동의/거부·승인 게이팅**으로 재정의. 허브 발급 요청 키값(UUID)·진입 시 연동이력 생성(구 F-002/007)·지정 파라미터 검증(EX-BIZ-007) 폐기 — 연동이력 생성은 복호화 후 SVC-005 로 이동. AUTH-004 생년월일 복호화 요소·BIZ-002-06 필수 동의 게이팅·BIZ-002-07 거부 시 복호화 미수행 최소 기록·BR-201 재정의·BR-203 결번 | `accountinterlockhub#217`·`#214` | 🚧 |

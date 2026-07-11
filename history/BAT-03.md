@@ -4,6 +4,8 @@
 
 | 일시 (KST) | 단계 | 산출물·결과 | 관련 일감 | 상태 |
 |---|---|---|---|---|
+| 2026-07-11 20:30 | spec | `function_FN-016.md` 개정(연동이력 생성 — 생성 시점 진입→**복호화 성공 후**(SVC-005·PROC-403)·저장 키 userKey/requestKey→trackingKey·5항목 상한 DATA-005-05·지정 파라미터 값 검증 EX-BIZ-007 폐기·추적 키 완결성은 FN-020 선검증)·`function_FN-018.md`(완료 기록 연동이력만 갱신 BIZ-004-11) | `accountinterlockhub#219`·`#214` | 🚧 |
+| 2026-07-11 20:30 | spec ⓒ | (공통 반영) #214 기능·API 사양 개정 — FN-020 허브 복호화 신규·추적 키 단독 추적·무저장·에러 체계 — common.md | `accountinterlockhub#219`·`#214` | ℹ️ |
 | 2026-07-11 19:30 | spec | `data_ENT-007.md` 연동이력 개정(request_key UUID PK·user_key varchar(512) 원문 **폐기**→내부 surrogate uuid PK + 연동 추적 키 tracking_key varchar(255)·비유니크·5항목+생성일시 DATA-005-05·회원 키/복호화 원문 무저장 DATA-005-06)·생성 시점 진입(구 SVC-004)→**복호화 성공 후**(SVC-005·BIZ-004-07)·`model_api.md` MDL-303(userKey·requestKey 제거) | `accountinterlockhub#218`·`#214` | 🚧 |
 | 2026-07-11 19:30 | spec ⓒ | (공통 반영) #214 데이터 사양 개정 — 무저장 강화·비영속 컨텍스트·연동 추적 키·surrogate PK·보관 fallback·ENT-003 폐기 — common.md | `accountinterlockhub#218`·`#214` | ℹ️ |
 | 2026-07-11 18:30 | spec | `service_SVC-005.md`·`service_SVC-009.md` 개정 — 연동이력 저장 재편: 생성 시점을 진입(구 SVC-004)에서 **복호화 성공 후(SVC-005·BIZ-004-07)**로 이동, 완료 기록은 콜백(SVC-009·BIZ-004-09) 연동 추적 키 단독 특정. 저장 항목 추적 키·접근 주소 구성 참조·요청 일시·수신 여부·수신 일시(DATA-005-05) | `accountinterlockhub#217`·`#214` | 🚧 |

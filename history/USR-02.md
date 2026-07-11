@@ -4,6 +4,8 @@
 
 | 일시 (KST) | 단계 | 산출물·결과 | 관련 일감 | 상태 |
 |---|---|---|---|---|
+| 2026-07-11 20:30 | spec | `function_FN-020.md` 신설(허브 복호화·연동 추적 키 추출 — 생년월일→encY→키→encX→X, normalize32/iv16 `_` 우패딩·AES-256-CBC·PKCS#7·추적 키 X 필드 추출·완결성 검증·전량 미기록, EX-SEC-007/006·EX-BIZ-008)·`function_FN-012.md` 개정(회원키 직전달→복호화 원문 X 서버-서버 POST SEC-007·재시도 2회·상태 저장)·`function_FN-016.md`(복호화 후 이력 생성·userKey 폐기·5항목)·`function_FN-009.md`(상태 저장 trackingKey). 승인 경로 PROC-203 오케스트레이션 FN-020→016→012→009 | `accountinterlockhub#219`·`#214` | 🚧 |
+| 2026-07-11 20:30 | spec ⓒ | (공통 반영) #214 기능·API 사양 개정 — FN-020 허브 복호화 신규·추적 키 단독 추적·무저장·에러 체계 — common.md | `accountinterlockhub#219`·`#214` | ℹ️ |
 | 2026-07-11 19:30 | spec | `model_user.md` MDL-204(전달 페이로드→**복호화 원문 X**: 회원 키·추적 키 등 무저장·무변형·서버-서버 POST SEC-007·완료 페이지 원문 미포함)·MDL-202(연동 추적 키 추출)·`data_ENT-007.md`·`data_ENT-004.md` 생성 시점 정합(복호화 성공 후 이력 생성→전달→처리상태 저장) | `accountinterlockhub#218`·`#214` | 🚧 |
 | 2026-07-11 19:30 | spec ⓒ | (공통 반영) #214 데이터 사양 개정 — 무저장 강화·비영속 컨텍스트·연동 추적 키·surrogate PK·보관 fallback·ENT-003 폐기 — common.md | `accountinterlockhub#218`·`#214` | ℹ️ |
 | 2026-07-11 18:30 | spec | `service_SVC-005.md` 개정 — 연동 실행을 **허브 복호화(생년월일→encY→키→encX→X)·연동 추적 키 추출·연동이력 생성·수신처 B 서버-서버 전달·완료 페이지**로 재정의. 연동이력 생성(BIZ-004-07·PROC-403) 편입·전달 페이로드=복호화 원문 X(SEC-007-01·SEC-002). BR-204(복호화 성공/실패 재입력)·EX-SEC-006/007·EX-BIZ-008 신규, BR-202·EX-BIZ-004 유지. 매핑 PROC +PROC-403 | `accountinterlockhub#217`·`#214` | 🚧 |

@@ -4,6 +4,8 @@
 
 | 일시 (KST) | 단계 | 산출물·결과 | 관련 일감 | 상태 |
 |---|---|---|---|---|
+| 2026-07-11 20:30 | spec | `function_FN-017.md` 개정(완료 확인 판정 — 스코프 {구성+지정 키값}→**연동 추적 키 단독** 최신 1건 BIZ-004-10)·`function_FN-019.md`(스코프 조회 tracking_key 단독·구성 지정 검증 폐기·{target,anyInScope} 반환)·`function_FN-004.md`(발송처 주체 인증). 응답 3항목 SEC-005-05·EX-BIZ-005·읽기 전용 유지 | `accountinterlockhub#219`·`#214` | 🚧 |
+| 2026-07-11 20:30 | spec ⓒ | (공통 반영) #214 기능·API 사양 개정 — FN-020 허브 복호화 신규·추적 키 단독 추적·무저장·에러 체계 — common.md | `accountinterlockhub#219`·`#214` | ℹ️ |
 | 2026-07-11 19:30 | spec | `data_ENT-007.md`·`model_api.md` MDL-304(완료 확인 — 판정 스코프 {구성+지정 키값}→**연동 추적 키 단독** 최신 1건 BIZ-004-10·판정 3항목 SEC-005-05·추적 키 원문/X 내용 배제)·IX_HISTORY_TRACKING(tracking_key, requested_at DESC) | `accountinterlockhub#218`·`#214` | 🚧 |
 | 2026-07-11 19:30 | spec ⓒ | (공통 반영) #214 데이터 사양 개정 — 무저장 강화·비영속 컨텍스트·연동 추적 키·surrogate PK·보관 fallback·ENT-003 폐기 — common.md | `accountinterlockhub#218`·`#214` | ℹ️ |
 | 2026-07-11 18:30 | spec | `service_SVC-008.md` 개정 — 완료 확인 판정 단위를 **{구성 식별자+사용자 키값}에서 연동 추적 키 단독**으로 전환(BIZ-004-10, 연동 요청 일시 최신 1건 tiebreaker). 구성 지정 여부 검증(구 F-004) 폐기·EX-BIZ-005(추적 키 이력 없음)·SEC-005-05 응답 마스킹·읽기 전용 유지 | `accountinterlockhub#217`·`#214` | 🚧 |
