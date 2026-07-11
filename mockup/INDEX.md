@@ -2,6 +2,8 @@
 
 확정 화면 사양([`../docs/specs/screens/`](../docs/specs/screens/))을 반영한 **UI 중심 경량 목업**(버려지는 static HTML)이다. 실코드·비즈니스 로직·실 API 없음. 화면 외형·흐름·상태(정상/Loading/Empty/Error)만 시각화한다. 데이터는 모두 명백한 더미값이다.
 
+> **2026-07-11 `#214` 개정판**: 핵심 연동 플로우를 **단일 암호화 JSON(encX/encY)·허브 복호화·수신처 서버-서버 전달·연동 추적 키(X 내부 필드)**로 재정의한 화면 사양(`docs/specs/screens/` 전체)을 반영해 목업을 갱신했다. 사용자 흐름을 **발송처 링크 진입(접근 주소=발송처 판별)→생년월일 입력→동의→승인→(허브 복호화·전달)→완료/실패**로 바꾸고, SCR-005 에 **생년월일 입력 필드**와 복호화 실패 재입력·링크 오류 상태를 신설했다. 관리자 폼(SCR-003)·상세(SCR-004)에서 **전달 파라미터 정의·사용자 키값 exactly-one 지정(`#33`)·서비스 A 진입 주소를 폐기**했다. SCR 코드·파일명은 유지하고 의미만 갱신했다.
+
 ## 열람 방법
 
 - **진입점은 [`index.html`](index.html) 허브 페이지**다. 브라우저로 `index.html` 를 열면 6개 화면을 관리자/사용자 흐름으로 묶어 카드로 보여주며, 카드를 눌러 각 화면으로 이동한다(로컬 파일, 서버 불필요).
@@ -16,41 +18,61 @@
 | 파일 | 화면명 | SCR 코드 | 경로 | 관련 IA | 레이아웃 |
 |------|--------|----------|------|---------|----------|
 | [SCR-001.html](SCR-001.html) | 관리자 로그인 | SCR-001 | `/admin/login` | ADM-03 | 중앙 카드(480px) |
-| [SCR-002.html](SCR-002.html) | 연동 구성 목록 | SCR-002 | `/admin/configs` | ADM-02 | 관리자 셸(1120px) |
-| [SCR-003.html](SCR-003.html) | 연동 구성 등록·편집 폼 | SCR-003 | `/admin/configs/new`·`/:id/edit` | ADM-01 | 관리자 셸(1120px) |
-| [SCR-004.html](SCR-004.html) | 연동 구성 상세 | SCR-004 | `/admin/configs/:id` | ADM-02 | 관리자 셸(1120px) |
-| [SCR-005.html](SCR-005.html) | 사용자 이용 동의 | SCR-005 | `/consent/:requestKey` | USR-01 | 중앙 카드(480px) |
-| [SCR-006.html](SCR-006.html) | 동의 결과 | SCR-006 | `/consent/:requestKey/result` | USR-02 | 중앙 카드(480px) |
+| [SCR-002.html](SCR-002.html) | 발송처 접근 주소 구성 목록 | SCR-002 | `/admin/configs` | ADM-02 | 관리자 셸(1120px) |
+| [SCR-003.html](SCR-003.html) | 발송처 접근 주소 구성 등록·편집 폼 | SCR-003 | `/admin/configs/new`·`/:id/edit` | ADM-01 | 관리자 셸(1120px) |
+| [SCR-004.html](SCR-004.html) | 발송처 접근 주소 구성 상세 | SCR-004 | `/admin/configs/:id` | ADM-02 | 관리자 셸(1120px) |
+| [SCR-005.html](SCR-005.html) | 사용자 이용 동의 | SCR-005 | `/interlock/entry/:accessAddressId`(+`?encX=…&encY=…`, 화면 미표시) | USR-01 | 중앙 카드(480px) |
+| [SCR-006.html](SCR-006.html) | 동의 결과 | SCR-006 | `/interlock/result` | USR-02 | 중앙 카드(480px) |
 
-> API-01(처리상태 확인 API)·BAT-01·BAT-02(배치)는 화면이 없어 목업 대상이 아니다.
+> API-01~03(처리상태·완료 확인·완료 콜백)·BAT-01·02(상태 저장·보관 배치)는 화면이 없어 목업 대상이 아니다(서버 대면·백그라운드).
 
 ## 화면 흐름 요약
 
 **관리자 흐름**
 
 1. SCR-001 로그인 성공 → SCR-002 목록.
-2. SCR-002 목록 "연동 구성 등록" → SCR-003(신규), 행(구성명) 클릭 → SCR-004 상세.
+2. SCR-002 목록 "발송처 접근 주소 등록" → SCR-003(신규), 행(구성명) 클릭 → SCR-004 상세.
 3. SCR-004 상세 "편집" → SCR-003(편집), 저장 성공 → SCR-004 복귀.
 4. SCR-004 상세 "삭제" 확정 → SCR-002 목록 복귀.
 5. 모든 관리자 화면에서 세션 만료 → SCR-001(`?expired=1`) 재인증 유도(SCR-001 "세션만료 안내" 상태로 시연).
 
-**사용자 흐름**
+**사용자 흐름 (`#214` 개정)**
 
-1. 서비스 A 진입(`/interlock/entry`) → 요청 키값 발급 → SCR-005 이용 동의 유입(선행 화면은 목업 범위 밖).
-2. SCR-005 동의/거부 제출 → SCR-006 동의 결과(`?result=success|reject`로 상태 전달 시연).
-3. SCR-006 은 동의 완료/거부 종료/전달 실패/Fallback 결과를 표시하고 강제 이동을 하지 않는다.
+1. 발송처 링크(`/interlock/entry/:accessAddressId?encX=…&encY=…`)로 SCR-005 이용 동의에 **직접 진입** — 접속한 접근 주소(고유 ID)가 발송처 판별값이다. 선행 화면 없음(구 요청 키값(UUID) 발급 경로는 `#214` 로 폐기).
+2. SCR-005 에서 **생년월일 입력** + 필수 동의 체크 후 승인 제출 → 허브 복호화·수신처 B 전달(목업은 `SCR-006.html?result=…` 쿼리로 결과 상태를 전달해 시연).
+3. 결과에 따라 SCR-006 이동: 완료(success)·거부(reject)·전달 실패(fail)·**링크 오류(linkerr, `#214` 신설)**. 단 **복호화 실패는 SCR-005 에 머물러** 생년월일 인라인 에러로 재입력을 유도한다(화면 이동 없음 — 목업은 별도 "상태 시연" 버튼으로 시연).
+4. SCR-006 은 결과 유형만 표시하고 신규 화면 이동을 강제하지 않는다(전달 실패·Fallback 은 재진입 경로 안내 버튼 제공).
 
 ## 화면 ↔ SCR ↔ 상태 매핑
 
 | SCR | 화면 | 시연한 상태(상태 시연 바) | 주요 컴포넌트 |
 |-----|------|--------------------------|---------------|
 | SCR-001 | 관리자 로그인 | Initial · Loading · 세션만료 안내 · 인증실패(401) · 계정잠금(423) · IP차단(403) | Card · TextField · Banner · Button(primary) |
-| SCR-002 | 연동 구성 목록 | Initial(Skeleton) · Loaded · Empty · Error | AdminNav · Table · Badge · Toggle · Modal(삭제) · Toast · EmptyState |
-| SCR-003 | 등록·편집 폼 | 폼 · 편집 로드(Skeleton) · Submitting / 오류: 검증(422)·중복(409)·형식(400·413) · 모드: 등록/편집 | TextField · Select · Toggle · RepeatableRows(파라미터: 원천 키·전달·**사용자 키값 단일 라디오** / 동의: 라벨·설명·약관 컨텐츠 textarea·필수) · Banner(개인정보 경고) · Toast |
-| SCR-004 | 연동 구성 상세 | Initial(Skeleton) · Loaded · 대상 없음 · Error · 사용자 키값 지정/미지정(시연) | Card · Badge(활성·**사용자 키값**) · Toggle · Table(파라미터·동의: 약관 유무 열) · Modal(삭제·약관 열람) · Toast |
-| SCR-005 | 사용자 이용 동의 | Initial(Skeleton) · Loaded · Submitting · 키/컨텍스트 오류(400) · 요청제한(429) | Card · Checkbox 목록([상세] 버튼) · Button(primary/secondary) · Modal(약관 상세: [동의]/[닫기]) · Banner |
-| SCR-006 | 동의 결과 | 동의완료(success) · 거부종료(info) · 전달실패(502) · Fallback(직접 진입) | Card · Badge · Banner |
+| SCR-002 | 발송처 접근 주소 구성 목록 | Initial(Skeleton) · Loaded · Empty · Error | AdminNav · Table · Badge · Toggle · Modal(삭제) · Toast · EmptyState |
+| SCR-003 | 등록·편집 폼 | 폼 · 편집 로드(Skeleton) · Submitting / 오류: 검증(422)·중복(409)·형식(400·413) · 모드: 등록/편집 | TextField · Select · Toggle · RepeatableRows(동의 항목: 라벨·설명·약관 컨텐츠 textarea·필수) · Toast |
+| SCR-004 | 발송처 접근 주소 구성 상세 | Initial(Skeleton) · Loaded · 대상 없음 · Error | Card · Badge(활성) · Toggle · Table(동의 항목: 약관 유무 열) · Modal(삭제·약관 열람) · Toast |
+| SCR-005 | 사용자 이용 동의 | Initial(Skeleton) · Loaded · Submitting · **복호화 실패·재입력(생년월일 인라인 에러)** · 형식·크기 오류(400/413) · 요청제한(429) | Card · TextField(**birthdate**) · Checkbox 목록([상세] 버튼) · Button(primary/secondary) · Modal(약관 상세: [동의]/[닫기]) · Banner |
+| SCR-006 | 동의 결과 | 연동완료(success) · 거부(info) · 전달실패(502) · **링크오류(400, 신설)** · Fallback(직접 진입) | Card · Badge · Banner |
 
 ## 반영한 디자인
 
-[`../docs/specs/screens/design-system.md`](../docs/specs/screens/design-system.md) 토큰을 하드코딩 반영: primary #2563EB / danger #DC2626 / success #16A34A / text #111827, 간격 4·8·12·16·24·32·48px, 라운딩 4·8·12px, 타이포 display28/h1 22/h2 18/body15/label14/caption13. 관리자 셸=헤더(AdminNav)+1120px 컨테이너, 사용자 셸=중앙 카드 480px.
+[`../docs/specs/screens/design-system.md`](../docs/specs/screens/design-system.md) 토큰을 하드코딩 반영: primary #2563EB / danger #DC2626 / success #16A34A / info #0891B2 / text #111827, 간격 4·8·12·16·24·32·48px, 라운딩 4·8·12px, 타이포 display28/h1 22/h2 18/body15/label14/caption13. 관리자 셸=헤더(AdminNav)+1120px 컨테이너, 사용자 셸=중앙 카드 480px. SCR-005 본인확인 섹션은 디자인 시스템의 `TextField(birthdate)` 변형(6자리 숫자·`inputMode=numeric`·YYMMDD 플레이스홀더)을 반영했다. SCR-006 거부 상태는 design-system §상태 표현 규칙의 "거부(info 중립)" 정의에 맞춰 `info` 배지(청록)를 사용한다(구 버전은 회색 neutral 오표기 — 본 개정에서 수정).
+
+encX·encY·생년월일 등 민감값은 design-system §마스킹·노출 제어(SEC-005-06·SEC-006-06)에 따라 어떤 화면·더미 데이터에도 값으로 노출하지 않는다 — 생년월일 입력 필드는 항상 빈 값(placeholder만 `YYMMDD`)으로 두고, SCR-005 mock-bar 태그·SCR-006 경로 표기에도 실제 encX·encY 값은 등장하지 않는다.
+
+## 사양 보완 후보 (목업 작성 중 발견)
+
+목업 제작 과정에서 발견한 화면 사양의 모호·누락·상충 후보다(추정으로 채운 부분 표시). spec 오케스트레이터의 사양 검증 루프 입력.
+
+| # | 내용 | 출처 | 목업에서의 처리(추정) |
+|---|------|------|----------------------|
+| 1 | SCR-005 의 "데이터 표시" 표에 동의 대상(발송처/구성명) 식별 요소가 명시되지 않았다. 레이아웃 절은 "연동 대상 안내 문구"라고만 서술해 실제로 무엇을 보여줄지 불명확하다. 접근 주소 고유 ID 는 같은 표에서 "화면 비표시"로 명시되어 있어 구성명조차 노출 근거가 약하다. | `screen_SCR-005.md` §레이아웃 구성 1번 / §데이터 표시 표 | 특정 구성명을 노출하지 않는 일반 안내 문구("발송처를 통해 접근하신 연동 서비스 이용을 위해…")로 처리. ⚠ 추정 |
+| 2 | SCR-005 생년월일 필드의 FE 인라인 에러(형식 위반)와 복호화 실패(EX-SEC-006) 서버 에러가 같은 캡션 영역을 공유하는지, 문구·트리거 시점(입력 중/blur/제출 시)이 어떻게 다른지 화면 정의서에 명시가 없다. `design-system.md` §상태 표현은 "생년월일 인라인 에러(role=alert)"만 언급하고 트리거 조건은 서술하지 않는다. | `screen_SCR-005.md` §입력 폼 정의 / `design-system.md` §사용자 연동 실행 상태 표현 | 하나의 캡션 요소를 재사용하되, blur 시 FE 형식 메시지("생년월일 6자리(YYMMDD)를 정확히 입력해 주세요."), 서버 실패 시 별도 메시지("본인확인 정보가 올바르지 않습니다…")로 텍스트만 교체. ⚠ 추정 |
+| 3 | SCR-006 "전달 실패" 상태에 재진입 버튼을 둘지 여부가 build 확정 대기로 명시되어 있다(`screen_SCR-006.md` §구현 가이드: "build 에서 재시도 액션 제공 여부 확정"). 그런데 같은 문서 §Navigation 표는 "전달 실패 재시도(있을 시)"를 SCR-005 로 가는 경로로 이미 나열하고, `design-system.md` §상태 표현 규칙은 전달 실패 행에 "재진입 경로"를 조건 없이 명시해 두 문서 간 확정 수준이 다르다. | `screen_SCR-006.md` §구현 가이드·§Navigation / `design-system.md` §사용자 연동 실행 상태 표현 | design-system 의 "재진입 경로" 문구를 따라 [발송처 링크로 다시 시도] 버튼을 노출. build 확정 시 제거될 수 있음을 전제. ⚠ 추정 |
+| 4 | SCR-006 결과 배지 색상표에서 "거부(info 중립)"의 의미가 이중 해석 가능하다 — `info` 컴포넌트 변형(청록)을 쓰라는 것인지, "중립"이라는 별도 회색조를 쓰라는 것인지 문구만으로는 확정하기 어렵다(구 버전 목업은 회색 `neutral` 을 사용했었다). | `design-system.md` §공통 컴포넌트 Badge 행 / §상태 표현 규칙 | `info`(청록) 배지·아이콘으로 통일 해석(코드에 이미 정의된 `info` 배지 스타일을 채택). ⚠ 추정 — 회색조 의도였다면 build 단계 수정 필요 |
+| 5 | 접근 주소 고유 ID 의 자동 생성 여부·형식(영문/숫자/하이픈 등)은 `screen_SCR-003.md` §구현 가이드가 명시적으로 "build 에서 데이터 도메인과 정합되게 확정"이라 밝힌 미확정 항목이다(신규 항목 아님, 기존 버전부터 이어진 open 사항). | `screen_SCR-003.md` §구현 가이드 | 목업은 예시값(`CFG-PAYLINK-01` 등)과 "영문·숫자·하이픈, 최대 64자" 힌트 문구를 그대로 유지. ⚠ 기존 추정 유지 |
+
+## 개정 이력
+
+- **2026-07-11 (`#214`)**: 암호화 연동 플로우 개정 반영 — SCR-002~006 전면 갱신(용어·필드·상태), SCR-001 유지. 상세는 위 개정판 안내·본 표 참고.
+- **v0.1.0**: 최초 목업(연동 구성 요청 키값(UUID) 기반 플로우).

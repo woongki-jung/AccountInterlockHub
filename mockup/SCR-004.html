@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>SCR-004 연동 구성 상세 · 목업</title>
+<title>SCR-004 발송처 접근 주소 구성 상세 · 목업</title>
 <style>
 :root{
   --primary:#2563EB;--primary-hover:#1D4ED8;--primary-weak:#DBEAFE;
@@ -70,21 +70,6 @@ tbody tr:last-child td{border-bottom:none}
 .pill{display:inline-block;padding:2px 8px;border-radius:var(--r-sm);font-size:12px;background:var(--primary-weak);color:#1E40AF}
 .pill.no{background:#F3F4F6;color:#6B7280}
 .pill.req{background:#FEE2E2;color:#991B1B}
-.mock-bar .sep{width:1px;height:18px;background:#4B5563;margin:0 2px}
-/* 사용자 키값 파라미터 지정 표시(읽기 전용) */
-.ukey-summary{display:flex;flex-wrap:wrap;align-items:center;gap:6px;padding:10px 14px;background:var(--primary-weak);border:1px solid #BFDBFE;border-radius:var(--r-md);font-size:14px;margin-bottom:16px}
-.ukey-summary b{color:#1E3A8A}
-.ukey-summary .uk-hint{color:#1E3A8A;font-size:13px}
-.badge-userkey{display:none;align-items:center;gap:5px;height:24px;padding:0 9px;border-radius:var(--r-sm);font-size:12px;font-weight:600;background:#1E40AF;color:#fff}
-.badge-userkey::before{content:"🔑";width:auto;height:auto;background:none;border-radius:0;opacity:1;font-size:11px}
-body[data-uk="set"] .badge-userkey{display:inline-flex}
-.uk-name{display:none}
-body[data-uk="set"] .uk-name{display:inline}
-.uk-none-txt{display:none}
-body[data-uk="none"] .uk-none-txt{display:inline}
-.dash{color:var(--muted)}
-.ukcell .uk-dash{display:none;color:var(--muted)}
-body[data-uk="none"] .ukcell .uk-dash{display:inline}
 /* skeleton */
 .sk{background:linear-gradient(90deg,#eef0f2 25%,#f6f7f8 37%,#eef0f2 63%);background-size:400% 100%;animation:sh 1.2s infinite;border-radius:4px}
 @keyframes sh{0%{background-position:100% 0}100%{background-position:-100% 0}}
@@ -116,16 +101,16 @@ body[data-state="loaded"] .head-actions,body[data-state="loaded"] .head-badge{di
 .head-actions,.head-badge{display:none}
 </style>
 </head>
-<body data-state="loaded" data-uk="set">
+<body data-state="loaded">
 
 <div class="mock-chrome">
 <nav class="mock-nav">
   <a class="mn-home" href="index.html">🗂 목업 인덱스</a>
   <span class="mn-grp">관리자</span>
   <a href="SCR-001.html" data-scr>로그인</a>
-  <a href="SCR-002.html" data-scr>구성 목록</a>
+  <a href="SCR-002.html" data-scr>접근주소 목록</a>
   <a href="SCR-003.html" data-scr>등록·편집</a>
-  <a href="SCR-004.html" data-scr>구성 상세</a>
+  <a href="SCR-004.html" data-scr>접근주소 상세</a>
   <span class="mn-grp">사용자</span>
   <a href="SCR-005.html" data-scr>이용 동의</a>
   <a href="SCR-006.html" data-scr>동의 결과</a>
@@ -137,10 +122,6 @@ body[data-state="loaded"] .head-actions,body[data-state="loaded"] .head-badge{di
   <button data-s="initial" onclick="setState('initial')">Initial(Skeleton)</button>
   <button data-s="empty" onclick="setState('empty')">대상 없음</button>
   <button data-s="error" onclick="setState('error')">Error</button>
-  <span class="sep"></span>
-  <span class="lbl">사용자 키값:</span>
-  <button data-uk="set" class="active" onclick="setUserKey('set')">지정(memberCi)</button>
-  <button data-uk="none" onclick="setUserKey('none')">미지정(방어)</button>
   <span class="tag">SCR-004 · /admin/configs/:id</span>
 </div>
 </div><!-- /mock-chrome -->
@@ -153,7 +134,7 @@ body[data-state="loaded"] .head-actions,body[data-state="loaded"] .head-badge{di
 </div>
 
 <div class="container">
-  <div class="crumb"><a href="SCR-002.html">연동 구성 목록</a> / 상세</div>
+  <div class="crumb"><a href="SCR-002.html">발송처 접근 주소 목록</a> / 상세</div>
 
   <div class="dethead">
     <h1>결제 연동 - 페이링크</h1>
@@ -172,7 +153,7 @@ body[data-state="loaded"] .head-actions,body[data-state="loaded"] .head-badge{di
     <div class="card">
       <h2>기본 정보</h2>
       <dl class="dl">
-        <dt>구성 코드</dt><dd class="mono">CFG-PAYLINK-01</dd>
+        <dt>접근 주소 고유 ID</dt><dd class="mono">CFG-PAYLINK-01</dd>
         <dt>구성명</dt><dd>결제 연동 - 페이링크</dd>
         <dt>활성 여부</dt><dd><span class="badge badge-active">활성</span></dd>
         <dt>생성 일시</dt><dd>2026-06-30 14:22</dd>
@@ -180,37 +161,11 @@ body[data-state="loaded"] .head-actions,body[data-state="loaded"] .head-badge{di
     </div>
 
     <div class="card">
-      <h2>서비스 A 진입</h2>
-      <dl class="dl">
-        <dt>호출 주소</dt><dd><a href="#" onclick="return false">https://service-a.example.com/interlock/entry</a></dd>
-      </dl>
-    </div>
-
-    <div class="card">
-      <h2>서비스 B 전달</h2>
+      <h2>수신처 B 전달</h2>
       <dl class="dl">
         <dt>전달 주소</dt><dd><a href="#" onclick="return false">https://service-b.example.com/receive</a></dd>
         <dt>전달 방식</dt><dd>POST</dd>
       </dl>
-    </div>
-
-    <div class="card">
-      <h2>전달 파라미터 (2)</h2>
-      <div class="ukey-summary">
-        <span>🔑 사용자 키값 파라미터:</span>
-        <b class="uk-name">memberCi</b><b class="uk-none-txt">지정 없음</b>
-        <span class="uk-hint uk-name">— 지정 값이 연동이력·완료 확인(API-02)·완료 콜백(API-03)의 사용자 키값 근거입니다(BIZ-004). 지정은 필수(정확히 1개).</span>
-        <span class="uk-hint uk-none-txt">— (방어) 지정은 필수라 정상 구성엔 미발생. 미지정 구성은 연동이력·완료 확인/콜백 대상이 아닙니다(BIZ-004-05).</span>
-      </div>
-      <div class="tablewrap">
-        <table>
-          <thead><tr><th>순서</th><th>파라미터명</th><th>서비스 A 원천 키명</th><th>서비스 B 전달</th><th>사용자 키값</th></tr></thead>
-          <tbody>
-            <tr><td>1</td><td class="mono">orderId</td><td class="mono">a_order_id</td><td><span class="pill">전달</span></td><td><span class="dash">—</span></td></tr>
-            <tr><td>2</td><td class="mono">memberCi</td><td class="mono">a_member_ci</td><td><span class="pill">전달</span></td><td class="ukcell"><span class="badge badge-userkey">사용자 키값</span><span class="uk-dash">—</span></td></tr>
-          </tbody>
-        </table>
-      </div>
     </div>
 
     <div class="card">
@@ -219,7 +174,7 @@ body[data-state="loaded"] .head-actions,body[data-state="loaded"] .head-badge{di
         <table>
           <thead><tr><th>순서</th><th>라벨</th><th>설명</th><th>필수</th><th>약관 컨텐츠</th></tr></thead>
           <tbody>
-            <tr><td>1</td><td>결제 정보 제공 동의</td><td>주문·결제 식별 정보를 서비스 B로 전달합니다.</td><td><span class="pill req">필수</span></td><td><span class="pill">설정됨</span> <button class="btn btn-sm btn-secondary" onclick="openTerms('결제 정보 제공 동의')">약관 보기</button></td></tr>
+            <tr><td>1</td><td>결제 정보 제공 동의</td><td>주문·결제 식별 정보를 수신처로 전달합니다.</td><td><span class="pill req">필수</span></td><td><span class="pill">설정됨</span> <button class="btn btn-sm btn-secondary" onclick="openTerms('결제 정보 제공 동의')">약관 보기</button></td></tr>
             <tr><td>2</td><td>마케팅 활용 동의</td><td>이벤트·혜택 안내에 활용합니다.</td><td><span class="pill no">선택</span></td><td><span class="pill no">없음</span></td></tr>
           </tbody>
         </table>
@@ -251,7 +206,7 @@ body[data-state="loaded"] .head-actions,body[data-state="loaded"] .head-badge{di
     <div class="panel">
       <div class="ico">🔍</div>
       <h2>대상 구성을 찾을 수 없습니다</h2>
-      <p>이미 삭제되었거나 존재하지 않는 연동 구성입니다.</p>
+      <p>이미 삭제되었거나 존재하지 않는 발송처 접근 주소 구성입니다.</p>
       <a class="btn btn-primary" href="SCR-002.html">목록으로</a>
     </div>
   </div>
@@ -267,7 +222,7 @@ body[data-state="loaded"] .head-actions,body[data-state="loaded"] .head-badge{di
 
 <div class="scrim" id="scrim">
   <div class="modal" role="dialog" aria-modal="true">
-    <h2>연동 구성 삭제</h2>
+    <h2>발송처 접근 주소 삭제</h2>
     <p><strong>결제 연동 - 페이링크</strong> 을(를) 삭제하시겠습니까? 이 작업은 되돌릴 수 없으며 감사 로그에 기록됩니다(OPS-002).</p>
     <div class="mactions">
       <button class="btn btn-secondary" onclick="closeModal()">취소</button>
@@ -294,16 +249,12 @@ function setState(s){
   document.body.dataset.state=s;
   document.querySelectorAll('.mock-bar [data-s]').forEach(function(b){b.classList.toggle('active',b.dataset.s===s)});
 }
-function setUserKey(v){ // 목업 시연: 사용자 키값 파라미터 지정 구성 / 미지정 구성(방어 표시) 전환(읽기 전용). 지정 필수라 정상 구성은 항상 'set'
-  document.body.dataset.uk=v;
-  document.querySelectorAll('.mock-bar [data-uk]').forEach(function(b){b.classList.toggle('active',b.dataset.uk===v)});
-}
 function openModal(){document.getElementById('scrim').classList.add('show')}
 function closeModal(){document.getElementById('scrim').classList.remove('show')}
 function doDelete(){closeModal();var t=document.getElementById('toast');t.textContent='삭제되었습니다';t.classList.add('show');setTimeout(function(){location.href='SCR-002.html'},900)}
 var tt;function toast(msg){var t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');clearTimeout(tt);tt=setTimeout(function(){t.classList.remove('show')},2500)}
 // 약관 컨텐츠 열람(관리자 상세는 열람 전용 — 저장된 전체 약관 본문 확인)
-var TERMS={'결제 정보 제공 동의':'[결제 정보 제공 동의]\n\n제1조(목적) 본 약관은 결제 연동을 위하여 주문·결제 식별 정보를 서비스 B에 제공하는 데 필요한 사항을 정합니다.\n제2조(제공 항목) 주문번호, 결제수단 식별자, 결제금액 등 최소 항목.\n제3조(보유 기간) 처리 완료 후 관련 법령이 정한 기간까지 보관합니다.\n\n※ 본 문구는 목업용 예시 본문입니다.'};
+var TERMS={'결제 정보 제공 동의':'[결제 정보 제공 동의]\n\n제1조(목적) 본 약관은 결제 연동을 위하여 주문·결제 식별 정보를 수신처(서비스 B)에 제공하는 데 필요한 사항을 정합니다.\n제2조(제공 항목) 주문번호, 결제수단 식별자, 결제금액 등 최소 항목.\n제3조(보유 기간) 처리 완료 후 관련 법령이 정한 기간까지 보관합니다.\n\n※ 본 문구는 목업용 예시 본문입니다.'};
 function openTerms(label){var t=TERMS[label]||'(약관 컨텐츠 없음)';document.getElementById('termsTitle').textContent=label+' — 약관 컨텐츠';document.getElementById('termsBody').textContent=t;document.getElementById('termsScrim').classList.add('show')}
 function closeTerms(){document.getElementById('termsScrim').classList.remove('show')}
 document.getElementById('scrim').addEventListener('click',function(e){if(e.target===this)closeModal()});
