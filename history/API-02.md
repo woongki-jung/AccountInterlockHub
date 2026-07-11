@@ -4,6 +4,8 @@
 
 | 일시 (KST) | 단계 | 산출물·결과 | 관련 일감 | 상태 |
 |---|---|---|---|---|
+| 2026-07-11 19:30 | spec | `data_ENT-007.md`·`model_api.md` MDL-304(완료 확인 — 판정 스코프 {구성+지정 키값}→**연동 추적 키 단독** 최신 1건 BIZ-004-10·판정 3항목 SEC-005-05·추적 키 원문/X 내용 배제)·IX_HISTORY_TRACKING(tracking_key, requested_at DESC) | `accountinterlockhub#218`·`#214` | 🚧 |
+| 2026-07-11 19:30 | spec ⓒ | (공통 반영) #214 데이터 사양 개정 — 무저장 강화·비영속 컨텍스트·연동 추적 키·surrogate PK·보관 fallback·ENT-003 폐기 — common.md | `accountinterlockhub#218`·`#214` | ℹ️ |
 | 2026-07-11 18:30 | spec | `service_SVC-008.md` 개정 — 완료 확인 판정 단위를 **{구성 식별자+사용자 키값}에서 연동 추적 키 단독**으로 전환(BIZ-004-10, 연동 요청 일시 최신 1건 tiebreaker). 구성 지정 여부 검증(구 F-004) 폐기·EX-BIZ-005(추적 키 이력 없음)·SEC-005-05 응답 마스킹·읽기 전용 유지 | `accountinterlockhub#217`·`#214` | 🚧 |
 | 2026-07-11 18:30 | spec ⓒ | (공통 반영) #214 서비스 목록문서 개정 — spec-services.md 사용자 정의 4역할·시나리오·의존관계·BR/EX/MDL/POL 카탈로그 — common.md | `accountinterlockhub#217`·`#214` | ℹ️ |
 | 2026-07-11 16:20 | spec ⓒ | (공통 반영) #214 암호화 연동 정책 개정 — BIZ-004-10 연동 추적 키 단독 완료 판정(최신 1건)·DATA-005/006 이력·SEC-003 인증·SEC-005-05 완료 확인 응답 마스킹·EX-BIZ-005 — common.md | `accountinterlockhub#216`·`#214` | ℹ️ |

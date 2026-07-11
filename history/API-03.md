@@ -4,6 +4,8 @@
 
 | 일시 (KST) | 단계 | 산출물·결과 | 관련 일감 | 상태 |
 |---|---|---|---|---|
+| 2026-07-11 19:30 | spec | `model_api.md` MDL-305(완료 콜백 요청 — configCode·userKey 2항목 폐기→**연동 추적 키 단독** 대상 특정 BIZ-004-09)·`data_ENT-007.md` 완료 기록(스코프 미수신 최신 1건·처리상태 불변경 BIZ-004-11) | `accountinterlockhub#218`·`#214` | 🚧 |
+| 2026-07-11 19:30 | spec ⓒ | (공통 반영) #214 데이터 사양 개정 — 무저장 강화·비영속 컨텍스트·연동 추적 키·surrogate PK·보관 fallback·ENT-003 폐기 — common.md | `accountinterlockhub#218`·`#214` | ℹ️ |
 | 2026-07-11 18:30 | spec | `service_SVC-009.md` 개정 — 완료 콜백 대상 특정을 **{구성 식별자+사용자 키값}에서 연동 추적 키 단독**으로 전환(BIZ-004-09, 미수신 최신 1건). 구성 검증 폐기·MDL-305=연동 추적 키·EX-BIZ-006·BR-303 재통지 멱등·BIZ-004-11 처리상태 불변경 유지 | `accountinterlockhub#217`·`#214` | 🚧 |
 | 2026-07-11 18:30 | spec ⓒ | (공통 반영) #214 서비스 목록문서 개정 — spec-services.md 사용자 정의 4역할·시나리오·의존관계·BR/EX/MDL/POL 카탈로그 — common.md | `accountinterlockhub#217`·`#214` | ℹ️ |
 | 2026-07-11 16:20 | spec ⓒ | (공통 반영) #214 암호화 연동 정책 개정 — BIZ-004-09 연동 추적 키로 콜백 대상 특정(최신 미수신 1건)·SEC-003 인증(추적키 불충분·위조 완료통지 차단)·EX-BIZ-006 — common.md | `accountinterlockhub#216`·`#214` | ℹ️ |

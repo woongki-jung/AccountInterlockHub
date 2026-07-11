@@ -4,6 +4,8 @@
 
 | 일시 (KST) | 단계 | 산출물·결과 | 관련 일감 | 상태 |
 |---|---|---|---|---|
+| 2026-07-11 19:30 | spec | `data_ENT-001.md` 재정의(연동 구성→**발송처 접근 주소 구성**: config_code=접근 주소 고유 ID·발송처 식별자·불변, `service_a_entry_url`·`user_key_param_id` 제거·수신처 B 주소·method·is_active·소프트 삭제 유지)·`data_ENT-002.md`(부모=접근 주소 구성 정합·거부 시 상태/이력 미생성)·`data_ENT-003.md` **삭제(전달 파라미터 폐기·결번 EXC-BIZ-14)**·`model_admin.md` MDL-101(serviceAEntryUrl·parameters·isUserKey 폐기, consentItems 유지)·순환 FK 제거로 편집 교체 단순화 | `accountinterlockhub#218`·`#214` | 🚧 |
+| 2026-07-11 19:30 | spec ⓒ | (공통 반영) #214 데이터 사양 개정 — 무저장 강화·비영속 컨텍스트·연동 추적 키·surrogate PK·보관 fallback·ENT-003 폐기 — common.md | `accountinterlockhub#218`·`#214` | ℹ️ |
 | 2026-07-11 18:30 | spec | `service_SVC-001.md` 개정 — 연동 구성 등록·편집을 **발송처 접근 주소 구성**으로 재정의(고유 ID=발송처 식별자·수신처 B 전달 주소·동의 항목·약관 컨텐츠). 전달 파라미터 정의·사용자 키값 exactly-one 지정(`#33`)·개인정보 파라미터 경고 폐기(F-005/006·BR-102/107 결번)·BIZ-001-08/09/10/04·EXC-BIZ-14 매핑·EX-BIZ-001(필수·URL·동의항목)/EX-BIZ-002(고유ID 중복) 재정의 | `accountinterlockhub#217`·`#214` | 🚧 |
 | 2026-07-11 18:30 | spec ⓒ | (공통 반영) #214 서비스 목록문서 개정 — spec-services.md 사용자 정의 4역할·시나리오·의존관계·BR/EX/MDL/POL 카탈로그 — common.md | `accountinterlockhub#217`·`#214` | ℹ️ |
 | 2026-07-11 16:20 | spec ⓒ | (공통 반영) #214 암호화 연동 정책 개정 — BIZ-001 접근 주소 구성(수신처B 전달주소·동의항목·고유ID=발송처식별자; 전달 파라미터 정의·exactly-one 사용자 키값 지정 폐기)·SEC-004 바인딩 방어 유지 — common.md | `accountinterlockhub#216`·`#214` | ℹ️ |

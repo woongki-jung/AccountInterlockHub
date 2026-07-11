@@ -4,6 +4,8 @@
 
 | 일시 (KST) | 단계 | 산출물·결과 | 관련 일감 | 상태 |
 |---|---|---|---|---|
+| 2026-07-11 19:30 | spec | `data_ENT-007.md` 연동이력 개정(request_key UUID PK·user_key varchar(512) 원문 **폐기**→내부 surrogate uuid PK + 연동 추적 키 tracking_key varchar(255)·비유니크·5항목+생성일시 DATA-005-05·회원 키/복호화 원문 무저장 DATA-005-06)·생성 시점 진입(구 SVC-004)→**복호화 성공 후**(SVC-005·BIZ-004-07)·`model_api.md` MDL-303(userKey·requestKey 제거) | `accountinterlockhub#218`·`#214` | 🚧 |
+| 2026-07-11 19:30 | spec ⓒ | (공통 반영) #214 데이터 사양 개정 — 무저장 강화·비영속 컨텍스트·연동 추적 키·surrogate PK·보관 fallback·ENT-003 폐기 — common.md | `accountinterlockhub#218`·`#214` | ℹ️ |
 | 2026-07-11 18:30 | spec | `service_SVC-005.md`·`service_SVC-009.md` 개정 — 연동이력 저장 재편: 생성 시점을 진입(구 SVC-004)에서 **복호화 성공 후(SVC-005·BIZ-004-07)**로 이동, 완료 기록은 콜백(SVC-009·BIZ-004-09) 연동 추적 키 단독 특정. 저장 항목 추적 키·접근 주소 구성 참조·요청 일시·수신 여부·수신 일시(DATA-005-05) | `accountinterlockhub#217`·`#214` | 🚧 |
 | 2026-07-11 18:30 | spec ⓒ | (공통 반영) #214 서비스 목록문서 개정 — spec-services.md 사용자 정의 4역할·시나리오·의존관계·BR/EX/MDL/POL 카탈로그 — common.md | `accountinterlockhub#217`·`#214` | ℹ️ |
 | 2026-07-11 16:20 | spec ⓒ | (공통 반영) #214 암호화 연동 정책 개정 — DATA-005 연동이력 최소항목을 연동 추적 키 기준으로 전환(회원 키·복호화 원문 미저장)·BIZ-004-07/08 복호화 후 이력 생성·추적키 필드 누락 거부·EX-BIZ-008 — common.md | `accountinterlockhub#216`·`#214` | ℹ️ |

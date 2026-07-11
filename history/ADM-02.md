@@ -4,6 +4,8 @@
 
 | 일시 (KST) | 단계 | 산출물·결과 | 관련 일감 | 상태 |
 |---|---|---|---|---|
+| 2026-07-11 19:30 | spec | `spec-datas.md`·`model_admin.md` MDL-102(접근 주소 구성 목록/요약 — configCode=접근 주소 고유 ID·configName·활성 여부·동의 항목 수)·ENT-001 목록 조회 인덱스(IX_CONFIG_LIST is_active·created_at DESC 부분) 정합. 상세 조회 MDL-101 정합(전달 파라미터·serviceAEntryUrl 제거) | `accountinterlockhub#218`·`#214` | 🚧 |
+| 2026-07-11 19:30 | spec ⓒ | (공통 반영) #214 데이터 사양 개정 — 무저장 강화·비영속 컨텍스트·연동 추적 키·surrogate PK·보관 fallback·ENT-003 폐기 — common.md | `accountinterlockhub#218`·`#214` | ℹ️ |
 | 2026-07-11 18:30 | spec | `service_SVC-002.md` 개정 — 연동 구성 조회·목록을 **발송처 접근 주소 조회·목록**으로 용어 정합(고유 ID 기준 목록·상세·활성/삭제). 수신처 B 주소·고유 ID 마스킹 비대상(EXC-SEC-05)·SEC-005 마스킹·SEC-004 바인딩 방어 유지 | `accountinterlockhub#217`·`#214` | 🚧 |
 | 2026-07-11 18:30 | spec ⓒ | (공통 반영) #214 서비스 목록문서 개정 — spec-services.md 사용자 정의 4역할·시나리오·의존관계·BR/EX/MDL/POL 카탈로그 — common.md | `accountinterlockhub#217`·`#214` | ℹ️ |
 | 2026-07-11 16:20 | spec ⓒ | (공통 반영) #214 암호화 연동 정책 개정 — SEC-005-02·EXC-SEC-05 접근 주소 구성 조회 마스킹 경계(수신처B 전달주소·고유ID 비마스킹, 설정 데이터) — common.md | `accountinterlockhub#216`·`#214` | ℹ️ |

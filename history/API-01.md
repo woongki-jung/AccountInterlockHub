@@ -4,6 +4,8 @@
 
 | 일시 (KST) | 단계 | 산출물·결과 | 관련 일감 | 상태 |
 |---|---|---|---|---|
+| 2026-07-11 19:30 | spec | `data_ENT-004.md` 개정(**처리 상태**: 조회 키 요청 키값 UUID→연동 추적 키 tracking_key varchar(255)·비유니크·내부 surrogate uuid PK·config_id/created_at 운영 컬럼·상태 4항목·CHECK 정합·IX_STATUS_TRACKING)·`model_api.md` MDL-301/302(requestKey→trackingKey, 응답 4항목·configId 배제 SEC-005-02) | `accountinterlockhub#218`·`#214` | 🚧 |
+| 2026-07-11 19:30 | spec ⓒ | (공통 반영) #214 데이터 사양 개정 — 무저장 강화·비영속 컨텍스트·연동 추적 키·surrogate PK·보관 fallback·ENT-003 폐기 — common.md | `accountinterlockhub#218`·`#214` | ℹ️ |
 | 2026-07-11 18:30 | spec | `service_SVC-006.md` 개정 — 처리상태 확인 API 조회 키를 **요청 키값(UUID)에서 연동 추적 키**로 전환. 형식 검증 UUID→비어있지 않음·최대 길이(DATA-002-07)·EX-DATA-002/003 재정의·SEC-005-04 추적 키 마스킹·DATA-003-06 결과 확인 갱신·SEC-003-05 인증 실패 감사·SEC-004 바인딩 방어 정합 | `accountinterlockhub#217`·`#214` | 🚧 |
 | 2026-07-11 18:30 | spec ⓒ | (공통 반영) #214 서비스 목록문서 개정 — spec-services.md 사용자 정의 4역할·시나리오·의존관계·BR/EX/MDL/POL 카탈로그 — common.md | `accountinterlockhub#217`·`#214` | ℹ️ |
 | 2026-07-11 16:20 | spec ⓒ | (공통 반영) #214 암호화 연동 정책 개정 — DATA-002 연동 추적 키 조회(요청키값 UUID 폐기)·DATA-003 처리상태 4항목·SEC-003 서버 대면 API 인증·SEC-005-02 응답 마스킹 — common.md | `accountinterlockhub#216`·`#214` | ℹ️ |

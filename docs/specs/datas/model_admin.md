@@ -2,23 +2,23 @@
 
 ## 개요
 
-- **모델 목적**: 관리자 도메인(연동 구성 관리·접근/로그인)이 다루는 입력/출력/도메인 모델을 정의한다. 연동 구성(MDL-101)·구성 목록(MDL-102)·관리자 계정(MDL-103)·관리자 세션(MDL-104).
+- **모델 목적**: 관리자 도메인(발송처 접근 주소 구성 관리·접근/로그인)이 다루는 입력/출력/도메인 모델을 정의한다. 발송처 접근 주소 구성(MDL-101)·구성 목록(MDL-102)·관리자 계정(MDL-103)·관리자 세션(MDL-104). `#214` 로 구성에서 **전달 파라미터 정의·사용자 키값 exactly-one 지정·서비스 A 진입 주소를 폐기**했다.
 - **관련 서비스**: SVC-001, SVC-002, SVC-003.
 
 > 변환 지점은 6 지점(FE→요청 / 요청→도메인 / 도메인→ENT / ENT→도메인 / 도메인→응답 / 응답→FE) 중 해당을 명시하며, PROC 데이터 변환 흐름과 1:1 정합한다.
 
 ---
 
-## MDL-101 연동 구성
+## MDL-101 발송처 접근 주소 구성
 
 ### 기본 정보
 
 | 항목 | 내용 |
 |------|------|
-| 모델명 | 연동 구성(InterlockConfig) |
+| 모델명 | 발송처 접근 주소 구성(InterlockConfig) |
 | 분류 | 공통(COM) |
 | 사용 서비스 | SVC-001, SVC-002 |
-| 매핑 엔터티 | ENT-001, ENT-002(consentItems), ENT-003(parameters) |
+| 매핑 엔터티 | ENT-001, ENT-002(consentItems) |
 | 사용 PROC | PROC-101(등록·편집), PROC-102(조회), PROC-201·PROC-203(참조 소비) |
 | 용도 | 도메인 모델 / 요청·응답 겸용(관리자) |
 | 관련 IA 항목 | ADM-01, ADM-02 |
@@ -28,29 +28,26 @@
 | 속성명 | 데이터 타입 | 필수 | 기본값 | 유효성 규칙 | 마스킹 규칙 | 설명 |
 |--------|-----------|------|--------|-------------|-------------|------|
 | id | string(UUID) | N | - | UUID 형식 | - | 구성 내부 식별자(응답 시 포함) |
-| configCode | string | Y | - | NotBlank, MaxLength(64) | - | 구성 식별자(고유, BIZ-001-03) |
+| configCode | string | Y | - | NotBlank, MaxLength(64), 고유(BIZ-001-10)·불변(BIZ-001-11) | - | **접근 주소 고유 ID = 발송처 식별자** |
 | configName | string | Y | - | NotBlank, MaxLength(100) | - | 구성명 |
-| serviceAEntryUrl | string | Y | - | http/https 절대 URL, MaxLength(2048) | - | 서비스 A 진입 주소 |
-| serviceBDeliveryUrl | string | Y | - | http/https 절대 URL, MaxLength(2048) | 마스킹 제외(EXC-SEC-05) | 서비스 B 전달 주소 |
+| serviceBDeliveryUrl | string | Y | - | http/https 절대 URL, MaxLength(2048) | 마스킹 제외(EXC-SEC-05) | 수신처 B 전달 주소(서버-서버 POST 대상) |
 | serviceBHttpMethod | enum('GET','POST','PUT','PATCH') | Y | 'POST' | 허용값 | - | 전달 방식 |
 | isActive | boolean | Y | true | - | - | 활성 여부 |
 | consentItems | ConsentItem[] | Y | - | 1개 이상(BIZ-001-04) | - | 동의 항목(label·description·termsContent·required·order) |
-| parameters | Parameter[] | Y | - | 정의 필수(BIZ-001-01). isUserKey=true 항목 **정확히 1개 필수**(BIZ-001-07 — 0개/2개↑ 422) | - | 전달 파라미터(name·sourceKeyA·deliverToB·required·order·isUserKey) |
 
-> 중첩 ConsentItem = {label, description?, termsContent?, required, order}, Parameter = {name, sourceKeyA, deliverToB, required, order, isUserKey}. termsContent(전체 약관 본문)는 선택(BIZ-001-06) — 동의 화면은 값이 있는 항목에만 [상세] 모달을 노출한다(BIZ-002-05).
-> isUserKey(사용자 키값 파라미터 지정)는 필수 입력이다 — true 인 항목이 구성당 **정확히 1개**(exactly-one)여야 하며, 전 항목 false(미지정)이거나 2개 이상 true 면 422 EX-BIZ-001 로 거부한다(BIZ-001-07). 항목에 붙는 플래그라 "실재하는 파라미터만 지정"이 구조적으로 보장된다. 지정이 필수라 정상 구성은 항상 연동이력·완료 확인·완료 콜백 대상이 된다('미지정' 분기는 방어적 — BIZ-004-05).
-> **이원표현 계약**: parameters[].isUserKey(FE 노출·응답 플래그)와 영속 계층의 ENT-001.user_key_param_id(지정 파라미터 = ENT-003.id 참조)는 동일 지정을 달리 표현한 것이다 — 검증·영속(플래그→FK) 은 FN-006·FN-016, FK 참조 소비는 PROC-201·PROC-403 이 담당한다(§엔터티 매핑 parameters[].isUserKey 행).
+> 중첩 ConsentItem = {label, description?, termsContent?, required, order}. termsContent(전체 약관 본문)는 선택(BIZ-001-06) — 동의 화면은 값이 있는 항목에만 [상세] 모달을 노출한다(BIZ-002-05).
+> **폐기(`#214`)**: 구 serviceAEntryUrl(서비스 A 진입 주소)·parameters[](전달 파라미터 정의)·isUserKey(사용자 키값 exactly-one 지정)를 제거했다 — 입력이 단일 암호화 JSON(encX·encY)으로 바뀌어 회원 키·연동 추적 키는 발송처가 전달 데이터 X 안에 담고, 허브는 저장하지 않는다(EXC-BIZ-14·DATA-001). 발송처키·암호값·서명 검증 키도 본 모델에 두지 않는다. 서버 대면 API 인증 자격은 운영 구성값으로 관리한다(SEC-003).
 
 ### 엔터티 매핑 (PROC 데이터 변환 흐름과 정합)
 
 | 모델 속성 | 엔터티(ENT) | 엔터티 속성 | 변환 지점 | 변환 규칙 |
 |-----------|-------------|-------------|-----------|-----------|
-| configCode | ENT-001 | config_code | 요청→도메인 / 도메인→ENT | 직접 매핑(고유성 사전 조회) |
-| serviceAEntryUrl | ENT-001 | service_a_entry_url | 도메인→ENT | URL 검증 후 저장 |
+| configCode | ENT-001 | config_code | 요청→도메인 / 도메인→ENT | 직접 매핑(고유성 사전 조회·1회 부여 후 불변) |
+| configName | ENT-001 | config_name | 도메인→ENT | 직접 매핑 |
+| serviceBDeliveryUrl | ENT-001 | service_b_delivery_url | 도메인→ENT | URL 검증 후 저장 |
 | serviceBHttpMethod | ENT-001 | service_b_http_method | 도메인→ENT | 허용값 매핑 |
+| isActive | ENT-001 | is_active | 도메인→ENT / ENT→도메인 | 직접 매핑 |
 | consentItems | ENT-002 | (행 N) | 도메인→ENT / ENT→도메인 | 부모 config_id 로 자식 교체·조회 |
-| parameters | ENT-003 | (행 N) | 도메인→ENT / ENT→도메인 | 부모 config_id 로 자식 교체·조회 |
-| parameters[].isUserKey | ENT-001 | user_key_param_id | 도메인→ENT / ENT→도메인 | isUserKey=true 항목의 저장 행 id 를 부모 user_key_param_id 로 설정(참조 저장 — 값 복제 금지). 조회 시 user_key_param_id 매칭 항목에 true 복원 |
 
 ### 사용처
 
@@ -58,23 +55,23 @@
 |----------|------|------|----------|------|
 | SVC-001 | 등록·편집 | 요청·도메인 | PROC-101 | 서버 재검증 후 영속화 |
 | SVC-002 | 상세 조회 | 응답 | PROC-102 | 설정 데이터, 회원 키·상태 미포함 |
-| SVC-004/005 | 동의·전달 | 도메인(참조) | PROC-201·203 | 활성 구성만 소비 |
+| SVC-004/005 | 동의·복호화·전달 | 도메인(참조) | PROC-201·203 | 활성 구성만 소비(진입 판별·전달 대상) |
 
 ### 구현 가이드
 
-- 요청 DTO·응답 DTO·도메인 모델을 분리하되 속성 명명을 통일(camelCase)한다. 자식(consentItems·parameters)은 부모와 동일 트랜잭션에서 영속화한다.
-- 회원 키·처리 상태 필드를 본 모델에 두지 않는다(설정 데이터 전용).
-- isUserKey 지정의 영속화(자식 저장 → 부모 user_key_param_id 설정)는 동일 트랜잭션에서 수행한다 — 전량 교체 시 순서 제약은 [`data_ENT-001.md`](data_ENT-001.md) §구현 가이드. isUserKey=true 항목이 0개(미지정)이거나 2개 이상이면, 또는 편집 제출에서 지정 항목이 삭제되고 재지정이 없으면 422 EX-BIZ-001 로 거부한다(BIZ-001-07 exactly-one).
+- 요청 DTO·응답 DTO·도메인 모델을 분리하되 속성 명명을 통일(camelCase)한다. 자식(consentItems)은 부모와 동일 트랜잭션에서 영속화한다.
+- 회원 키·처리 상태·암호값·전달 파라미터 필드를 본 모델에 두지 않는다(설정 데이터 전용). 접근 주소 고유 ID(configCode)는 등록 시 1회 부여하고 편집 시 읽기 전용(불변, BIZ-001-11)이다.
+- `#214` 로 순환 FK(구 user_key_param_id)가 제거돼 편집 시 자식(consentItems) 전량 교체의 별도 지정 참조 정합 순서가 불필요해졌다([`data_ENT-001.md`](data_ENT-001.md) §구현 가이드).
 
 ---
 
-## MDL-102 연동 구성 목록/요약
+## MDL-102 발송처 접근 주소 구성 목록/요약
 
 ### 기본 정보
 
 | 항목 | 내용 |
 |------|------|
-| 모델명 | 연동 구성 목록 요약(InterlockConfigSummary) |
+| 모델명 | 접근 주소 구성 목록 요약(InterlockConfigSummary) |
 | 분류 | 서비스(SVC) |
 | 사용 서비스 | SVC-002 |
 | 매핑 엔터티 | ENT-001 |
@@ -87,7 +84,7 @@
 | 속성명 | 데이터 타입 | 필수 | 기본값 | 유효성 규칙 | 마스킹 규칙 | 설명 |
 |--------|-----------|------|--------|-------------|-------------|------|
 | id | string(UUID) | Y | - | UUID 형식 | - | 구성 식별자 |
-| configCode | string | Y | - | - | - | 구성 식별자 코드 |
+| configCode | string | Y | - | - | - | 접근 주소 고유 ID(발송처 식별자) |
 | configName | string | Y | - | - | - | 구성명 |
 | isActive | boolean | Y | - | - | - | 활성 여부(성과 지표 근거) |
 | consentItemCount | number | N | 0 | >= 0 | - | 동의 항목 수(요약) |

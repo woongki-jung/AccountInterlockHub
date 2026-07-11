@@ -2,7 +2,7 @@
 
 ## 개요
 
-- **데이터 목적**: 관리자 인증·연동 구성 변경·IP 차단·API 인증 실패·연동 전달 실패·배치 실행 등 운영 이벤트의 감사 추적 기록을 보관한다. 회원 키·개인정보를 포함하지 않으며(마스킹 적용), 최소 1년 보존한다.
+- **데이터 목적**: 관리자 인증·접근 주소 구성 변경·IP 차단·서비스 대면 API 인증 실패·**복호화 시도(성공·실패)·수신처 전달 결과·완료 콜백 수신**·배치 실행 등 운영 이벤트의 감사 추적 기록을 보관한다. **암호값(encX·encY)·생년월일·복호화 원문·회원 키·개인정보를 포함하지 않으며**(SEC-005-06 미기록·연동 추적 키는 SEC-005-04 마스킹), 최소 1년 보존한다(OPS-002-03). 복호화·전달 감사는 알려진 보안 제약(SEC-008-01)의 이상 징후 관측 수단이다(EXC-OPS-05).
 - **관련 PRD 요구사항**: [`../../prd/PRD.md`](../../prd/PRD.md) §시스템 제약사항(운영·추적) / [`../../prd/devspec/infra.md`](../../prd/devspec/infra.md) §미결(로깅·모니터링) / 정책 [`../policies/policy_OPS.md`](../policies/policy_OPS.md) OPS-002.
 
 ---
@@ -17,9 +17,9 @@
 | 물리 테이블명 | TBL_AUDIT_LOG |
 | 분류 | 이력(append-only) |
 | 관련 서비스 | 전 SVC(공통) |
-| 보존 정책 | 최소 1년 보존(OPS-002-03, 기본안). 무저장 원칙 대상 아님(개인정보 미포함). 보존 삭제 수단은 MVP 미정의 — 도입 시 spec 리비전으로 채번 |
-| 개인정보 여부 | 비해당 (회원 키·개인정보 배제·마스킹 — OPS-002-02·SEC-005) |
-| CRUD 수행 PROC | C: PROC-101·PROC-103·PROC-104·PROC-105·PROC-106·PROC-203·PROC-301·PROC-402 / R·U·D: MVP 미정의(append-only, 읽기·보존 삭제 PROC 후속) |
+| 보존 정책 | 최소 1년 보존(OPS-002-03, 기본안). 무저장 원칙 대상 아님(개인정보·복호화 원문·암호값 미포함, EXC-OPS-02). 보존 삭제 수단은 MVP 미정의 — 도입 시 spec 리비전으로 채번 |
+| 개인정보 여부 | 비해당 (암호값·생년월일·복호화 원문·회원 키·개인정보 배제·연동 추적 키 마스킹 — OPS-002-05·SEC-005) |
+| CRUD 수행 PROC | C: PROC-101·PROC-103·PROC-104·PROC-105·PROC-106·PROC-203·PROC-301·PROC-302·PROC-303·PROC-402 / R·U·D: MVP 미정의(append-only, 읽기·보존 삭제 PROC 후속) |
 | 관련 IA 항목 | 공통 |
 
 ### 속성 정의
@@ -27,15 +27,15 @@
 | 속성명 | 데이터 타입 | 길이/precision | NULL | 기본값 | CHECK 제약 | 키 | 설명 |
 |--------|-----------|----------------|------|--------|-----------|----|------|
 | id | bigint | - | NOT NULL | GENERATED ALWAYS AS IDENTITY | - | PK | 로그 순번(append 순서) |
-| event_type | varchar | 50 | NOT NULL | - | length(event_type) > 0 | - | 이벤트 유형 코드(예: LOGIN_SUCCESS·CONFIG_CREATE·IP_BLOCK·API_AUTH_FAIL·DELIVERY_FAIL·BATCH_RUN) |
+| event_type | varchar | 50 | NOT NULL | - | length(event_type) > 0 | - | 이벤트 유형 코드(예: LOGIN_SUCCESS·CONFIG_CREATE·IP_BLOCK·API_AUTH_FAIL·DECRYPT_ATTEMPT·DELIVERY_RESULT·CALLBACK_RECEIVED·BATCH_RUN) |
 | actor_type | varchar | 20 | NOT NULL | - | IN ('ADMIN','SERVICE','SYSTEM','BATCH') | - | 행위자 유형 |
 | actor_id | varchar | 64 | NULL | NULL | - | - | 행위자 식별(관리자 username 또는 서비스 식별. SYSTEM·BATCH 는 NULL). 소프트 참조(ENT-005.username) |
-| target | varchar | 200 | NULL | NULL | - | - | 대상 식별(구성 코드·요청 키값(마스킹) 등) |
+| target | varchar | 200 | NULL | NULL | - | - | 대상 식별(접근 주소 고유 ID·연동 추적 키(마스킹) 등) |
 | result | varchar | 20 | NOT NULL | - | IN ('SUCCESS','FAIL','BLOCKED','INFO') | - | 처리 결과 |
-| detail | varchar | 1000 | NULL | NULL | - | - | 부가 상세(SEC-005 마스킹 적용, 회원 키·개인정보 배제) |
+| detail | varchar | 1000 | NULL | NULL | - | - | 부가 상세(SEC-005 마스킹 적용, 암호값·생년월일·복호화 원문·회원 키·개인정보 배제) |
 | occurred_at | timestamptz | 3 | NOT NULL | now() | - | - | 이벤트 발생 시각 |
 
-> event_type 은 코드값이며 확장 가능하므로 CHECK 목록으로 고정하지 않고 애플리케이션 상수로 관리한다. actor_id·target·detail 은 기록 전 SEC-005 마스킹을 거친다(회원 키·자격 앞2·뒤2만 노출).
+> event_type 은 코드값이며 확장 가능하므로 CHECK 목록으로 고정하지 않고 애플리케이션 상수로 관리한다. actor_id·target·detail 은 기록 전 SEC-005 마스킹·미기록을 거친다 — **encX·encY·생년월일·복호화 원문·회원 키는 전량 미기록(SEC-005-06)**, 연동 추적 키·인증 자격은 앞2·뒤2만 노출(SEC-005-04). 복호화·전달 감사는 성공/실패 여부·접근 주소 고유 ID·연동 추적 키(마스킹)만 남긴다(EXC-OPS-05).
 
 ### 관계 정의
 
@@ -55,7 +55,7 @@
 
 ### 데이터 생명주기
 
-- **생성 조건**: 각 PROC 의 "커밋 후 감사 로그"·"차단 후 감사 로그"·"인증 실패 감사 로그"·"배치 종료 감사 로그" 단계에서 INSERT — PROC-101(구성 변경), PROC-103(로그인·잠금), PROC-104(IP 차단), PROC-105(활성 전환), PROC-106(삭제), PROC-203(전달 실패), PROC-301(API 인증 실패), PROC-402(배치 실행)(OPS-002-01).
+- **생성 조건**: 각 PROC 의 "커밋 후 감사 로그"·"차단 후 감사 로그"·"인증 실패 감사 로그"·"배치 종료 감사 로그" 단계에서 INSERT — PROC-101(접근 주소 구성 등록·수정), PROC-103(로그인·잠금), PROC-104(IP 차단), PROC-105(활성 전환), PROC-106(삭제), PROC-203(복호화 시도 성공·실패·수신처 전달 결과), PROC-301·PROC-302·PROC-303(API 인증 실패·완료 콜백 수신·재통지 멱등), PROC-402(배치 실행)(OPS-002-04).
 - **수정 조건**: 없음(append-only, 불변 기록).
 - **삭제/보관 조건**: 최소 1년 보존(OPS-002-03). MVP 는 자동 삭제 배치를 정의하지 않으며(처리 상태 배치 PROC-402 와 별개), 도입 시 spec 리비전으로 삭제 배치·PROC 를 채번한다(방향은 §구현 가이드, 대기 관리는 [`spec-datas.md`](spec-datas.md) §담당자 확정 대기).
 
@@ -63,11 +63,12 @@
 
 | 정책 코드 | 적용 컬럼/제약 | 적용 위치 (DB 무결성 / 응용 검증 / 마스킹) |
 |-----------|----------------|------------------------------------------|
-| OPS-002-01 | 감사 대상 이벤트 기록 | 응용 감사(각 PROC) |
-| OPS-002-02 | 시각·행위자·행위·대상·결과 구성, 개인정보 배제 | 스키마 설계 + 응용 가공 |
+| OPS-002-04 | 감사 대상 이벤트 기록(복호화 시도·전달 결과·완료 콜백 포함) | 응용 감사(각 PROC) |
+| OPS-002-05 | 시각·행위자·행위·대상·결과 구성, 암호값·생년월일·복호화 원문·회원 키·개인정보 배제 | 스키마 설계 + 응용 가공 |
 | OPS-002-03 | 최소 1년 보존 | 운영/보존 관리 |
-| SEC-005-01 | actor_id·target·detail 마스킹 | 마스킹(기록 전) |
-| DATA-001-03 | 회원 키 원문 배제 | 마스킹 + 스키마 설계 |
+| SEC-005-04 | actor_id·target·detail 의 연동 추적 키·인증 자격 마스킹(앞2·뒤2) | 마스킹(기록 전) |
+| SEC-005-06 | encX·encY·생년월일·복호화 원문·발송처키·회원 키 전량 미기록 | 마스킹 + 스키마 설계(필드 부재) |
+| EXC-OPS-05 | 복호화·전달 감사=성공 여부·고유 ID·추적 키(마스킹)만 | 응용 감사(PROC-203) |
 
 ### 구현 가이드
 
