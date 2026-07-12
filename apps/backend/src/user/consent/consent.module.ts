@@ -1,20 +1,19 @@
 import { Module } from '@nestjs/common';
-import { EntryContextModule } from '../entry-context/entry-context.module';
-import { DeliveryService } from '../delivery/delivery.service';
-import { ProcessStatusService } from '../status/process-status.service';
 import { ConsentController } from './consent.controller';
 import { ConsentService } from './consent.service';
 
 /**
- * 이용 동의 모듈 — SVC-004/SVC-005 / PROC-201 B1b·PROC-202·PROC-203·PROC-401 / USR-01·USR-02·BAT-01.
+ * 이용 동의 모듈 — SVC-004 / PROC-201(조회)·PROC-202 B2(승인 게이팅 로직 소유) / USR-01.
  *
- * 진입 컨텍스트 스토어(EntryContextModule)를 진입 모듈과 공유 주입받아 요청 키값으로 구성을 특정한다.
- * 동의(AGREE) 경로의 서비스 B 전달(DeliveryService)·처리상태 저장(ProcessStatusService)을 계층 분리해 함께 등록한다.
+ * `#214` 로 진입 컨텍스트 스토어(구 EntryContextModule) 의존이 사라졌다 — 조회·게이팅 모두 접근 주소
+ * 고유 ID(config_code) 기반 무상태 조회로 전환됐다. ConsentService 를 export 해 InterlockModule(승인
+ * 오케스트레이션, PROC-202 B3b~PROC-203)이 주입받아 FN-008 게이팅을 재사용한다.
+ *
  * AuditService(@Global AuditModule)·DataSource(전역 TypeOrmModule)는 주입으로 쓴다.
  */
 @Module({
-  imports: [EntryContextModule],
   controllers: [ConsentController],
-  providers: [ConsentService, DeliveryService, ProcessStatusService],
+  providers: [ConsentService],
+  exports: [ConsentService],
 })
 export class ConsentModule {}

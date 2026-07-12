@@ -14,7 +14,6 @@ import { AuditModule } from './common/audit/audit.module';
 import { DatabaseModule } from './database/database.module';
 import { RetentionModule } from './batch/retention.module';
 import { InterlockModule } from './user/interlock/interlock.module';
-import { HubDecryptModule } from './user/interlock/hub-decrypt.module';
 import { ConsentModule } from './user/consent/consent.module';
 
 // 프런트엔드 정적 산출물 경로. 운영/로컬에서 배치가 다를 수 있어 환경변수로 재정의 가능하게 두고,
@@ -33,13 +32,13 @@ const frontendDistPath =
     RetentionModule,
     AdminAuthModule,
     AdminConfigModule,
-    // 사용자 도메인(서비스 A 진입·이용 동의 항목 조회) — USR-01·BAT-03. 진입 컨텍스트 스토어를 공유한다.
-    InterlockModule,
-    // 허브 복호화(FN-020·SEC-006, USR-02) — 독립 엔드포인트 없음(PROC-203 내부 전용). 현재 소비자는
-    // 없으나 DI 그래프 등록·부팅 검증을 위해 여기서 import 한다. 연동 실행 오케스트레이션(P5)이
-    // ConsentModule(또는 후속 배치 모듈)에 본 모듈을 추가 import 해 HubDecryptService 를 소비할 예정이다.
-    HubDecryptModule,
+    // 사용자 이용 동의 조회(PROC-201) — USR-01. GET /api/consent/:accessAddressId(FN-008 buildConsentView).
     ConsentModule,
+    // 사용자 연동 실행(승인 게이팅 PROC-202 + 복호화·이력·전달·상태 PROC-203) — USR-01·USR-02.
+    // POST /api/interlock/approve. ConsentModule(FN-008 게이팅)·HubDecryptModule(FN-020 복호화, 여기서
+    // import 하지 않고 InterlockModule 내부에서 import 해 소비한다 — P5 로 실 소비자가 생겨 앱 레벨의
+    // 자리표시자 import(구 HubDecryptModule 직접 등록)는 제거했다.
+    InterlockModule,
     // 서비스 대면 API 공통 가드 인프라(FN-004 인증·FN-014 요청제한) — API-01/02/03 횡단(API-P1).
     // 가드·인증·카운터 provider 를 세워 앱 부팅을 성립시키고, 후속 P2~P4 모듈이 import 해 소비한다.
     ApiCommonModule,
@@ -50,11 +49,15 @@ const frontendDistPath =
     // 서비스 A 자격으로 {구성 식별자 + 사용자 키값} 스코프 최신 이력의 완료 콜백 수신 여부를 조회한다(읽기 전용).
     // FN-019(스코프 조회)는 후속 P4 콜백(API-03)과 공유하는 단일 소스로 본 모듈이 export 한다.
     ApiInterlockModule,
-    // React 정적 서빙: API 경로(/api/**)와 서비스 A 진입(/interlock/**)은 제외해 컨트롤러가 처리하고,
-    // 그 외 경로(사용자 웹·관리자 웹 SPA)는 정적 산출물(및 index.html 폴백)로 응답한다.
+    // React 정적 서빙: API 경로(/api/**)만 제외해 컨트롤러가 처리하고, 그 외 경로(사용자 웹 SPA — 발송처
+    // 링크 진입 `/interlock/entry/:accessAddressId`·결과 `/interlock/result` 포함, 관리자 웹 SPA)는
+    // 정적 산출물(및 index.html 폴백)로 응답한다. `#214`(P5) 로 사용자 BE 엔드포인트가 전량 /api/** 로
+    // 이동해 구 `/interlock/{*splat}` 제외(구 POST /interlock/entry BE 라우트 대응)가 불필요해졌다 — 남겨
+    // 두면 SPA 라우트(/interlock/entry/:id·/interlock/result)가 index.html 폴백을 받지 못해 404 로
+    // 응답한다(accountinterlockhub#229 P5 라우팅 갭 해소).
     ServeStaticModule.forRoot({
       rootPath: frontendDistPath,
-      exclude: ['/api/{*splat}', '/interlock/{*splat}'],
+      exclude: ['/api/{*splat}'],
     }),
   ],
   controllers: [AppController],

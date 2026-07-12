@@ -1,143 +1,138 @@
-import { randomUUID } from 'crypto';
 import { Injectable } from '@nestjs/common';
 import { InjectDataSource } from '@nestjs/typeorm';
 import { DataSource } from 'typeorm';
-import { AuditService } from '../../common/audit/audit.service';
-import { ActorType, AuditEventType, AuditResult } from '../../common/audit/audit.constants';
-import { maskToken } from '../../common/audit/masking.util';
 import { AppException } from '../../common/envelope/app.exception';
-import { EntryContextStore } from '../entry-context/entry-context.store';
-import { EntryDto } from './dto/entry.dto';
+import { ConsentService } from '../consent/consent.service';
+import { DeliveryConfig, DeliveryService } from '../delivery/delivery.service';
+import { InterlockHistoryService } from '../history/interlock-history.service';
+import { ApproveDto } from './dto/approve.dto';
+import { HubDecryptService } from './hub-decrypt.service';
 
 /**
- * 이용 동의 진입 서비스 — PROC-201 B1a / SVC-004 / FN-007(요청 키값 발급)·FN-016(연동이력 생성, 내부 PROC-403).
+ * 사용자 연동 승인 오케스트레이션 서비스 — PROC-202(동의/거부·승인 게이팅) B3 → PROC-203(연동 실행) /
+ * SVC-004·SVC-005 / USR-01·USR-02.
  *
- * 책임:
- *  - 활성 구성 참조 확인(EX-SEC-004)·지정 파라미터 정의(ENT-003) 로드.
- *  - FN-007: 요청 키값(UUID v4) 자체 발급 + 진입 컨텍스트(회원 키 포함) 비영속 메모리 저장(무저장, DATA-001-01).
- *  - FN-016: 지정 구성의 연동이력(ENT-007) 1건 INSERT(지정 사용자 키값 원문 무변형, DATA-005-03). 지정 값
- *    누락·공백은 진입 거부(400 EX-BIZ-007, 컨텍스트 폐기·이력 미생성·요청 키값 미반환). 미지정 구성은 미기록(BR-203).
+ * `#214` 로 전면 재정의된 사용자 연동 실행 흐름의 단일 진입이다. 한 인터랙션(승인/거부 제출) = 1 PROC
+ * (PROC-202)이며, 승인(AGREE·필수 충족) 시에만 내부적으로 PROC-203(복호화→이력→전달→상태)을 이어간다.
+ * 접근 컨텍스트(encX·encY·birthDate)는 요청 본문으로만 수신하고 서버에 저장하지 않는다(무상태, DATA-001-04)
+ * — 함수 인자·지역 변수는 요청 처리 종료와 함께 스코프에서 자연 해제된다(구 EntryContextStore 는 폐기).
  *
- * DB 접근은 파라미터 바인딩만 사용한다(SEC-004-02). 요청 제한(FN-014)은 진입점 미들웨어가 선적용한다.
+ * 계층 분리: 동의 게이팅(FN-008)은 ConsentService, 복호화(FN-020)는 HubDecryptService, 이력 생성(FN-016)은
+ * InterlockHistoryService, 전달·상태 저장(FN-012→FN-009)은 DeliveryService 에 위임한다. 본 서비스는 PROC-202
+ * B3~PROC-203 의 오케스트레이션(호출 순서·트랜잭션 경계 없음·예외 전파)만 담당한다.
  */
 
-const USER_KEY_MAX_LEN = 512; // ENT-007 user_key varchar(512) — 초과는 진입 검증에서 거부(SEC-004)
-
-// 활성 구성 조회 행(지정 여부 판정용).
-interface ActiveConfigRow {
+// PROC-202 B3b 재조회 — 승인 게이팅 통과 후 연동 실행에 필요한 활성 구성(수신처 B 주소·메서드).
+interface ActiveDeliveryConfigRow {
   id: string;
-  user_key_param_id: string | null;
+  service_b_delivery_url: string;
+  service_b_http_method: string;
 }
 
-// 전달 파라미터 정의 행(지정 파라미터 해석용, ENT-003).
-interface ParameterRow {
-  id: string;
-  param_name: string;
-  source_key_a: string;
-}
+// ENT-004/007 tracking_key varchar(255) — DB CHECK 500 을 사전 차단하는 애플리케이션 가드 상한.
+const TRACKING_KEY_MAX_LEN = 255;
 
-// 진입 응답(MDL-202). SuccessInterceptor 가 { success, data } 로 감싼다.
-export interface EntryResponse {
-  requestKey: string;
+// POST /api/interlock/approve 응답 — 결과 유형만(상태 값·추적 키·복호화 원문 미노출, SEC-007-02).
+export interface ApproveResponse {
+  result: 'COMPLETED' | 'REJECTED';
 }
 
 @Injectable()
 export class InterlockService {
   constructor(
     @InjectDataSource() private readonly dataSource: DataSource,
-    private readonly entryContextStore: EntryContextStore,
-    private readonly auditService: AuditService,
+    private readonly consentService: ConsentService,
+    private readonly hubDecryptService: HubDecryptService,
+    private readonly interlockHistoryService: InterlockHistoryService,
+    private readonly deliveryService: DeliveryService,
   ) {}
 
-  /** POST /interlock/entry — 진입·요청 키값 발급·연동이력 기록 개시(PROC-201). */
-  async processEntry(dto: EntryDto): Promise<EntryResponse> {
-    const parameters: Record<string, string> = dto.parameters ?? {};
-
-    // 1. 활성 구성 참조 확인(지정 여부·파라미터 정의 로드). 없으면 400 EX-SEC-004.
-    const configRows: ActiveConfigRow[] = await this.dataSource.query(
-      `SELECT id, user_key_param_id FROM "TBL_INTERLOCK_CONFIG"
-       WHERE config_code = $1 AND is_active = true AND deleted_at IS NULL`, // UQ_CONFIG_CODE
-      [dto.configCode],
-    );
-    const config = configRows[0];
-    if (!config) {
-      throw new AppException('EX-SEC-004'); // 유효하지 않은 구성 참조(진입 거부)
-    }
-    const paramDefs: ParameterRow[] = await this.dataSource.query(
-      `SELECT id, param_name, source_key_a FROM "TBL_INTERLOCK_PARAMETER" WHERE config_id = $1`, // ENT-003
-      [config.id],
-    );
-
-    // 2. FN-007 요청 키값 발급 + 진입 컨텍스트 비영속 저장(회원 키 무저장, DATA-002-02·DATA-001-01).
-    const requestKey = randomUUID(); // UUID v4 — 역추적 불가
-    this.entryContextStore.put(requestKey, {
-      configCode: dto.configCode,
-      memberKey: dto.memberKey,
-      parameters,
-      consentConfirmed: false,
-    });
-
-    // 3. FN-016 연동이력 기록 개시(내부 PROC-403). 지정 값 누락 등 throw 시 컨텍스트 폐기(부작용 없음).
-    try {
-      await this.createInterlockHistory(config, paramDefs, parameters, requestKey);
-    } catch (err) {
-      this.entryContextStore.remove(requestKey); // 진입 거부 — 컨텍스트 폐기·요청 키값 미반환
-      throw err;
-    }
-
-    // 4. 진입 응답(요청 키값을 서비스 A 로 반환, DATA-002-03).
-    return { requestKey };
-  }
-
   /**
-   * FN-016 연동이력 생성(내부 PROC-403, BIZ-004-01/02/05·DATA-005·BR-203).
-   *  - 미지정 구성(user_key_param_id NULL): 미기록·정상 진입(방어적 — 지정 필수화 BIZ-001-07 이후 정상 미도달).
-   *  - 지정 구성: 지정 파라미터 값 추출·완결성 검증 후 ENT-007 1건 INSERT(원문 무변형). 값 누락·공백 → 400 EX-BIZ-007.
+   * POST /api/interlock/approve — PROC-202 B2~B3. 승인 게이팅(FN-008) 후 승인 시 연동 실행(PROC-203)을
+   * 이어간다. 거부·필수 미충족은 복호화를 수행하지 않고 200 REJECTED 로 정상 종료한다(BIZ-002-07).
    */
-  private async createInterlockHistory(
-    config: ActiveConfigRow,
-    paramDefs: ParameterRow[],
-    parameters: Record<string, string>,
-    requestKey: string,
-  ): Promise<void> {
-    // 1) 지정 여부 확인(BIZ-004-05·BIZ-001-07). 미지정 구성은 이력 미기록(대상 밖).
-    if (config.user_key_param_id == null) {
-      return;
+  async approve(dto: ApproveDto): Promise<ApproveResponse> {
+    const now = new Date();
+
+    // B2. FN-008 승인 게이팅 — 구성 매칭 근거 재검증·필수 동의 서버 재검증(BIZ-002-06, 화면 값 단독 신뢰 금지).
+    const outcome = await this.consentService.processDecision(
+      {
+        accessAddressId: dto.accessAddressId,
+        decision: dto.decision,
+        requiredConsentMet: dto.requiredConsentMet,
+      },
+      now,
+    );
+
+    // B3a. 거부·필수 미충족 — 복호화 미수행, 처리상태·연동이력 미생성(EXC-BIZ-11). 감사는 FN-008 내부 기록.
+    // encX·encY·birthDate(수신했더라도)는 아래로 전달하지 않고 여기서 함수 스코프 종료로 폐기된다(DATA-001-04).
+    if (!outcome.approved) {
+      return { result: 'REJECTED' }; // 200 정상 종료(EXC-BIZ-03)
     }
 
-    // 2) 지정 파라미터 값 추출·완결성 검증(BIZ-004-02).
-    const designated = paramDefs.find((p) => p.id === config.user_key_param_id);
-    if (!designated) {
-      // 지정 참조가 가리키는 파라미터 행 부재 — 데이터 정합 위반(정상 등록 구성은 정확히 1개 실재). 내부 오류.
-      throw new AppException('EX-FN-999');
-    }
-    // 지정 파라미터의 source_key_a 로 진입 값을 원문 추출(ENT-003 §구현 가이드 정합) — 진입 컨텍스트는 서비스 A 원천 키명으로 키잉된다.
-    const userKey = parameters[designated.source_key_a];
-    if (userKey == null || userKey.trim().length === 0) {
-      throw new AppException('EX-BIZ-007'); // 진입 거부(이력 미생성, 부작용 없음)
-    }
-    if (userKey.length > USER_KEY_MAX_LEN) {
-      // 초과 입력은 진입 검증에서 거부(ENT-007 구현 가이드·SEC-004) — 저장 시점 절단 방지.
+    // B3b. 승인 경로 — 접근 컨텍스트(AGREE 시 ApproveDto.ValidateIf 가 NotBlank 를 보장) 존재 확인.
+    // 정상 게이팅 통과 경로에서는 항상 참이다 — 방어적 가드(도달 시 서버 데이터 정합 문제로 간주).
+    if (dto.encX == null || dto.encY == null || dto.birthDate == null) {
       throw new AppException('EX-SEC-004');
     }
 
-    // 3~4) 이력 레코드 구성·영속화(DATA-005-01/02/03/04). 원문 무변형(해석·해시·암복호화 금지, EXC-DATA-07 예외).
-    const now = new Date();
-    await this.dataSource.query(
-      `INSERT INTO "TBL_INTERLOCK_HISTORY"
-         (request_key, config_id, user_key, requested_at, callback_received, callback_received_at)
-       VALUES ($1, $2, $3, $4, false, null)`, // PK(request_key) 로 연동 요청 1건당 최대 1건. created_at 은 DB 기본값 now()
-      [requestKey, config.id, userKey, now],
+    // 연동 실행에 필요한 활성 구성(수신처 B 주소·메서드) 재조회(PROC-202 B3b) — 게이팅 시점과 별도 조회.
+    const configRows: ActiveDeliveryConfigRow[] = await this.dataSource.query(
+      `SELECT id, service_b_delivery_url, service_b_http_method FROM "TBL_INTERLOCK_CONFIG"
+       WHERE config_code = $1 AND is_active = true AND deleted_at IS NULL`, // UQ_CONFIG_CODE
+      [dto.accessAddressId],
+    );
+    const configRow = configRows[0];
+    if (!configRow) {
+      throw new AppException('EX-SEC-004'); // 유효하지 않은 접근 주소 참조
+    }
+    const config: DeliveryConfig = {
+      id: configRow.id,
+      serviceBDeliveryUrl: configRow.service_b_delivery_url,
+      serviceBHttpMethod: configRow.service_b_http_method,
+    };
+
+    await this.executeInterlock(config, dto.encX, dto.encY, dto.birthDate, dto.accessAddressId, now);
+
+    return { result: 'COMPLETED' }; // 200 완료(복호화 원문·회원 키·추적 키 미포함, SEC-007-02)
+  }
+
+  /**
+   * PROC-203 연동 실행 — 허브 복호화(FN-020) → 연동이력 생성(FN-016, 전달에 앞서) → 수신처 B 전달·상태
+   * 저장(FN-012→FN-009). 승인 게이팅(FN-008 approved=true) 통과 후에만 도달하는 내부 호출 경로다(독립
+   * 엔드포인트 아님) — trackingKey 자체가 복호화 성공 시에만 존재해 미승인 상태에서는 구조적으로 도달할
+   * 수 없으므로 BIZ-003-06/07(미승인 전달 차단·역전이 금지) 런타임 assert 를 별도로 두지 않는다.
+   */
+  private async executeInterlock(
+    config: DeliveryConfig,
+    encX: string,
+    encY: string,
+    birthDate: string,
+    accessAddressId: string,
+    now: Date,
+  ): Promise<void> {
+    // FN-020 허브 복호화·연동 추적 키 추출 — 실패 시 EX-SEC-006/007·EX-BIZ-008 그대로 전파(이력·상태 미생성).
+    const { X, trackingKey } = await this.hubDecryptService.decryptInterlock(
+      encX,
+      encY,
+      birthDate,
+      accessAddressId,
     );
 
-    // 5) 감사(OPS-002·SEC-005-01) — userKey 는 마스킹만, 원문 미기록.
-    await this.auditService.write({
-      eventType: AuditEventType.HISTORY_CREATE,
-      actorType: ActorType.SYSTEM,
-      actorId: null,
-      target: requestKey,
-      result: AuditResult.SUCCESS,
-      detail: `userKey=${maskToken(userKey)}`,
-    });
+    // 추적 키 길이 가드(ENT-004/007 tracking_key varchar(255)) — INSERT 이전에 확정해 DB CHECK 위반으로
+    // 인한 500 을 사전에 차단한다(DATA-002-07 스키마 상한의 애플리케이션 측 반영, P2 리뷰 S-2 갭 해소).
+    if (trackingKey.length > TRACKING_KEY_MAX_LEN) {
+      throw new AppException('EX-BIZ-008'); // 발송처 데이터 오류(연동에 필요한 값이 없습니다) — 재입력 불가
+    }
+
+    // FN-016 연동이력 생성(복호화 후·전달에 앞서, BIZ-004-07).
+    await this.interlockHistoryService.createInterlockHistory(trackingKey, config.id, now);
+
+    // FN-012 수신처 B 서버-서버 전달(내부 FN-009 상태 저장 포함). 실패 시 EX-BIZ-004(502) 전파
+    // (상태·이력은 이미 저장됨 — EXC-BIZ-06·EXC-BIZ-11).
+    await this.deliveryService.deliverToServiceB(X, trackingKey, config, now);
+
+    // 접근 컨텍스트·복호화 원문 폐기(DATA-001-04·SEC-005-06) — encX·encY·birthDate·X·trackingKey 는
+    // 별도 저장소가 없어 본 메서드 반환과 함께 스코프에서 자연 해제된다(어떤 로그·응답에도 남기지 않음).
   }
 }
