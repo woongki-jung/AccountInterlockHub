@@ -4,6 +4,7 @@
 
 | 일시 (KST) | 단계 | 산출물·결과 | 관련 일감 | 상태 |
 |---|---|---|---|---|
+| 2026-07-12 09:39 | build | 관리자 발송처 접근주소 구성 BE 개정(P3) — `apps/backend/src/admin/config/config.service.ts` 개정. 상세 조회(selectConfig, PROC-102 B3/SVC-002 F-002) 응답에서 `parameters[]`(ENT-003)·`userKeyParamId` 제거, `consentNotice`(consent_notice) 추가 — MDL-101 정합. 목록(listConfigs)·활성전환(setActive, PROC-105)·소프트삭제(softDelete, PROC-106)는 기존 쿼리가 이미 신 스키마(TBL_INTERLOCK_CONFIG service_a_entry_url/user_key_param_id 제거·consent_notice 신설)와 정합해 로직 무변경(주석만 갱신). 엔드포인트·라우트(config.controller.ts) 무변경. `npm run build`(backend) 0건. 리뷰·기능검증 별도 doer 대기 | `accountinterlockhub#227`·`#224` | 🚧 |
 | 2026-07-12 10:30 | spec | `#215` 목업 리뷰 보완 — 동의 대상 설명 문구(consentNotice) `screen_SCR-004.md` 상세 표시 추가(기본 정보 dl·설정 시만 노출·미설정 생략, BIZ-002-08). 접근 주소 고유 ID 관리자 직접 입력 표기 정합(구현 가이드) | `accountinterlockhub#215` | 🚧 |
 | 2026-07-11 23:30 | spec | `tc_ADM-02.md` 개정 — 상세 표시 전달 파라미터 제거(고유 ID·수신처 B·동의 항목 한정)·비활성 후 발송처 링크 진입 400 EX-SEC-004 연계·마스킹 예외(수신처 B URL). PROC-102/105/106·BR-103/104·16 TC 유지 | `accountinterlockhub#222`·`#214` | 🚧 |
 | 2026-07-11 23:30 | spec ⓒ | (공통 반영) #214 검증 TC 사양 개정 — 복호화·전달·추적 키 단독·시드(encX/encY·mock B)·신규 BR/EX(204·SEC-006/007·BIZ-008) — common.md | `accountinterlockhub#222`·`#214` | ℹ️ |
