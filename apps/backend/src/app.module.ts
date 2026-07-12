@@ -14,6 +14,7 @@ import { AuditModule } from './common/audit/audit.module';
 import { DatabaseModule } from './database/database.module';
 import { RetentionModule } from './batch/retention.module';
 import { InterlockModule } from './user/interlock/interlock.module';
+import { HubDecryptModule } from './user/interlock/hub-decrypt.module';
 import { ConsentModule } from './user/consent/consent.module';
 
 // 프런트엔드 정적 산출물 경로. 운영/로컬에서 배치가 다를 수 있어 환경변수로 재정의 가능하게 두고,
@@ -34,6 +35,10 @@ const frontendDistPath =
     AdminConfigModule,
     // 사용자 도메인(서비스 A 진입·이용 동의 항목 조회) — USR-01·BAT-03. 진입 컨텍스트 스토어를 공유한다.
     InterlockModule,
+    // 허브 복호화(FN-020·SEC-006, USR-02) — 독립 엔드포인트 없음(PROC-203 내부 전용). 현재 소비자는
+    // 없으나 DI 그래프 등록·부팅 검증을 위해 여기서 import 한다. 연동 실행 오케스트레이션(P5)이
+    // ConsentModule(또는 후속 배치 모듈)에 본 모듈을 추가 import 해 HubDecryptService 를 소비할 예정이다.
+    HubDecryptModule,
     ConsentModule,
     // 서비스 대면 API 공통 가드 인프라(FN-004 인증·FN-014 요청제한) — API-01/02/03 횡단(API-P1).
     // 가드·인증·카운터 provider 를 세워 앱 부팅을 성립시키고, 후속 P2~P4 모듈이 import 해 소비한다.

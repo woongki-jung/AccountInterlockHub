@@ -33,6 +33,9 @@ export const AuditEventType = {
   IP_BLOCK: 'IP_BLOCK',
   API_AUTH_FAIL: 'API_AUTH_FAIL',
   CONSENT_REJECT: 'CONSENT_REJECT', // 사용자 거부 처리(PROC-202 B3a, FN-008 — 200 정상 종료·상태 실패 1건, INFO)
+  DECRYPT_SUCCESS: 'DECRYPT_SUCCESS', // 허브 복호화 성공(PROC-203, FN-020 — trackingKey 마스킹만 기록, SEC-006-04·AUTH-004-03)
+  DECRYPT_FAIL: 'DECRYPT_FAIL', // 허브 복호화 실패=생년월일 불일치(PROC-203, FN-020 — 재입력 유도, EX-SEC-006·AUTH-004-02)
+  DECRYPT_SENDER_DATA_ERR: 'DECRYPT_SENDER_DATA_ERR', // 복호화 후 X 파싱 실패·추적 키 필드 누락(PROC-203, FN-020 — 발송처 데이터 오류, EX-BIZ-008·EXC-BIZ-13)
   DELIVERY_BLOCK: 'DELIVERY_BLOCK', // 미동의 전달 차단(PROC-203 B1, FN-012 — 내부 차단·EX 없음, BLOCKED)
   DELIVERY_FAIL: 'DELIVERY_FAIL', // 서비스 B 전달 실패 확정(PROC-203 B6, 재시도 후, FAIL → 502 EX-BIZ-004)
   CALLBACK_RECEIVE: 'CALLBACK_RECEIVE',
