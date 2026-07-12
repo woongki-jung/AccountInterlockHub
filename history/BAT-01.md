@@ -4,6 +4,7 @@
 
 | 일시 (KST) | 단계 | 산출물·결과 | 관련 일감 | 상태 |
 |---|---|---|---|---|
+| 2026-07-12 22:00 | qa | BAT-01_001~009 검증 → 9/9 Pass. 상태저장 PROC-401·CHECK 정합·재사용 최신1건·surrogate PK | `accountinterlockhub#236` | ✅ |
 | 2026-07-12 08:45 | build | `apps/backend/src/database/migrations/1783813064245-EncryptedInterlockRevision.ts` 신규(build P1, 데이터 사양 `#218` 반영) — TBL_INTERLOCK_PROCESS_STATUS 재생성: PK `request_key`→내부 surrogate `id`(uuid, gen_random_uuid())·`tracking_key` varchar(255) 비유니크 신설(CK_STATUS_TRACKING_LEN 길이>0)·CK_STATUS_CONFIRM_CONSISTENCY 유지. 인덱스 IX_STATUS_TRACKING(tracking_key, processed_at DESC)·IX_STATUS_RETENTION_CONFIRMED(부분 WHERE is_result_confirmed)·IX_STATUS_RETENTION_CREATED(created_at). 그린필드 전제(spec-qa.md §1-3 이관 범위 없음)로 DROP+CREATE(PK 구조 변경이라 ALTER 불가). `npm run build` 0건·로컬 PostgreSQL `migration:run` 적용 확인(information_schema·인덱스·CHECK·autovacuum_vacuum_scale_factor=0.05 정합, down/up 왕복 재현)·앱 boot 정상. 서비스 계층(process-status.service.ts 등 구 컬럼 참조) 갱신은 후속 Phase 소관 — 본 Phase 는 스키마만. 리뷰·기능검증 별도 doer 대기 | `accountinterlockhub#225`·`#224` | ✅ |
 | 2026-07-11 23:30 | spec | `tc_BAT-01.md` 개정 — 조회 키 요청 키값→tracking_key·surrogate uuid PK(재사용 시 요청별 1행·최신 1건)·거부 경로 상태 저장 폐기(복호화 성공 후 성공/실패만). BR-301·CHECK·개인식별 배제·9 TC | `accountinterlockhub#222`·`#214` | 🚧 |
 | 2026-07-11 23:30 | spec ⓒ | (공통 반영) #214 검증 TC 사양 개정 — 복호화·전달·추적 키 단독·시드(encX/encY·mock B)·신규 BR/EX(204·SEC-006/007·BIZ-008) — common.md | `accountinterlockhub#222`·`#214` | ℹ️ |
