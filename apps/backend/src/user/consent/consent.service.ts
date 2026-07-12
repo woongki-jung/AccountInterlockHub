@@ -111,12 +111,12 @@ export class ConsentService {
    * (BIZ-002-06). 거부·필수 미충족은 결과 코드만 최소 감사(BIZ-002-04·BIZ-002-07)하고 { approved:false }
    * 를 반환한다 — 호출자(InterlockService)는 이 경우 복호화를 수행하지 않는다.
    *
-   * ⚠ 사양 발견(완료 보고 WARN): FN-008 의사코드는 `allChecked(requiredItems, decision)` 로 항목별 체크를
-   * 서버가 재계산하는 것처럼 서술하나, 실제 요청 모델(MDL-203)은 항목별 체크 배열이 아니라 집계 boolean
-   * (requiredConsentMet) 1개만 전달한다(개인식별 동의 증빙 원장 미저장 확정안, BIZ-002-04·Q3) — 항목별
-   * 재검증은 현재 와이어 계약상 원천 불가능하다. 본 구현은 서버가 "구성에 필수 항목이 실재하는지"까지는
-   * 독립 재확인하고, 그 위에서만 FE 집계값(requiredConsentMet)을 게이팅 조건으로 신뢰한다(필수 항목이
-   * 없으면 FE 값과 무관하게 항상 충족) — 확인 필요.
+   * 집계 신뢰 게이팅(#239 확정): 요청 모델(MDL-203)은 항목별 체크 배열이 아니라 집계 boolean
+   * (requiredConsentMet) 1개만 전달한다(개인식별 동의 증빙 원장 미저장 확정, BIZ-002-04) — 항목별 서버
+   * 재계산은 와이어 계약상 원천 불가능하다. 따라서 서버는 "구성에 필수 항목이 실재하는지"까지 독립
+   * 재확인하고(requiredRows), 그 위에서 요청 집계값(requiredConsentMet)을 게이팅 조건으로 신뢰한다(필수
+   * 항목이 없으면 값과 무관하게 항상 충족). FN-008 의사코드도 집계 신뢰로 정합 완료 — 항목별 재검증
+   * 강화는 증빙 요건 확정 시 후속(EXC-BIZ-04).
    */
   async processDecision(decision: ConsentDecisionInput, now: Date): Promise<ApprovalOutcome> {
     const configRows: Array<{ id: string }> = await this.dataSource.query(

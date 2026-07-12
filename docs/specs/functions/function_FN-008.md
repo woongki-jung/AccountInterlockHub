@@ -62,10 +62,14 @@ function FN-008_processDecision (
             WHERE config_code = :decision.accessAddressId AND is_active = true AND deleted_at IS NULL;
    // 구성 매칭 근거 재검증(화면 값 단독 신뢰 금지, BIZ-002-06)
 
-2. 필수 동의 충족 서버 재검증 — POL BIZ-002-06 (validate)
+2. 필수 동의 충족 서버 재검증(집계 신뢰) — POL BIZ-002-06·BIZ-002-04 (validate)
+   // 동의 증빙 원장 미저장(BIZ-002-04)이라 요청 모델(MDL-203)에 항목별 체크 배열이 없다 —
+   // 서버는 구성에 필수 항목이 실재하는지(requiredItems)까지 독립 재확인하고, 그 위에서 요청의
+   // 집계 충족값(requiredConsentMet)을 게이팅 조건으로 신뢰한다(필수 항목 없으면 값과 무관하게 항상 충족).
    requiredItems = SELECT id FROM TBL_INTERLOCK_CONSENT_ITEM
                    WHERE config_id = :config.id AND is_required = true;
-   serverRequiredMet = (decision.decision == 'AGREE') AND allChecked(requiredItems, decision)
+   serverRequiredMet = (decision.decision == 'AGREE')
+                       AND (empty(requiredItems) OR decision.requiredConsentMet == true)
 
 3. if (decision.decision == 'REJECT' OR NOT serverRequiredMet)   // 거부·필수 미충족 — BIZ-002-07
         FN-013_writeAudit({ eventType:'CONSENT_REJECT', actorType:'SERVICE',
@@ -78,7 +82,7 @@ function FN-008_processDecision (
         return { approved: true }    // 호출 PROC-202 가 연동 실행(SVC-005·PROC-203 복호화·전달) 트리거
 ```
 
-> 동의 증빙 원장은 저장하지 않는다(BIZ-002-04) — 동의/거부 결과만 감사 로그(결과 코드)에 반영한다. 동의 결과는 화면 값 단독 신뢰 없이 서버가 구성 매칭 근거(accessAddressId)와 필수 동의 충족을 재검증한다(BIZ-002-06). 승인(AGREE·필수 충족)만 SVC-005 로 진행해 복호화·전달을 개시하고, 거부·미충족은 복호화를 수행하지 않는다. 복호화 이전이라 연동 추적 키가 없어 처리상태·연동이력을 남기지 않고(EXC-BIZ-11), 암호값(encX·encY)·생년월일은 본 단계에서 저장·기록하지 않는다(DATA-001·SEC-005-06).
+> 동의 증빙 원장은 저장하지 않는다(BIZ-002-04) — 동의/거부 결과만 감사 로그(결과 코드)에 반영한다. 동의 결과는 화면 값 단독 신뢰 없이 서버가 구성 매칭 근거(accessAddressId)와 활성·필수 항목 실재를 재검증한다(BIZ-002-06). 다만 원장 미저장(BIZ-002-04)이라 항목별 체크 배열이 요청 모델(MDL-203)에 없어, 필수 항목이 실재하는 경우의 **충족 여부는 요청의 집계값(requiredConsentMet)을 신뢰**한다(항목별 재계산 불가) — 항목별 서버 재검증 강화는 증빙 요건 확정 시 후속(EXC-BIZ-04). 승인(AGREE·필수 충족)만 SVC-005 로 진행해 복호화·전달을 개시하고, 거부·미충족은 복호화를 수행하지 않는다. 복호화 이전이라 연동 추적 키가 없어 처리상태·연동이력을 남기지 않고(EXC-BIZ-11), 암호값(encX·encY)·생년월일은 본 단계에서 저장·기록하지 않는다(DATA-001·SEC-005-06).
 
 ### API 인터페이스
 
@@ -112,4 +116,4 @@ function FN-008_processDecision (
 ### 구현 가이드
 
 - 동의 화면은 접근 주소 구성에 설정된 동의 항목만 노출하고(구성 외 노출 금지, BIZ-002-01), 약관 컨텐츠(terms_content)가 있는 항목만 [상세] 버튼·약관 모달을 화면이 렌더한다(BIZ-002-05). 모달의 [동의]/[닫기] 는 제출 전 클라이언트 상태 조작으로 별도 서버 호출을 만들지 않는다(EXC-BIZ-08). 구성의 동의 대상 설명 문구(consent_notice)가 있으면 buildConsentView 응답(consentNotice)에 실어 화면 상단 안내로 노출한다(BIZ-002-08, 없으면 미노출).
-- 결과 검증은 서버가 구성 매칭 근거와 필수 동의 충족을 재검증한다(화면 값 단독 신뢰 금지, BIZ-002-06). 거부·미충족은 오류가 아닌 200 정상 종료로 처리하고, 복호화를 수행하지 않아 추적 키·처리상태·연동이력을 남기지 않는다(EXC-BIZ-11). `#214` 로 구 요청 키값(UUID) 발급·진입 컨텍스트 저장·거부 시 처리상태 저장·진입 시 연동이력 생성은 폐기·이동했다(연동이력 생성은 복호화 성공 후 SVC-005).
+- 결과 검증은 서버가 구성 매칭 근거(활성 구성·필수 항목 실재)를 재검증하되(화면 값 단독 신뢰 금지, BIZ-002-06), 필수 항목이 실재할 때의 충족 여부는 요청 집계값(requiredConsentMet)을 신뢰한다(동의 증빙 원장 미저장 BIZ-002-04 이라 항목별 배열이 와이어 계약(MDL-203)에 없음 — 항목별 재계산 불가). 거부·미충족은 오류가 아닌 200 정상 종료로 처리하고, 복호화를 수행하지 않아 추적 키·처리상태·연동이력을 남기지 않는다(EXC-BIZ-11). `#214` 로 구 요청 키값(UUID) 발급·진입 컨텍스트 저장·거부 시 처리상태 저장·진입 시 연동이력 생성은 폐기·이동했다(연동이력 생성은 복호화 성공 후 SVC-005).

@@ -90,16 +90,18 @@
 
 - **데이터 검증**: API_AUTH_FAIL 감사(추적 키 마스킹). 자격 값 로그 미기록. 인증 수단 spec 확정·구체 알고리즘 build(BLK-05).
 
-### API-03_009 입력 검증·크기 위반
-- **유형/우선순위/자동화**: Negative · 보통 · 자동 | **PROC/분기**: PROC-303 / EX-SEC-004·EX-SEC-005
+### API-03_009 입력 검증·크기 초과·주입 무해 통과
+- **유형/우선순위/자동화**: Negative · 보통 · 자동 | **PROC/분기**: PROC-303 / EX-SEC-004·EX-BIZ-006·EX-SEC-005
+- **정책 근거**: SEC-004-01(허용 문자 화이트리스트·주입 재검증 불요 — 파라미터 바인딩 SEC-004-02 단독 방어). 공란·255 초과는 DTO(NotBlank·MaxLength) 400 EX-SEC-004, 주입 패턴은 비매칭 일반값으로 통과해 대상 미특정 단일 404 EX-BIZ-006 으로 수렴한다(코드가 정책 준수 — `#240` TC 정합).
 
 | 단계 | 실행 | 입력 | 기대 결과 | 매핑 PROC |
 |--|--|--|--|--|
 | 1 | POST /callback | trackingKey 공란(필수 누락) | 400 EX-SEC-004 "요청이 올바르지 않습니다." | B3 |
-| 2 | POST /callback | 허용 문자 위반·주입 패턴·255 초과 | 400 EX-SEC-004 | B3 |
-| 3 | POST /callback | 본문 1MB 초과 | 413 EX-SEC-005 | B3 |
+| 2 | POST /callback | 255 초과(MaxLength) | 400 EX-SEC-004 | B3 |
+| 3 | POST /callback | 주입 패턴 trackingKey(비공백·255 이내) | 404 EX-BIZ-006(파라미터 바인딩 의존·주입 무실행 — 비매칭 일반값, SEC-004-01/02) | B4 |
+| 4 | POST /callback | 본문 1MB 초과 | 413 EX-SEC-005 | B3 |
 
-- **비고**: MDL-305 = trackingKey 단독(NotBlank·MaxLength(255)). 구 configCode·userKey 2항목 회신 폐기.
+- **비고**: MDL-305 = trackingKey 단독(NotBlank·MaxLength(255)). 구 configCode·userKey 2항목 회신 폐기. 주입 안전성은 파라미터 바인딩(SEC-004-02) 단독 방어.
 
 ### API-03_010 요청 제한 초과
 - **유형/우선순위/자동화**: Negative · 보통 · 자동 | **PROC/분기**: PROC-303 / EX-OPS-001

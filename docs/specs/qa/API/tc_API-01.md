@@ -15,7 +15,7 @@
 | 단계 | 실행 | 입력 | 기대 결과 | 매핑 PROC |
 |--|--|--|--|--|
 | 1 | GET /api/status/:trackingKey | 유효 발송처 자격·미확인 상태 trackingKey | 인증·제한·형식 통과 | B1~B3 |
-| 2 | 상태 조회·갱신 | — | 200 MDL-302(4항목+trackingKey 마스킹 에코) | B4~B6 |
+| 2 | 상태 조회·갱신 | — | 200 MDL-302(4항목+trackingKey 원문 에코) | B4~B6 |
 
 - **데이터 검증**: ENT-004 is_result_confirmed false→true·result_confirmed_at=now 갱신(surrogate id + WHERE is_result_confirmed=false 멱등 가드). 응답에 회원 키·config_id 부재.
 
@@ -66,21 +66,23 @@
 
 - **비고**: 임계치 60/분 기본안(BLK-06).
 
-### API-01_007 응답 4항목·추적 키 마스킹
+### API-01_007 응답 4항목·추적 키 원문 에코(로그·감사만 마스킹)
 - **유형/우선순위/자동화**: Positive(DATA) · 높음 · 자동 | **PROC/분기**: PROC-301 / SEC-005-02·04
+- **정책 근거**: FN-010 이 정본 — 처리상태 조회 응답의 trackingKey 는 발송처 자신의 값이라 **원문 그대로 에코**(신규 유출 아님)하고, 마스킹(앞2·뒤2)은 로그·감사·오류 응답에만 적용한다(SEC-005-04). `#237` spec 자기모순(구 PROC-301/SVC-006 응답 마스킹 기대) 해소.
 
 | 단계 | 실행 | 입력 | 기대 결과 | 매핑 PROC |
 |--|--|--|--|--|
-| 1 | GET /api/status/:trackingKey | 유효 조회 | 응답 = {trackingKey(앞2·뒤2 마스킹),isSuccess,isResultConfirmed,processedAt,resultConfirmedAt} | B6 |
+| 1 | GET /api/status/:trackingKey | 유효 조회 | 응답 = {trackingKey(**원문 에코** — 발송처 자신의 값),isSuccess,isResultConfirmed,processedAt,resultConfirmedAt} | B6 |
 
-- **데이터 검증**: 응답 DTO 에 회원 키·config_id·기타 컬럼 부재(MDL-302). processedAt ISO8601·resultConfirmedAt(미확인 시 null).
+- **데이터 검증**: 응답 DTO 에 회원 키·config_id·기타 컬럼 부재(MDL-302). 응답 trackingKey = 조회 키 원문 무변형(FN-010). processedAt ISO8601·resultConfirmedAt(미확인 시 null). 감사 로그(STATUS_CHECK) 의 trackingKey 는 앞2·뒤2 마스킹(SEC-005-04·FN-010).
 
-### API-01_008 크기·주입 위반
-- **유형/우선순위/자동화**: Boundary · 보통 · 자동 | **PROC/분기**: PROC-301 / EX-SEC-004·EX-SEC-005
+### API-01_008 크기 초과·주입 무해 통과
+- **유형/우선순위/자동화**: Boundary · 보통 · 자동 | **PROC/분기**: PROC-301 / EX-DATA-003·EX-SEC-005
+- **정책 근거**: SEC-004-01(허용 문자 화이트리스트·주입 재검증 불요 — 파라미터 바인딩 SEC-004-02 단독 방어). 주입 패턴 trackingKey 는 비매칭 일반값으로 무해 통과해 미존재 404(EX-DATA-003)로 수렴한다(코드가 정책 준수 — `#240` TC 정합).
 
 | 단계 | 실행 | 입력 | 기대 결과 | 매핑 PROC |
 |--|--|--|--|--|
-| 1 | GET /api/status/:trackingKey | 허용 문자 위반·주입 | 400 EX-SEC-004 | B3 |
+| 1 | GET /api/status/:trackingKey | 주입 패턴 trackingKey(비공백·255 이내) | 404 EX-DATA-003(파라미터 바인딩 의존·주입 무실행 — 비매칭 일반값 취급, SEC-004-01/02) | B4 |
 | 2 | 〃 | 본문 1MB 초과 | 413 EX-SEC-005 | B3 |
 
 ### API-01_009 조회·갱신 오류
