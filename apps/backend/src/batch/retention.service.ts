@@ -10,20 +10,25 @@ import { BatchRunResult } from './retention.types';
 /**
  * 보관 만료 대상 선정·삭제 배치 서비스 — FN-011_runRetentionBatch / PROC-402 / SVC-007.
  *
- * 일 1회 스케줄(또는 CLI 온디맨드)로 보관 기간(기본 90일) 경과분을 하드 삭제해 무기한 누적을 막는다.
- * 처리상태(ENT-004, 완료=결과확인일시·미완료=처리일시)와 연동이력(ENT-007, 수신=수신일시·미수신=요청일시)의
- * 네 갈래를 한 실행 흐름에서 각각 청크 DELETE(`ctid IN ... LIMIT`)로 삭제하며, 청크마다 독립 커밋한다.
+ * 일 1회 스케줄(또는 CLI 온디맨드)로 보관 기간이 경과한 처리상태·연동이력을 하드 삭제해 무기한 누적을 막는다.
+ * `#214`(P10) fallback two-pass — 처리상태(ENT-004)·연동이력(ENT-007) 각각 두 갈래를 한 실행 흐름에서
+ * 처리한다: confirmedDays(기본 90일, 결과 확인/콜백 수신 일시 기산) 갈래와 absoluteDays(기본 180일,
+ * created_at 기산 절대 상한) 갈래 — 확인/수신 건은 둘 중 먼저 도래하는 시점에, 미확인/미수신 건은 절대
+ * 상한 갈래로만 정리된다(process_PROC-402.md B2·B3, BR-401·BR-402). 네 갈래(상태 확인·상태 절대·이력 수신·
+ * 이력 절대) 모두 청크 DELETE(`ctid IN ... LIMIT`)로 삭제하며, 청크마다 독립 커밋한다.
  *
  * 트랜잭션 경계(PROC-402 실행 제약): dataSource.query 는 트랜잭션 밖 autocommit 이므로 각 청크 DELETE 가
  * 독립 커밋된다 — 루프 전체를 하나의 트랜잭션으로 감싸지 않는다. 조건절(경과 기준)이 곧 멱등 가드라
- * 중단·재실행 시 이미 커밋된 삭제분은 미해당하고 잔여 대상만 다시 삭제된다(OPS-003-02).
+ * 중단·재실행 시 이미 커밋된 삭제분은 미해당하고 잔여 대상만 다시 삭제된다(OPS-003-02). 두 갈래의 중복
+ * 대상(양 조건 동시 충족)은 먼저 실행된 갈래에서 삭제되고 다른 갈래 조회에서 자연 제외돼 이중 삭제가 없다.
  *
  * 감사(FN-013): 기동 시 BATCH_RUN(INFO 'retention start'), 정상 종료 시 BATCH_RUN(SUCCESS, detail=집계 JSON),
  * 실패 시 BATCH_RUN(FAIL) 후 예외 재던짐(잔여분 다음 주기 재시도). detail 에는 건수·소요만 담고 user_key·
  * 요청 키값·개인정보 원문을 넣지 않는다(SEC-005 — 건수만). 배치 결과는 상태·이력 테이블에 저장하지 않는다.
  *
- * DB 접근은 파라미터 바인딩만 사용한다(SEC-004-02). 삭제 대상 선정은 부분 인덱스
- * (IX_STATUS_RETENTION_CONFIRMED/PENDING·IX_HISTORY_RETENTION_RECEIVED/PENDING)로 수행된다.
+ * DB 접근은 파라미터 바인딩만 사용한다(SEC-004-02). 삭제 대상 선정은 확인/수신 부분 인덱스
+ * (IX_STATUS_RETENTION_CONFIRMED·IX_HISTORY_RETENTION_RECEIVED)와 생성일시 인덱스(IX_STATUS_RETENTION_CREATED·
+ * IX_HISTORY_RETENTION_CREATED, 절대 상한 갈래 — 확인/미확인·수신/미수신 공통)로 수행된다.
  */
 @Injectable()
 export class RetentionService {
@@ -36,15 +41,19 @@ export class RetentionService {
 
   /**
    * 보관 만료 대상 선정·삭제 배치(FN-011). 성공 시에만 MDL-402 결과를 반환한다.
-   * @param now           배치 실행 기준 시각(스케줄 도래 또는 CLI 시각). threshold = now - retentionDays.
-   * @param retentionDays 보관 기간(일, 기본안 90). 처리상태·연동이력 공통.
+   * @param now           배치 실행 기준 시각(스케줄 도래 또는 CLI 시각).
+   * @param confirmedDays 결과 확인/콜백 수신 후 보관 기간(일, 기본안 90). threshold90 = now - confirmedDays.
+   *                      처리상태·연동이력 공통(FN-011 confirmedRetentionDays).
+   * @param absoluteDays  생성 일시(created_at) 기산 절대 상한(일, 기본안 180). threshold180 = now - absoluteDays.
+   *                      확인/수신 갈래의 fallback 상한 + 미확인/미수신 건 정리 기준(FN-011 absoluteRetentionDays).
    * @throws 삭제 중 예외 발생 시 — 실패 감사(FAIL) 기록 후 원본 예외를 재던진다(커밋된 청크는 유지).
    */
-  async runRetentionBatch(now: Date, retentionDays = 90): Promise<BatchRunResult> {
+  async runRetentionBatch(now: Date, confirmedDays = 90, absoluteDays = 180): Promise<BatchRunResult> {
     const startMs = Date.now();
     const chunkSize = resolveChunkSize();
-    // threshold = now - retentionDays days. timestamptz 는 UTC 저장이므로 고정 ms 산술로 산출한다.
-    const threshold = new Date(now.getTime() - retentionDays * 24 * 60 * 60 * 1000);
+    // threshold90/180 = now - N days. timestamptz 는 UTC 저장이므로 고정 ms 산술로 산출한다.
+    const threshold90 = new Date(now.getTime() - confirmedDays * 24 * 60 * 60 * 1000);
+    const threshold180 = new Date(now.getTime() - absoluteDays * 24 * 60 * 60 * 1000);
 
     // B1. 기동 감사(OPS-003-01) — best-effort(FN-013), 삭제 결과에 영향 없음.
     await this.auditService.write({
@@ -55,35 +64,38 @@ export class RetentionService {
     });
 
     try {
-      // B2. 처리상태 삭제 — 완료(결과확인일시 기산)·미완료(처리일시 기산) 두 갈래(BR-401).
+      // B2. 처리상태 삭제 — 확인 갈래(결과확인일시+90일)·절대 상한 갈래(생성일시+180일, BR-401 fallback).
+      // 확인 갈래: 결과 확인 건 중 90일 경과분만(미확인 건은 is_result_confirmed=false 라 미해당).
       const statusDeletedConfirmed = await this.deleteExpiredInChunks(
         'TBL_INTERLOCK_PROCESS_STATUS',
         'is_result_confirmed = true AND result_confirmed_at < $1', // IX_STATUS_RETENTION_CONFIRMED
-        threshold,
+        threshold90,
         chunkSize,
       );
-      const statusDeletedPending = await this.deleteExpiredInChunks(
+      // 절대 상한 갈래: 확인/미확인 공통 — 확인 후 90일 미도래 건 + 미확인 건 중 180일 경과분을 포괄.
+      const statusDeletedAbsolute = await this.deleteExpiredInChunks(
         'TBL_INTERLOCK_PROCESS_STATUS',
-        'is_result_confirmed = false AND processed_at < $1', // IX_STATUS_RETENTION_PENDING
-        threshold,
+        'created_at < $1', // IX_STATUS_RETENTION_CREATED
+        threshold180,
         chunkSize,
       );
-      const statusDeleted = statusDeletedConfirmed + statusDeletedPending;
+      const statusDeleted = statusDeletedConfirmed + statusDeletedAbsolute;
 
-      // B3. 연동이력 삭제 — 수신(수신일시 기산)·미수신(요청일시 기산) 두 갈래(BR-402). 처리상태와 동일 흐름.
+      // B3. 연동이력 삭제 — 수신 갈래(수신일시+90일)·절대 상한 갈래(생성일시+180일, BR-402 fallback). 처리상태와 동일 흐름.
       const historyDeletedReceived = await this.deleteExpiredInChunks(
         'TBL_INTERLOCK_HISTORY',
         'callback_received = true AND callback_received_at < $1', // IX_HISTORY_RETENTION_RECEIVED
-        threshold,
+        threshold90,
         chunkSize,
       );
-      const historyDeletedPending = await this.deleteExpiredInChunks(
+      // 절대 상한 갈래: 수신/미수신 공통(콜백 미도래 건 정리 포함, EXC-BIZ-11).
+      const historyDeletedAbsolute = await this.deleteExpiredInChunks(
         'TBL_INTERLOCK_HISTORY',
-        'callback_received = false AND requested_at < $1', // IX_HISTORY_RETENTION_PENDING
-        threshold,
+        'created_at < $1', // IX_HISTORY_RETENTION_CREATED
+        threshold180,
         chunkSize,
       );
-      const historyDeleted = historyDeletedReceived + historyDeletedPending;
+      const historyDeleted = historyDeletedReceived + historyDeletedAbsolute;
 
       // B4. 결과 집계(MDL-402) — target=deleted(선정 즉시 삭제). 처리상태·연동이력 각각 집계.
       const result: BatchRunResult = {
