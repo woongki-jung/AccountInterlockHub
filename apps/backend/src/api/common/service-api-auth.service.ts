@@ -17,10 +17,10 @@ import { ServiceActor, ServiceApiMetadata, ServiceCaller } from './service-api.t
  *     - X-Signature : hex 인코딩 HMAC-SHA256. 아래 canonical string 을 주체의 공유 비밀로 서명한 값.
  *   Canonical string = `${METHOD}\n${path}\n${timestamp}\n${bodyHashHex}`
  *     - METHOD      : HTTP 메서드 대문자(GET·POST).
- *     - path        : 쿼리 문자열 제외 요청 경로(예 `/api/status/<uuid>`, `/api/interlock/completion`).
+ *     - path        : 쿼리 문자열 제외 요청 경로(예 `/api/status/<trackingKey>`, `/api/interlock/completion`).
  *     - timestamp   : X-Timestamp 원문(문자열 그대로).
  *     - bodyHashHex : hex(sha256(rawBody)). 본문 없으면 빈 바이트의 sha256(= 빈 문자열의 sha256).
- *   GET 은 본문이 없어 path 에 실린 requestKey 가 서명 대상에 포함되어 보호된다.
+ *   GET 은 본문이 없어 path 에 실린 trackingKey 가 서명 대상에 포함되어 보호된다.
  *
  * 검증 절차(의사코드 정합):
  *   ① 헤더 3종 누락 → 실패
@@ -30,7 +30,7 @@ import { ServiceActor, ServiceApiMetadata, ServiceCaller } from './service-api.t
  *   ⑤ 기대 서명 계산 후 상수시간 비교(timingSafeEqual — 길이 다르면 즉시 실패) → 불일치 시 실패
  *   ⑥ 통과 시 ServiceCaller { actor, id } 반환
  *
- * 실패 처리(어느 단계든): API_AUTH_FAIL 감사(SERVICE·FAIL, target=마스킹된 requestKey 또는 caller id,
+ * 실패 처리(어느 단계든): API_AUTH_FAIL 감사(SERVICE·FAIL, target=마스킹된 trackingKey 또는 caller id,
  *   detail 에 사유) 후 401 EX-SEC-003. 자격값·서명 원문·타임스탬프 원문은 감사·로그에 남기지 않는다(SEC-005).
  *
  * 비밀 자격 출처: 운영 구성값(환경변수, ENT 아님). SERVICE_A/B_API_KEY·SERVICE_A/B_API_SECRET.
@@ -55,7 +55,7 @@ export interface ServiceApiAuthInput {
     timestamp?: string;
     signature?: string;
   };
-  requestKey?: string | null; // 실패 감사 마스킹 대상(있으면 — 예: /api/status/:requestKey)
+  trackingKey?: string | null; // 실패 감사 마스킹 대상(있으면 — 예: /api/status/:trackingKey)
   now: Date;
 }
 
@@ -81,24 +81,24 @@ export class ServiceApiAuthService {
     input: ServiceApiAuthInput,
     metadata: ServiceApiMetadata,
   ): Promise<ServiceCaller> {
-    const { headers, method, path, rawBody, requestKey, now } = input;
+    const { headers, method, path, rawBody, trackingKey, now } = input;
 
     // ① 헤더 3종 존재 확인 — SEC-003-01
     if (!headers.apiKey || !headers.timestamp || !headers.signature) {
-      await this.failAudit(requestKey, headers.apiKey ?? null, 'missing auth headers');
+      await this.failAudit(trackingKey, headers.apiKey ?? null, 'missing auth headers');
       throw new AppException('EX-SEC-003');
     }
 
     // ② API 키로 주체 조회 — SEC-003-01
     const credential = this.resolveCredential(headers.apiKey);
     if (!credential) {
-      await this.failAudit(requestKey, headers.apiKey, 'unknown api key');
+      await this.failAudit(trackingKey, headers.apiKey, 'unknown api key');
       throw new AppException('EX-SEC-003');
     }
 
     // ③ 기대 주체 일치 확인 — SEC-003-03(서비스 A 자격으로 API-03, 서비스 B 자격으로 API-01/02 차단)
     if (credential.actor !== metadata.actor) {
-      await this.failAudit(requestKey, credential.id, `wrong actor for ${metadata.scope}`);
+      await this.failAudit(trackingKey, credential.id, `wrong actor for ${metadata.scope}`);
       throw new AppException('EX-SEC-003');
     }
 
@@ -106,7 +106,7 @@ export class ServiceApiAuthService {
     const tsSec = Number(headers.timestamp);
     const nowSec = Math.floor(now.getTime() / 1000);
     if (!Number.isInteger(tsSec) || Math.abs(nowSec - tsSec) > CLOCK_SKEW_TOLERANCE_SEC) {
-      await this.failAudit(requestKey, credential.id, 'timestamp out of window');
+      await this.failAudit(trackingKey, credential.id, 'timestamp out of window');
       throw new AppException('EX-SEC-003');
     }
 
@@ -119,7 +119,7 @@ export class ServiceApiAuthService {
       provided.length !== expected.length ||
       !timingSafeEqual(provided, expected)
     ) {
-      await this.failAudit(requestKey, credential.id, 'signature mismatch');
+      await this.failAudit(trackingKey, credential.id, 'signature mismatch');
       throw new AppException('EX-SEC-003');
     }
 
@@ -146,15 +146,15 @@ export class ServiceApiAuthService {
   }
 
   /**
-   * 인증 실패 감사(API_AUTH_FAIL, SEC-003-02). target 은 마스킹된 requestKey(있으면) 또는 마스킹된 caller id.
+   * 인증 실패 감사(API_AUTH_FAIL, SEC-003-02). target 은 마스킹된 trackingKey(있으면) 또는 마스킹된 caller id.
    * actorId 는 AuditService 가 SERVICE 행위자에 대해 maskToken 으로 마스킹한다. detail 에는 사유만(자격값 배제).
    */
   private async failAudit(
-    requestKey: string | null | undefined,
+    trackingKey: string | null | undefined,
     callerId: string | null,
     detail: string,
   ): Promise<void> {
-    const target = requestKey ? maskToken(requestKey) : maskToken(callerId);
+    const target = trackingKey ? maskToken(trackingKey) : maskToken(callerId);
     await this.auditService.write({
       eventType: AuditEventType.API_AUTH_FAIL,
       actorType: ActorType.SERVICE,

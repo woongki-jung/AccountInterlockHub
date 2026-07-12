@@ -34,14 +34,15 @@ function FN-020_decryptInterlock (
   throws CryptoParamFormatError  { code: EX-SEC-007, http: 400 }   // 암호 파라미터 누락·Base64URL 형식 오류(발송처 오류·재입력 불가)
         | DecryptFailedError      { code: EX-SEC-006, http: 400 }   // 패딩·키 불일치=생년월일 오류(재입력 가능)
         | MissingTrackingKeyError { code: EX-BIZ-008, http: 400 }   // X 파싱 실패·추적 키 필드 누락·공백(발송처 오류·재입력 불가)
+  // CryptoParamFormatError 는 encX·encY 부재(필드 완전 누락)·빈값·형식오류를 모두 포괄한다(#238) — 승인 DTO 는 부재를 EX-SEC-004 로 선차단하지 않고 본 FN 에 위임
 ```
 
 ### 입력/출력 정의
 
 | 구분 | 항목명 | 데이터 타입 | 필수 | 제약 | 설명 |
 |------|--------|------------|------|------|------|
-| 입력 | encX | string | Y | NotBlank, Base64URL(SEC-006-05), 로그·저장 미기록 | 이중 암호값 1(발송처 생성, X 암호문) |
-| 입력 | encY | string | Y | NotBlank, Base64URL(SEC-006-05), 로그·저장 미기록 | 이중 암호값 2(encX 키 문자열 암호문) |
+| 입력 | encX | string | Y | 부재·빈값·Base64URL 형식오류 → EX-SEC-007(SEC-006-05, #238), 로그·저장 미기록 | 이중 암호값 1(발송처 생성, X 암호문) |
+| 입력 | encY | string | Y | 부재·빈값·Base64URL 형식오류 → EX-SEC-007(SEC-006-05, #238), 로그·저장 미기록 | 이중 암호값 2(encX 키 문자열 암호문) |
 | 입력 | birthDate | string(yyMMdd) | Y | 승인 시점 수신, 로그·저장 미기록 | 복호화 요소(인증·세션 미발급, AUTH-004-01) |
 | 입력 | accessAddressId | string | Y | NotBlank | 감사 대상(발송처 식별자, 비민감) |
 | 출력 | X | object(MDL-204 payload) | - | 무변형·무저장·미기록 | 복호화 원문(수신처 전달 페이로드) |
@@ -57,8 +58,9 @@ iv16(str):         b = utf8Bytes(str); return len(b) >= 16 ? b[0:16] : b + repea
 
 FN-020_decryptInterlock(encX, encY, birthDate, accessAddressId):
 
-1. 암호 파라미터 형식 검증 — SEC-006-05 (validate)
-   if (blank(encX) OR blank(encY))                     → throw CryptoParamFormatError (400, EX-SEC-007)
+1. 암호 파라미터 부재·형식 검증 — SEC-006-05 (validate)
+   if (absent(encX) OR absent(encY) OR blank(encX) OR blank(encY))  → throw CryptoParamFormatError (400, EX-SEC-007)
+   // 부재(필드 완전 누락)·빈값·공백을 형식오류와 동일 취급 — 승인 DTO 는 부재를 EX-SEC-004 로 선차단하지 않고 본 단계에 위임(#238)
    try { rawY = base64urlDecode(encY); rawX = base64urlDecode(encX) }
    catch (형식 오류)                                     → throw CryptoParamFormatError (400, EX-SEC-007)
    // Base64URL 디코드 실패 = 발송처 링크 구성 오류(재입력 불가)
@@ -110,7 +112,7 @@ FAIL_SENDER_DATA: — BIZ-004-08·EXC-BIZ-13 (validate)
 
 | HTTP status | EX 코드 | 발생 조건 | 사용자 메시지 | 개발자 노트 |
 |-------------|---------|-----------|---------------|-------------|
-| 400 | EX-SEC-007 | 암호 파라미터(encX·encY) 누락·Base64URL 형식 오류 | "요청이 올바르지 않습니다." | SEC-006-05, 발송처 링크 오류(재입력 불가) |
+| 400 | EX-SEC-007 | 암호 파라미터(encX·encY) 부재(필드 완전 누락)·빈값·Base64URL 형식 오류 | "요청이 올바르지 않습니다." | SEC-006-05, 발송처 링크 오류(재입력 불가). 부재도 형식오류와 동일 취급(#238) — 승인 DTO 선차단 없음 |
 | 400 | EX-SEC-006 | 복호화 실패(생년월일 불일치·패딩·키 불일치) | "사용자 정보가 일치하지 않습니다." | AUTH-004-02, 생년월일 재입력 재시도(하드 잠금 없음) |
 | 400 | EX-BIZ-008 | 복호화된 X 파싱 실패·연동 추적 키 필드 누락·공백 | "연동에 필요한 값이 없습니다." | BIZ-004-08·EXC-BIZ-13, 발송처 데이터 오류(재입력 불가) |
 | 500 | EX-FN-999 | 정규화·복호화 라이브러리 오류(암호 파라미터 무관) | "잠시 후 다시 시도해주세요." | 원문·생년월일 미기록, 감사 로그 필수 |

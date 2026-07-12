@@ -10,10 +10,11 @@ interface WindowCounter {
  * 단일 App Service 기준 싱글턴(스케일아웃 시 공유 캐시 전환 여지 — OPS-001 구현 가이드).
  * provider 로 등록해 미들웨어가 주입받으며, 카운터 상태가 요청 간 안정적으로 유지된다.
  *
- * 만료 회수: POST /interlock/entry 는 Public 인터넷 대면이라 출발지 IP(entry:${ip})가 무한 유입될 수
- * 있다. hit() 만으로는 재방문 없는 IP 의 만료 엔트리가 영구 잔존(누수)하므로, 윈도우 주기마다
- * setInterval 로 만료 엔트리를 상시 회수해 Map 크기를 유계로 만든다(EntryContextStore 와 동일한
- * 정리 규율 — unref + OnModuleDestroy). 타이머는 프로세스 종료를 붙잡지 않도록 unref 한다.
+ * 만료 회수: GET /api/consent/:accessAddressId·POST /api/interlock/approve 는 Public 인터넷 대면이라
+ * 출발지 IP(스코프별 `consent:${ip}`·`approve:${ip}`, `#214` P5 로 재배치)가 무한 유입될 수 있다. hit()
+ * 만으로는 재방문 없는 IP 의 만료 엔트리가 영구 잔존(누수)하므로, 윈도우 주기마다 setInterval 로 만료
+ * 엔트리를 상시 회수해 Map 크기를 유계로 만든다(unref + OnModuleDestroy 정리 규율). 타이머는 프로세스
+ * 종료를 붙잡지 않도록 unref 한다.
  */
 @Injectable()
 export class EntryRateLimitStore implements OnModuleDestroy {

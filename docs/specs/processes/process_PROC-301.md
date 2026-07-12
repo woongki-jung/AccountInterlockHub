@@ -28,7 +28,7 @@
 | 구분 | 코드 | 관계 설명 |
 |------|------|----------|
 | 서비스(SVC) | SVC-006 | 처리상태 확인 API |
-| 정책(policy) | SEC-003·OPS-001·DATA-002·SEC-004·DATA-003·SEC-005 | API 인증(주체 분리)·요청 제한·형식 검증·상태 갱신·응답 마스킹 |
+| 정책(policy) | SEC-003·OPS-001·DATA-002·SEC-004·DATA-003·SEC-005 | API 인증(주체 분리)·요청 제한·형식 검증·상태 갱신·응답 항목 한정·로그/감사 마스킹 |
 | 공통 기능(FN) | FN-004(API 인증)·FN-014(요청 제한)·FN-005(입력 검증)·FN-007(추적 키 형식 검증)·FN-009(조회·갱신)·FN-010(응답 선별)·FN-013(감사)·FN-015(엔벨로프) | 호출 단위 로직 |
 | 데이터 모델(MDL) | MDL-202(연동 추적 키)·MDL-301(처리 상태)·MDL-302(조회 응답) | 요청·도메인·응답 모델 |
 | DB 엔터티(ENT) | ENT-004(처리 상태)·ENT-006(인증 실패 감사) | 조회·갱신·감사 대상 |
@@ -46,7 +46,7 @@
 |------|--------|------------|------|------|
 | 입력 | credential | string | Y | Authorization/API-Key 헤더 또는 서명(로그 배제) |
 | 입력 | trackingKey | string | Y | 조회 대상 연동 추적 키(URL 경로 파라미터) |
-| 출력 | response | MDL-302 | - | 상태 4항목 + 추적 키 에코(마스킹, 회원 키·configId 배제) |
+| 출력 | response | MDL-302 | - | 상태 4항목 + 추적 키 **원문 에코**(회원 키·configId 배제, 로그·감사만 마스킹 — FN-010) |
 
 ### 연관 데이터 및 외부 호출
 
@@ -59,7 +59,7 @@
 - **트랜잭션 경계**: 결과 확인 갱신은 surrogate id 대상 조건절 가드(is_result_confirmed=false) 단건 UPDATE 트랜잭션. 조회는 단순 SELECT(최신 1건).
 - **동시성 제어**: 결과 확인 갱신은 surrogate id + WHERE is_result_confirmed=false 멱등 가드로 최초 1회만 반영(BR-301). 재조회는 갱신 없이 현재 상태. 추적 키 재사용 시 처리 일시 최신 1건(EXC-BIZ-12).
 - **성능 요구**: 요청 제한 분당 60회 초과 시 429(FN-014). IX_STATUS_TRACKING(tracking_key, processed_at DESC) 최신 1건 조회.
-- **보안 요구**: API 인증·주체 분리(SEC-003-03), 응답 4항목만·마스킹(SEC-005-02), 인증 실패 감사 시 추적 키 마스킹(FN-010). 회원 키 응답 배제.
+- **보안 요구**: API 인증·주체 분리(SEC-003-03), 응답 4항목만(SEC-005-02)·추적 키는 원문 에코(발송처 자신의 값, 로그·감사만 마스킹 — FN-010·SEC-005-04), 인증 실패 감사 시 추적 키 마스킹(FN-010). 회원 키 응답 배제.
 
 ### 로직 실행 순서
 
@@ -86,7 +86,8 @@ B2. 요청 제한 — FN-014_checkRateLimit(caller, 'status', now, 60)  (OPS-001
   초과 → 감사(RATE_LIMIT, BLOCKED) → 429 EX-OPS-001
 
 B3. 입력 검증 — FN-005 + FN-007_validateTrackingKeyFormat(trackingKey)  (SEC-004·DATA-002-07)
-  본문/파라미터 크기·주입 → 400 EX-SEC-004 / 413 EX-SEC-005
+  본문/파라미터 형식(타입)·크기 위반 → 400 EX-SEC-004 / 413 EX-SEC-005
+  // 주입 패턴은 파라미터 바인딩 단독 방어(SEC-004-01/02) — 별도 재검증 없이 비매칭 일반값으로 통과, 미존재 시 B4 에서 404 EX-DATA-003
   if (blank(trackingKey) OR len(trackingKey) > 255) → 400 EX-DATA-002   // UUID 강제 아님(발송처 구성 자유)
 
 B4. 상태 조회 — FN-009_findByKey(trackingKey)  (DATA-003-06 진입)
@@ -106,7 +107,8 @@ B5. 결과 확인 갱신 — PROC-401 / FN-009_confirmResult(trackingKey, now)  
   // 재조회는 갱신 없이 현재 상태
 
 B6. 응답 변환 — FN-010_selectStatusResponse(status)  (SEC-005-02)
-  response = { trackingKey: FN-010_mask(trackingKey), isSuccess, isResultConfirmed,
+  response = { trackingKey: trackingKey,           // 원문 에코(발송처 자신의 값, 응답 노출) — 로그·감사만 마스킹(FN-010·SEC-005-04)
+               isSuccess, isResultConfirmed,
                processedAt(iso8601), resultConfirmedAt(iso8601|null) }  // configId·회원 키 배제
   응답: FN-015_ok(response)   // MDL-302
   정책 적용 지점: SEC-003(인증·주체), OPS-001(제한), DATA-002(형식·불투명), DATA-003(갱신), SEC-005(4항목·마스킹)
@@ -119,7 +121,7 @@ B6. 응답 변환 — FN-010_selectStatusResponse(status)  (SEC-005-02)
 | 요청→도메인 | BE 컨트롤러 | 헤더+trackingKey | 인증 주체·조회 키 | FN-004 인증·주체 구분·FN-007 형식 검증 |
 | ENT→도메인 | BE 리포지토리 | ENT-004 행(최신 1건) | MDL-301 | 직접 매핑·NULL(result_confirmed_at) 처리·내부 id 미노출 |
 | 도메인→ENT | BE(PROC-401) | 최초 조회 | ENT-004 UPDATE | is_result_confirmed=true·result_confirmed_at(surrogate id) |
-| 도메인→응답 | BE 컨트롤러 | MDL-301 | MDL-302 | 4항목 선별·추적 키 마스킹·configId·회원 키 배제·ISO8601 |
+| 도메인→응답 | BE 컨트롤러 | MDL-301 | MDL-302 | 4항목 선별·추적 키 원문 에코(로그·감사만 마스킹)·configId·회원 키 배제·ISO8601 |
 
 #### 단계 통합 흐름
 
@@ -130,7 +132,7 @@ B6. 응답 변환 — FN-010_selectStatusResponse(status)  (SEC-005-02)
 | 3 | BE | 입력 검증 | 통과 | FN-005 + FN-007 추적 키 형식(비공백·255) | 조회 키 |
 | 4 | BE | 상태 조회 | 조회 키 | ENT-004 tracking_key 최신 1건 조회(미존재 404) | 처리 상태 |
 | 5 | BE | 결과 확인 갱신 | 처리 상태 | FN-009 최초 조회 멱등 갱신(surrogate id, BR-301) | 갱신된 상태 |
-| 6 | BE | 응답 변환 | 갱신된 상태 | FN-010 4항목 선별·추적 키 마스킹 + FN-015 | MDL-302 |
+| 6 | BE | 응답 변환 | 갱신된 상태 | FN-010 4항목 선별·추적 키 원문 에코(로그·감사만 마스킹) + FN-015 | MDL-302 |
 
 ### 분기 및 예외 흐름
 
@@ -141,13 +143,13 @@ B6. 응답 변환 — FN-010_selectStatusResponse(status)  (SEC-005-02)
 | EX-OPS-001 | 분당 60회 초과 | 요청 거부, 감사 | 429 잠시 후 다시 시도해주세요. |
 | EX-DATA-002 | 연동 추적 키 형식 위반(공백·최대 길이 255 초과) | 조회 거부 | 400 연동 추적 키 형식이 올바르지 않습니다. |
 | EX-DATA-003 | 연동 추적 키 미존재(만료 삭제 포함) | 조회 실패 | 404 해당 요청을 찾을 수 없습니다. |
-| EX-SEC-004 | 허용 문자 위반·주입 | 조회 거부 | 400 요청이 올바르지 않습니다. |
+| EX-SEC-004 | 형식(타입)·크기 위반(주입 패턴은 파라미터 바인딩 단독 방어 — SEC-004-01, 비매칭 일반값 통과 후 404 EX-DATA-003) | 조회 거부 | 400 요청이 올바르지 않습니다. |
 | EX-SEC-005 | 본문 1MB 초과 | 요청 거부 | 413 요청이 너무 큽니다. |
 | EX-FN-999 | 조회·갱신 오류 | 오류 응답 | 500 잠시 후 다시 시도해주세요. |
 
 ### 실행 결과
 
-- **정상 결과**: MDL-302 상태 4항목 + 추적 키 에코(마스킹) 응답. 최초 조회 시 ENT-004 결과 확인 갱신 1회.
+- **정상 결과**: MDL-302 상태 4항목 + 추적 키 원문 에코(로그·감사만 마스킹) 응답. 최초 조회 시 ENT-004 결과 확인 갱신 1회.
 - **실패 결과**: EX-SEC-003(401)·EX-OPS-001(429)·EX-DATA-002(400)·EX-DATA-003(404) 엔벨로프. 인증 실패는 추적 키 마스킹 감사.
 - **후속 트리거**: 없음. 갱신된 상태는 PROC-402 보관 배치의 결과 확인 건(result_confirmed_at 기준 90일 / created_at 기준 180일 절대 상한) 대상이 된다.
 
@@ -159,6 +161,6 @@ B6. 응답 변환 — FN-010_selectStatusResponse(status)  (SEC-005-02)
 
 ### 구현 가이드
 
-- 조회 응답 DTO 에 회원 키·configId 필드를 두지 않고, 추적 키는 앞2·뒤2 마스킹으로 에코한다(FN-010). 결과 확인 갱신은 최초 조회 성공 시 1회만 수행하도록 surrogate id + 조건절 가드(is_result_confirmed=false)로 멱등하게 설계한다.
+- 조회 응답 DTO 에 회원 키·configId 필드를 두지 않고, 추적 키는 원문 그대로 에코한다(발송처 자신의 값이므로 응답 노출 — 신규 유출 아님). 마스킹(앞2·뒤2)은 로그·감사·오류 응답 계층에만 적용한다(FN-010·SEC-005-04). 결과 확인 갱신은 최초 조회 성공 시 1회만 수행하도록 surrogate id + 조건절 가드(is_result_confirmed=false)로 멱등하게 설계한다.
 - 형식은 맞으나 미존재(만료 삭제 포함)인 연동 추적 키는 404 EX-DATA-003 으로 응답한다(PROC-402 배치 삭제와 정합). 삭제 사실 자체는 보관하지 않는다. 추적 키 재사용 시 (tracking_key, processed_at DESC)로 처리 일시 최신 1건을 조회한다(EXC-BIZ-12).
 - 추적 키는 불투명 문자열로 취급해 UUID 등 특정 형식을 강제하지 않는다(발송처 구성 자유, DATA-002-06). 서비스 대면 API 인증 수단(API 키/서명 알고리즘)은 담당자 확정 대기이며 확정 시 SEC-003·FN-004 를 리비전한다. 자격 값은 상수 시간 비교로 검증하고 로그에 남기지 않는다.

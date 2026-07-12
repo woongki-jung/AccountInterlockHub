@@ -4,31 +4,27 @@ import { DataSource } from 'typeorm';
 import { AuditService } from '../../common/audit/audit.service';
 import { ActorType, AuditEventType, AuditResult } from '../../common/audit/audit.constants';
 import { AppException } from '../../common/envelope/app.exception';
-import { DeliveryConfig, DeliveryService } from '../delivery/delivery.service';
-import { EntryContextStore } from '../entry-context/entry-context.store';
-import { ProcessStatusService } from '../status/process-status.service';
-import { SubmitConsentDto } from './dto/submit-consent.dto';
 
 /**
- * 이용 동의 서비스 — PROC-201 B1b(동의 항목 조회) / PROC-202(동의·거부 처리) / SVC-004 / FN-008.
+ * 이용 동의 서비스 — FN-008(사용자 동의 처리) / PROC-201(동의 화면 데이터 구성)·PROC-202 B2(승인 게이팅) /
+ * SVC-004 / USR-01.
  *
- * 진입 컨텍스트(요청 키값)로 구성을 특정해 그 구성에 설정된 동의 항목만 조회하고(BIZ-002-01 구성 외 노출 금지),
- * 사용자의 동의/거부 결정을 서버가 구성 매칭 근거(configCode)로 검증·분기한다(화면 값 단독 신뢰 금지, BIZ-002).
- * 조회 응답에는 회원 키·요청 키값 등 민감·내부 값을 포함하지 않는다(DATA-001). 단 구성 코드(configCode)는
- * 구성 식별 메타(개인정보 아님)로 포함해 FE 가 제출 시 되돌려 보낼 수 있게 한다(PROC-202 ctx.configCode, MDL-203). 약관 컨텐츠(terms_content)는
- * 포함한다([상세] 버튼·약관 모달은 화면(SCR-005) 처리 — BIZ-002-05·EXC-BIZ-08).
+ * `#214` 로 진입 방식이 요청 키값(허브 발급 UUID) 기반에서 **접근 주소 고유 ID(config_code) 기반 무상태
+ * 조회**로 전환됐다 — 진입 컨텍스트 저장소(구 EntryContextStore)가 사라져 buildConsentView 는 매 호출마다
+ * accessAddressId 로 활성 구성을 직접 조회한다. processDecision(승인 게이팅)도 같은 이유로 회원 키·
+ * 진입 컨텍스트 대조 없이 accessAddressId(구성 매칭 근거)만으로 서버 재검증한다(BIZ-002-06).
  *
- * DB 접근은 파라미터 바인딩만 사용한다(SEC-004-02). 동의 항목 조회는 감사 미기록(read-only), 거부 처리는 감사 기록.
+ * 승인(AGREE·필수 충족) 판정만 반환하고 복호화·전달·이력·상태 오케스트레이션(PROC-203)은 호출자
+ * (InterlockService)의 책임이다 — 본 서비스는 FN-008 하나의 책임(동의 화면 구성 + 게이팅)만 진다.
+ *
+ * DB 접근은 파라미터 바인딩만 사용한다(SEC-004-02). 조회(buildConsentView)는 감사 미기록(read-only),
+ * 게이팅(processDecision)은 결과 코드만 최소 감사한다(BIZ-002-04 — 동의 증빙 원장 미저장).
  */
 
-// 요청 키값(UUID v4) 형식 검증(FN-005) — 위반 400 EX-SEC-004. uuid 컬럼 대상 22P02(→500) 방어도 겸한다.
-const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-
-// 활성 구성 조회 행(동의/거부 처리 — 전달 대상 필드 포함).
-interface DecisionConfigRow {
+// GET /api/consent/:accessAddressId 조회 대상 활성 구성 행(동의 대상 설명 문구 포함).
+interface ActiveConfigRow {
   id: string;
-  service_b_delivery_url: string;
-  service_b_http_method: string;
+  consent_notice: string | null;
 }
 
 // 동의 항목 조회 행(snake_case).
@@ -49,57 +45,56 @@ export interface ConsentItemResponse {
   order: number;
 }
 
-// 동의 항목 조회 응답(GET) — 구성 코드 + 항목 목록. configCode 는 구성 식별 메타(개인정보 아님, DATA-001 무저장 대상 아님)로,
-// FE 가 제출(POST MDL-203 { decision, configCode })에 되돌려 보내기 위한 값이다. 화면 표시가 아니라 FE 메모리 보유용(PROC-202 ctx.configCode).
+// 동의 화면 조회 응답(FN-008_buildConsentView, PROC-201) — 동의 대상 설명 문구(선택) + 항목 목록.
 export interface ConsentViewResponse {
-  configCode: string;
+  consentNotice: string | null;
   items: ConsentItemResponse[];
 }
 
-// 동의/거부 처리 응답(PROC-202) — 상태 값 미노출, 결과 유형만. SuccessInterceptor 가 { success, data } 로 감싼다.
-export interface DecisionResponse {
-  success: true;
+// FN-008_processDecision 입력(MDL-203 동의 결과) — PROC-202 B2.
+export interface ConsentDecisionInput {
+  accessAddressId: string; // 구성 매칭 근거(발송처 식별자)
+  decision: 'AGREE' | 'REJECT';
+  requiredConsentMet: boolean; // 필수 연동 동의 충족(FE 파생 집계값, 서버 재검증)
+}
+
+// FN-008_processDecision 출력 — 승인 여부만(상태 값·추적 키 미노출).
+export interface ApprovalOutcome {
+  approved: boolean;
 }
 
 @Injectable()
 export class ConsentService {
   constructor(
     @InjectDataSource() private readonly dataSource: DataSource,
-    private readonly entryContextStore: EntryContextStore,
-    private readonly deliveryService: DeliveryService,
-    private readonly processStatusService: ProcessStatusService,
     private readonly auditService: AuditService,
   ) {}
 
-  /** GET /api/consent/:requestKey — 동의 항목 조회(FN-008 buildConsentView). 응답에 configCode 동봉(FE 제출 회신용). */
-  async buildConsentView(requestKey: string): Promise<ConsentViewResponse> {
-    // 1. 진입 컨텍스트 조회. 미존재·만료면 400 EX-DATA-002(요청이 올바르지 않습니다).
-    const ctx = this.entryContextStore.get(requestKey);
-    if (!ctx) {
-      throw new AppException('EX-DATA-002');
-    }
-
-    // 2. 활성 구성 특정(컨텍스트의 구성 코드). 진입 이후 비활성·삭제됐으면 무효 요청으로 처리.
-    const configRows: Array<{ id: string }> = await this.dataSource.query(
-      `SELECT id FROM "TBL_INTERLOCK_CONFIG"
-       WHERE config_code = $1 AND is_active = true AND deleted_at IS NULL`,
-      [ctx.configCode],
+  /**
+   * GET /api/consent/:accessAddressId — 동의 화면 데이터 구성(FN-008_buildConsentView, PROC-201 B1).
+   * 접근 주소 고유 ID 로 활성 구성을 특정해 그 구성 소속 동의 항목만 반환한다(BIZ-002-01 구성 외 노출
+   * 금지). 무효 접근 주소(비활성·삭제·미존재)는 발송처 링크 오류로 처리한다(400 EX-SEC-004).
+   */
+  async buildConsentView(accessAddressId: string): Promise<ConsentViewResponse> {
+    const configRows: ActiveConfigRow[] = await this.dataSource.query(
+      `SELECT id, consent_notice FROM "TBL_INTERLOCK_CONFIG"
+       WHERE config_code = $1 AND is_active = true AND deleted_at IS NULL`, // UQ_CONFIG_CODE
+      [accessAddressId],
     );
     const config = configRows[0];
     if (!config) {
-      throw new AppException('EX-DATA-002');
+      throw new AppException('EX-SEC-004'); // 유효하지 않은 접근 주소 참조(발송처 링크 오류)
     }
 
-    // 3. 구성 소속 동의 항목만 조회(display_order 오름차순, 약관 컨텐츠 포함 — IX_CONSENT_CONFIG).
     const items: ConsentItemRow[] = await this.dataSource.query(
       `SELECT item_label, item_description, terms_content, is_required, display_order
        FROM "TBL_INTERLOCK_CONSENT_ITEM"
-       WHERE config_id = $1 ORDER BY display_order ASC`,
+       WHERE config_id = $1 ORDER BY display_order ASC`, // IX_CONSENT_CONFIG
       [config.id],
     );
 
     return {
-      configCode: ctx.configCode,
+      consentNotice: config.consent_notice, // BIZ-002-08 — 미설정(NULL)이면 FE 가 미노출
       items: items.map((i) => ({
         label: i.item_label,
         description: i.item_description,
@@ -111,77 +106,57 @@ export class ConsentService {
   }
 
   /**
-   * POST /api/consent/:requestKey — 동의/거부 처리(PROC-202 B2~B3 / FN-008_processDecision, BR-201).
+   * 동의/거부·승인 게이팅(FN-008_processDecision, PROC-202 B2 — BR-201). 화면 값 단독 신뢰 없이
+   * 구성 매칭 근거(accessAddressId)로 활성 구성을 재확인하고 필수 동의 충족을 서버가 재검증한다
+   * (BIZ-002-06). 거부·필수 미충족은 결과 코드만 최소 감사(BIZ-002-04·BIZ-002-07)하고 { approved:false }
+   * 를 반환한다 — 호출자(InterlockService)는 이 경우 복호화를 수행하지 않는다.
    *
-   * 흐름:
-   *  1) requestKey UUID 형식 검증(FN-005) — 위반 400 EX-SEC-004.
-   *  2) 진입 컨텍스트 조회·구성 매칭 근거 대조 — 미존재 또는 configCode 불일치면 400 EX-DATA-002(만료·불일치·재제출 방지).
-   *  3) 활성 구성 특정(진입 후 비활성·삭제 시 EX-DATA-002).
-   *  4a) REJECT — 미전달·실패 상태 1건 저장 → 컨텍스트 폐기 → CONSENT_REJECT 감사 → 200 정상 종료(EXC-BIZ-03, 오류 아님).
-   *  4b) AGREE — consentConfirmed=true 후 PROC-203 전달·저장 내부 호출 → 컨텍스트 폐기. 성공 200,
-   *      실패 시 502 EX-BIZ-004 전파(상태는 저장됨).
-   *
-   * 전달은 멱등하지 않으므로 요청 키값 1회 실행을 보장한다 — 성공·실패 공통으로 컨텍스트를 폐기해 재제출을 차단한다
-   * (PROC-203 §동시성 제어). 재제출은 컨텍스트 부재로 EX-DATA-002 가 된다.
+   * 집계 신뢰 게이팅(#239 확정): 요청 모델(MDL-203)은 항목별 체크 배열이 아니라 집계 boolean
+   * (requiredConsentMet) 1개만 전달한다(개인식별 동의 증빙 원장 미저장 확정, BIZ-002-04) — 항목별 서버
+   * 재계산은 와이어 계약상 원천 불가능하다. 따라서 서버는 "구성에 필수 항목이 실재하는지"까지 독립
+   * 재확인하고(requiredRows), 그 위에서 요청 집계값(requiredConsentMet)을 게이팅 조건으로 신뢰한다(필수
+   * 항목이 없으면 값과 무관하게 항상 충족). FN-008 의사코드도 집계 신뢰로 정합 완료 — 항목별 재검증
+   * 강화는 증빙 요건 확정 시 후속(EXC-BIZ-04).
    */
-  async processDecision(requestKey: string, dto: SubmitConsentDto): Promise<DecisionResponse> {
-    // 1. 요청 키값 형식 검증(FN-005).
-    if (!UUID_RE.test(requestKey)) {
-      throw new AppException('EX-SEC-004');
-    }
-
-    // 2. 진입 컨텍스트·구성 매칭 근거 검증(FN-008, BR-201). 미존재·만료·불일치 → 400 EX-DATA-002.
-    const ctx = this.entryContextStore.get(requestKey);
-    if (!ctx || ctx.configCode !== dto.configCode) {
-      throw new AppException('EX-DATA-002');
-    }
-
-    // 3. 활성 구성 특정(전달 대상 필드 포함). 진입 이후 비활성·삭제됐으면 무효 요청.
-    const configRows: DecisionConfigRow[] = await this.dataSource.query(
-      `SELECT id, service_b_delivery_url, service_b_http_method
-         FROM "TBL_INTERLOCK_CONFIG"
-        WHERE config_code = $1 AND is_active = true AND deleted_at IS NULL`,
-      [ctx.configCode],
+  async processDecision(decision: ConsentDecisionInput, now: Date): Promise<ApprovalOutcome> {
+    const configRows: Array<{ id: string }> = await this.dataSource.query(
+      `SELECT id FROM "TBL_INTERLOCK_CONFIG"
+       WHERE config_code = $1 AND is_active = true AND deleted_at IS NULL`, // UQ_CONFIG_CODE
+      [decision.accessAddressId],
     );
-    const configRow = configRows[0];
-    if (!configRow) {
-      throw new AppException('EX-DATA-002');
+    const config = configRows[0];
+    if (!config) {
+      throw new AppException('EX-SEC-004'); // 유효하지 않은 접근 주소 참조
     }
-    const config: DeliveryConfig = {
-      id: configRow.id,
-      serviceBDeliveryUrl: configRow.service_b_delivery_url,
-      serviceBHttpMethod: configRow.service_b_http_method,
-    };
 
-    const now = new Date();
+    const requiredRows: Array<{ id: string }> = await this.dataSource.query(
+      `SELECT id FROM "TBL_INTERLOCK_CONSENT_ITEM" WHERE config_id = $1 AND is_required = true`,
+      [config.id],
+    );
+    const serverRequiredMet =
+      decision.decision === 'AGREE' &&
+      (requiredRows.length === 0 || decision.requiredConsentMet === true);
 
-    // 4a. 거부 경로(BIZ-002-03) — 미전달·실패 상태 1건 저장 후 종료.
-    if (dto.decision === 'REJECT') {
-      await this.processStatusService.saveStatus({
-        requestKey,
-        configId: config.id,
-        isSuccess: false, // 거부=미전달·실패
-        processedAt: now,
-      });
-      this.entryContextStore.remove(requestKey); // 컨텍스트 폐기(무저장·재제출 방지)
+    if (decision.decision === 'REJECT' || !serverRequiredMet) {
+      // 결과 코드 최소 기록(PII·추적 키·원문 미포함) — 복호화 미수행이라 추적 키가 없어 처리상태·연동이력
+      // 은 남기지 않는다(EXC-BIZ-11).
       await this.auditService.write({
         eventType: AuditEventType.CONSENT_REJECT,
         actorType: ActorType.SERVICE,
         actorId: null,
-        target: requestKey,
+        target: decision.accessAddressId,
         result: AuditResult.INFO,
       });
-      return { success: true }; // 200 정상 종료(EXC-BIZ-03 — 오류 아님)
+      return { approved: false }; // 200 정상 종료(EXC-BIZ-03)
     }
 
-    // 4b. 동의 경로(BIZ-002-02) — 전달 사전 조건 표식 후 PROC-203 내부 호출. 성공·실패 공통으로 컨텍스트 폐기.
-    const confirmedCtx = { ...ctx, consentConfirmed: true };
-    try {
-      await this.deliveryService.deliverAndSave(confirmedCtx, requestKey, config, now);
-    } finally {
-      // 처리 완료(성공)·실패(502) 공통 폐기 — 전달 비멱등이라 재실행 차단(PROC-203 §동시성 제어).
-      this.entryContextStore.remove(requestKey);
-    }
-    return { success: true };
+    await this.auditService.write({
+      eventType: AuditEventType.CONSENT_AGREE,
+      actorType: ActorType.SERVICE,
+      actorId: null,
+      target: decision.accessAddressId,
+      result: AuditResult.INFO,
+    });
+    return { approved: true }; // 호출자가 연동 실행(PROC-203)을 트리거
   }
 }

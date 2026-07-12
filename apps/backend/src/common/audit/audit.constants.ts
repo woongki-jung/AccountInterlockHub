@@ -29,18 +29,23 @@ export const AuditEventType = {
   CONFIG_DELETE: 'CONFIG_DELETE', // 소프트 삭제(PROC-106·BR-104)
   CONFIG_ACTIVATE: 'CONFIG_ACTIVATE', // 활성 전환(PROC-105·BR-103)
   CONFIG_DEACTIVATE: 'CONFIG_DEACTIVATE', // 비활성 전환(PROC-105·BR-103)
-  CONFIG_PII_WARN: 'CONFIG_PII_WARN', // 개인정보 직접 수신 파라미터 경고(BIZ-001-05·BR-102, 비차단 INFO)
   IP_BLOCK: 'IP_BLOCK',
   API_AUTH_FAIL: 'API_AUTH_FAIL',
-  CONSENT_REJECT: 'CONSENT_REJECT', // 사용자 거부 처리(PROC-202 B3a, FN-008 — 200 정상 종료·상태 실패 1건, INFO)
+  CONSENT_REJECT: 'CONSENT_REJECT', // 사용자 거부·필수 미충족 처리(PROC-202 B3a, FN-008 — 200 정상 종료·복호화 미수행, INFO)
+  CONSENT_AGREE: 'CONSENT_AGREE', // 사용자 승인·필수 동의 충족 게이팅 통과(PROC-202 B3b, FN-008 — 연동 실행 트리거, INFO)
+  DECRYPT_SUCCESS: 'DECRYPT_SUCCESS', // 허브 복호화 성공(PROC-203, FN-020 — trackingKey 마스킹만 기록, SEC-006-04·AUTH-004-03)
+  DECRYPT_FAIL: 'DECRYPT_FAIL', // 허브 복호화 실패=생년월일 불일치(PROC-203, FN-020 — 재입력 유도, EX-SEC-006·AUTH-004-02)
+  DECRYPT_SENDER_DATA_ERR: 'DECRYPT_SENDER_DATA_ERR', // 복호화 후 X 파싱 실패·추적 키 필드 누락(PROC-203, FN-020 — 발송처 데이터 오류, EX-BIZ-008·EXC-BIZ-13)
   DELIVERY_BLOCK: 'DELIVERY_BLOCK', // 미동의 전달 차단(PROC-203 B1, FN-012 — 내부 차단·EX 없음, BLOCKED)
+  DELIVERY_SUCCESS: 'DELIVERY_SUCCESS', // 수신처 B 전달 성공(PROC-203 B6/FN-012 — trackingKey 마스킹만 기록, SUCCESS)
   DELIVERY_FAIL: 'DELIVERY_FAIL', // 서비스 B 전달 실패 확정(PROC-203 B6, 재시도 후, FAIL → 502 EX-BIZ-004)
   CALLBACK_RECEIVE: 'CALLBACK_RECEIVE',
   CALLBACK_RECORDED: 'CALLBACK_RECORDED', // 완료 콜백 수신 기록(PROC-303/403, FN-018 — 미수신 최신 1건 UPDATE 성공, userKey 마스킹)
   CALLBACK_IDEMPOTENT: 'CALLBACK_IDEMPOTENT', // 완료 콜백 재통지·동시 콜백 멱등 성공(PROC-303, FN-018 — 상태 변경 없음, EXC-BIZ-10, INFO)
   CALLBACK_TARGET_MISS: 'CALLBACK_TARGET_MISS', // 완료 콜백 대상 미특정(PROC-303, FN-018 — 구성 미존재·미지정·스코프 내 이력 없음, 404 EX-BIZ-006, FAIL)
+  STATUS_CHECK: 'STATUS_CHECK', // 처리상태 확인 조회(PROC-301, FN-009 — trackingKey 마스킹·결과 확인 갱신 반영, API-01, OPS-002 적용 PROC)
   COMPLETION_CHECK: 'COMPLETION_CHECK', // 연동 완료 확인 조회(PROC-302, FN-017 — userKey 마스킹·완료 여부 기록, 읽기 전용)
-  HISTORY_CREATE: 'HISTORY_CREATE', // 연동이력 생성(PROC-201 진입 시, FN-016 — userKey 마스킹만 기록)
+  HISTORY_CREATE: 'HISTORY_CREATE', // 연동이력 생성(PROC-203 복호화 성공 후, FN-016 — trackingKey 마스킹만 기록, `#214` 로 진입 시점에서 이동)
   RATE_LIMIT_EXCEEDED: 'RATE_LIMIT_EXCEEDED',
   BATCH_RUN: 'BATCH_RUN',
 } as const;

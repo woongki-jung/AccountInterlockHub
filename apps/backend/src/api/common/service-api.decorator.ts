@@ -15,7 +15,7 @@ export const SERVICE_API_METADATA = 'service-api:metadata';
  *   // API-01 처리상태 확인 (서비스 A 자격)
  *   @UseGuards(ServiceApiGuard)
  *   @ServiceApi({ actor: ServiceActor.SERVICE_A, scope: 'status' })
- *   @Get('status/:requestKey')
+ *   @Get('status/:trackingKey')
  *   getStatus(...) { ... }
  *
  *   // API-03 완료 콜백 (서비스 B 자격)

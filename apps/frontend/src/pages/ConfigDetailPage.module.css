@@ -1,5 +1,5 @@
 /*
- * SCR-004 연동 구성 상세 스타일. 색·간격·라운딩은 토큰(tokens.css)만 참조한다.
+ * SCR-004 발송처 접근 주소 구성 상세 스타일. 색·간격·라운딩은 토큰(tokens.css)만 참조한다.
  * 반응형: Card 세로 스택(기본), 테이블은 Table 컴포넌트가 가로 스크롤 담당. dl 은 mobile 1컬럼.
  */
 
@@ -83,33 +83,9 @@
   color: var(--color-text-muted);
 }
 
-/* 사용자 키값 파라미터 요약(읽기 전용) */
-.ukeySummary {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: var(--space-1) var(--space-2);
-  padding: var(--control-pad-y) var(--control-pad-x);
-  background: var(--color-primary-weak);
-  border: 1px solid #bfdbfe;
-  border-radius: var(--radius-md);
-  margin-bottom: var(--space-4);
-  font-size: var(--text-label-size);
-}
-.ukeySummary b {
-  color: #1e3a8a;
-}
-.ukeySummaryWarn {
-  background: var(--color-warning-weak);
-  border-color: #fcd34d;
-}
-.ukHint {
-  color: #1e3a8a;
-  font-size: var(--text-caption-size);
-}
-.ukeySummaryWarn .ukHint,
-.ukeySummaryWarn b {
-  color: #92400e;
+/* 동의 대상 설명 문구(여러 줄 자유 텍스트 — 입력 줄바꿈 보존). */
+.notice {
+  white-space: pre-wrap;
 }
 
 /* 동의 항목 약관 셀(설정됨 Badge + 약관 보기 버튼) */

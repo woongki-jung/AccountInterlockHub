@@ -6,17 +6,21 @@ import { ActorType, AuditEventType, AuditResult } from '../../common/audit/audit
 import { AppException } from '../../common/envelope/app.exception';
 import { FieldError } from '../../common/envelope/envelope.types';
 import { firstUpdatedRow } from '../../common/db/query-result.util';
-import { detectPiiParams } from './config-pii.util';
 import { SaveConfigDto } from './dto/save-config.dto';
 
 /**
- * 연동 구성 등록·편집 서비스 — PROC-101(B2~B4) / SVC-001 / FN-006.
+ * 발송처 접근 주소 구성 등록·편집 서비스 — PROC-101(B2~B4) / SVC-001 / FN-006.
  *
  * 책임:
- *  - FN-006 서버 재검증(필수·URL·동의 항목 개수·사용자 키값 exactly-one → 422 EX-BIZ-001, 고유성 → 409 EX-BIZ-002).
- *  - BR-102 개인정보 파라미터 경고(비차단 — CONFIG_PII_WARN 감사 후 저장 진행).
- *  - 부모(ENT-001)+자식(ENT-002·ENT-003) 단일 트랜잭션 영속화(전량 교체·순환 FK 대응 순서).
+ *  - FN-006 서버 재검증(필수(수신처 B 전달 주소·동의 항목)·URL 형식·동의 항목 개수 → 422 EX-BIZ-001, 고유성 → 409 EX-BIZ-002).
+ *  - 부모(ENT-001)+자식(ENT-002 동의 항목) 단일 트랜잭션 영속화(편집 시 자식 전량 교체 — delete-and-reinsert).
  *  - 커밋 후 감사(FN-013 CONFIG_CREATE/UPDATE) + MDL-101(자식 포함) 응답 조립.
+ *
+ * `#214` 개정(accountinterlockhub#227 P3): 입력이 단일 암호화 JSON(encX·encY)으로 바뀌어 서비스 A 진입
+ * 주소(serviceAEntryUrl)·전달 파라미터 정의(parameters[]·ENT-003 TBL_INTERLOCK_PARAMETER)·사용자 키값
+ * exactly-one 지정(isUserKey)·순환 FK(user_key_param_id)를 전량 제거했다 — 회원 키·연동 추적 키는 발송처가
+ * 전달 데이터 X 안에 담아 전달하고 허브는 구성에 저장하지 않는다(EXC-BIZ-14). 동의 대상 설명 문구
+ * (consentNotice, BIZ-002-08)를 신설했다.
  *
  * DB 접근은 파라미터 바인딩만 사용한다(SEC-004-02). 구성은 설정 데이터라 마스킹 대상이 아니다(EXC-SEC-05).
  */
@@ -27,12 +31,11 @@ type SaveMode = 'CREATE' | 'EDIT';
 interface NormalizedConfig {
   configCode: string;
   configName: string;
-  serviceAEntryUrl: string;
   serviceBDeliveryUrl: string;
   serviceBHttpMethod: string;
   isActive: boolean;
+  consentNotice: string | null;
   consentItems: NormalizedConsentItem[];
-  parameters: NormalizedParameter[];
 }
 interface NormalizedConsentItem {
   label: string;
@@ -41,27 +44,17 @@ interface NormalizedConsentItem {
   required: boolean;
   order: number;
 }
-interface NormalizedParameter {
-  name: string;
-  sourceKeyA: string;
-  deliverToB: boolean;
-  required: boolean;
-  order: number;
-  isUserKey: boolean;
-}
 
-// MDL-101 응답(자식·지정 참조 포함). SuccessInterceptor 가 { success, data } 로 감싼다.
+// MDL-101 응답(자식 동의 항목 포함). SuccessInterceptor 가 { success, data } 로 감싼다.
 export interface ConfigResponse {
   id: string;
   configCode: string;
   configName: string;
-  serviceAEntryUrl: string;
   serviceBDeliveryUrl: string;
   serviceBHttpMethod: string;
   isActive: boolean;
-  userKeyParamId: string | null;
+  consentNotice: string | null;
   consentItems: ConsentItemResponse[];
-  parameters: ParameterResponse[];
   createdAt: string | null;
   createdBy: string | null;
   updatedAt: string | null;
@@ -74,15 +67,6 @@ interface ConsentItemResponse {
   termsContent: string | null;
   required: boolean;
   order: number;
-}
-interface ParameterResponse {
-  id: string;
-  name: string;
-  sourceKeyA: string;
-  deliverToB: boolean;
-  required: boolean;
-  order: number;
-  isUserKey: boolean;
 }
 
 // MDL-102 목록 요약 응답(설정 데이터·자식 카운트). URL·자식 상세는 상세 조회(MDL-101)가 제공한다.
@@ -160,10 +144,10 @@ export class ConfigService {
 
   /**
    * GET /api/admin/configs/:id — 상세 조회(PROC-102 B3 / SVC-002 F-002 / MDL-101).
-   * 저장 결과와 동일 형상(selectConfig 재사용) — SCR-003 편집 프리필이 userKeyParamId·parameters[].isUserKey 로 복원.
+   * 저장 결과와 동일 형상(selectConfig 재사용) — SCR-003 편집 프리필이 consentNotice·consentItems 로 복원한다.
    * 대상 없음(id 부재·이미 삭제)은 오류가 아닌 null 반환(→ 200 data:null). 감사 미기록(read-only).
-   * ※ PROC-102 B3 의사코드 SELECT 투영은 축약형(user_key_param_id·isUserKey 생략)이라 그대로 따르지 않고,
-   *   MDL-101 전체 형상을 반환한다(완료 보고 참조).
+   * ※ PROC-102 B3 의사코드 SELECT 투영은 축약형(consent_notice·created_by·updated_at/by 생략)이라 그대로
+   *   따르지 않고, MDL-101 전체 형상을 반환한다(저장 결과 조립과 상세 조회가 selectConfig 를 공용하기 때문).
    */
   async getConfigDetail(id: string): Promise<ConfigResponse | null> {
     if (!UUID_RE.test(id)) {
@@ -211,7 +195,6 @@ export class ConfigService {
   /**
    * DELETE /api/admin/configs/:id — 소프트 삭제(PROC-106 / SVC-002 F-004 / BR-104).
    * deleted_at·updated_at/by 만 UPDATE(물리 삭제·자식 CASCADE 미발생). affected=0 → 대상 없음(null→200 data:null).
-   * 소프트 삭제는 parameter 행을 지우지 않으므로 user_key_param_id RESTRICT FK 가 트리거되지 않는다.
    * 커밋 후 CONFIG_DELETE 감사(OPS-002-01, 삭제 전 상태 기록). 파라미터 바인딩만(SEC-004-02).
    */
   async softDelete(id: string, actor: string): Promise<DeleteResult | null> {
@@ -272,19 +255,6 @@ export class ConfigService {
     // FN-006 업무 재검증(422/409). 통과 후에만 영속화한다.
     await this.validateConfig(domain, mode, selfId, effectiveConfigCode);
 
-    // BR-102 개인정보 파라미터 경고(비차단) — 저장 진행. 이름 기반 휴리스틱(config-pii.util).
-    const piiHits = detectPiiParams(domain.parameters);
-    if (piiHits.length > 0) {
-      await this.auditService.write({
-        eventType: AuditEventType.CONFIG_PII_WARN,
-        actorType: ActorType.ADMIN,
-        actorId: actor,
-        target: effectiveConfigCode,
-        result: AuditResult.INFO,
-        detail: `개인정보성 원천 키명 의심(${piiHits.length}건): ${piiHits.join(', ')}`,
-      });
-    }
-
     // 단일 트랜잭션 영속화(부모+자식). 실패 시 롤백.
     const configId = await this.persist(mode, domain, selfId, effectiveConfigCode, actor);
 
@@ -306,7 +276,7 @@ export class ConfigService {
     return saved;
   }
 
-  /** DTO → 정규화 도메인(기본값·order·boolean). 문자열은 DTO 에서 이미 트림됨. */
+  /** DTO → 정규화 도메인(기본값·order·boolean·선택 문자열 정규화). 문자열은 DTO 에서 이미 트림됨. */
   private normalize(dto: SaveConfigDto): NormalizedConfig {
     const consentItems: NormalizedConsentItem[] = (dto.consentItems ?? []).map((c, i) => ({
       label: c.label,
@@ -315,31 +285,23 @@ export class ConfigService {
       required: c.required === true,
       order: i, // display_order = 제출(화면) 순서
     }));
-    const parameters: NormalizedParameter[] = (dto.parameters ?? []).map((p, i) => ({
-      name: p.name,
-      sourceKeyA: p.sourceKeyA,
-      deliverToB: p.deliverToB !== false, // 기본 true(MDL-101)
-      required: p.required === true,
-      order: i,
-      isUserKey: p.isUserKey === true,
-    }));
     return {
       configCode: dto.configCode ?? '',
       configName: dto.configName ?? '',
-      serviceAEntryUrl: dto.serviceAEntryUrl ?? '',
       serviceBDeliveryUrl: dto.serviceBDeliveryUrl ?? '',
       serviceBHttpMethod: dto.serviceBHttpMethod ?? 'POST', // 기본값 보충
       isActive: dto.isActive !== false, // 기본 true(MDL-101)
+      consentNotice: emptyToNull(dto.consentNotice), // 선택(BIZ-002-08) — 빈 문자열은 NULL(미노출)
       consentItems,
-      parameters,
     };
   }
 
   /**
-   * FN-006 구성 검증·고유성(BR-101·BR-107).
-   *  - 필수(BIZ-001-01)·URL 형식(BIZ-001-02)·동의 항목 개수(BIZ-001-04)·사용자 키값 exactly-one(BIZ-001-07)
+   * FN-006 구성 검증·고유성(BR-101).
+   *  - 필수(BIZ-001-08, 수신처 B 전달 주소·동의 항목)·URL 형식(BIZ-001-09)·동의 항목 개수(BIZ-001-04)
    *    위반 → 422 EX-BIZ-001(필드 details 동봉).
-   *  - 고유성 사전 조회(BIZ-001-03) 위반 → 409 EX-BIZ-002.
+   *  - 고유성 사전 조회(BIZ-001-10) 위반 → 409 EX-BIZ-002.
+   * `#214` 로 사용자 키값 exactly-one 지정(구 BIZ-001-07)은 파라미터 정의 폐기와 함께 결번이다.
    */
   private async validateConfig(
     domain: NormalizedConfig,
@@ -349,50 +311,26 @@ export class ConfigService {
   ): Promise<void> {
     const errors: FieldError[] = [];
 
-    // 1. 필수 항목(BIZ-001-01)
-    if (isBlank(effectiveConfigCode)) {
-      errors.push({ field: 'configCode', message: '구성 코드는 필수입니다.' });
-    }
-    if (isBlank(domain.configName)) {
-      errors.push({ field: 'configName', message: '구성명은 필수입니다.' });
-    }
-    if (isBlank(domain.serviceAEntryUrl)) {
-      errors.push({ field: 'serviceAEntryUrl', message: '서비스 A 호출 주소는 필수입니다.' });
-    }
+    // 1. 필수 항목(BIZ-001-08) — 수신처 B 전달 주소.
     if (isBlank(domain.serviceBDeliveryUrl)) {
-      errors.push({ field: 'serviceBDeliveryUrl', message: '서비스 B 전달 주소는 필수입니다.' });
-    }
-    if (domain.parameters.length < 1) {
-      errors.push({ field: 'parameters', message: '전달 파라미터를 1개 이상 정의해주세요.' });
+      errors.push({ field: 'serviceBDeliveryUrl', message: '수신처 B 전달 주소는 필수입니다.' });
     }
 
-    // 2. URL 형식(BIZ-001-02) — http/https 절대 URL
-    if (!isBlank(domain.serviceAEntryUrl) && !isHttpUrl(domain.serviceAEntryUrl)) {
-      errors.push({ field: 'serviceAEntryUrl', message: 'http/https 절대 URL 형식이어야 합니다.' });
-    }
+    // 2. 수신처 B 전달 주소 URL 형식(BIZ-001-09) — http/https 절대 URL.
     if (!isBlank(domain.serviceBDeliveryUrl) && !isHttpUrl(domain.serviceBDeliveryUrl)) {
       errors.push({ field: 'serviceBDeliveryUrl', message: 'http/https 절대 URL 형식이어야 합니다.' });
     }
 
-    // 3. 동의 항목 개수(BIZ-001-04)
+    // 3. 동의 항목 1개 이상(BIZ-001-08 필수 항목 + BIZ-001-04 개수 — FN-006 의사코드는 동일 조건을 두 단계로 명시한다).
     if (domain.consentItems.length < 1) {
       errors.push({ field: 'consentItems', message: '동의 항목을 1개 이상 정의해주세요.' });
-    }
-
-    // 4. 사용자 키값 파라미터 지정 exactly-one(BIZ-001-07)
-    //    isUserKey 는 파라미터 행에 붙는 플래그라 "실재하는 파라미터만 지정"이 구조적으로 보장된다(별도 실재 검증 불요).
-    const designatedCount = domain.parameters.filter((p) => p.isUserKey).length;
-    if (designatedCount === 0) {
-      errors.push({ field: 'parameters', message: '사용자 키값 파라미터를 정확히 1개 지정해주세요.' });
-    } else if (designatedCount > 1) {
-      errors.push({ field: 'parameters', message: '사용자 키값 파라미터는 1개만 지정할 수 있습니다.' });
     }
 
     if (errors.length > 0) {
       throw new AppException('EX-BIZ-001', errors);
     }
 
-    // 5. 고유성 사전 조회(BIZ-001-03) — 유효(미삭제) 구성 간. EDIT 는 자기 자신 제외(EXC-BIZ-02).
+    // 4. 고유성 사전 조회(BIZ-001-10) — 유효(미삭제) 구성 간. EDIT 는 자기 자신 제외(EXC-BIZ-02).
     const dupRows: Array<{ id: string }> = await this.dataSource.query(
       `SELECT id FROM "TBL_INTERLOCK_CONFIG" WHERE config_code = $1 AND deleted_at IS NULL`,
       [effectiveConfigCode],
@@ -404,9 +342,9 @@ export class ConfigService {
   }
 
   /**
-   * 부모+자식 단일 트랜잭션 영속화. CREATE=INSERT, EDIT=UPDATE + 자식 전량 교체.
-   * 순환 FK(user_key_param_id → ENT-003.id) 대응: 자식 INSERT 후 부모 user_key_param_id 를 설정하고,
-   * EDIT 는 교체 전 user_key_param_id 를 NULL 로 초기화해 RESTRICT 를 회피한다(data_ENT-001 §구현 가이드).
+   * 부모+자식 단일 트랜잭션 영속화(PROC-101 B3). CREATE=INSERT, EDIT=UPDATE + 자식 전량 교체.
+   * `#214` 로 순환 FK(user_key_param_id → ENT-003.id)가 제거돼 자식 교체 전 지정 참조 해제·재지정
+   * 단계가 사라졌다(data_ENT-001 §구현 가이드).
    */
   private async persist(
     mode: SaveMode,
@@ -424,43 +362,41 @@ export class ConfigService {
       if (mode === 'CREATE') {
         const inserted: Array<{ id: string }> = await qr.query(
           `INSERT INTO "TBL_INTERLOCK_CONFIG"
-             (config_code, config_name, service_a_entry_url, service_b_delivery_url,
-              service_b_http_method, is_active, created_at, created_by)
+             (config_code, config_name, service_b_delivery_url, service_b_http_method,
+              is_active, consent_notice, created_at, created_by)
            VALUES ($1, $2, $3, $4, $5, $6, now(), $7)
            RETURNING id`,
           [
             effectiveConfigCode,
             domain.configName,
-            domain.serviceAEntryUrl,
             domain.serviceBDeliveryUrl,
             domain.serviceBHttpMethod,
             domain.isActive,
+            domain.consentNotice,
             actor,
           ],
         );
         configId = inserted[0].id;
       } else {
         configId = selfId as string;
-        // 지정 참조 해제(전량 교체 전 RESTRICT 회피) + 부모 필드 갱신. config_code 는 불변이라 SET 대상 아님.
+        // 부모 필드 갱신. config_code 는 불변이라 SET 대상 아님(BIZ-001-11).
         await qr.query(
           `UPDATE "TBL_INTERLOCK_CONFIG"
-             SET config_name = $1, service_a_entry_url = $2, service_b_delivery_url = $3,
-                 service_b_http_method = $4, is_active = $5, user_key_param_id = NULL,
-                 updated_at = now(), updated_by = $6
+             SET config_name = $1, service_b_delivery_url = $2, service_b_http_method = $3,
+                 is_active = $4, consent_notice = $5, updated_at = now(), updated_by = $6
            WHERE id = $7 AND deleted_at IS NULL`,
           [
             domain.configName,
-            domain.serviceAEntryUrl,
             domain.serviceBDeliveryUrl,
             domain.serviceBHttpMethod,
             domain.isActive,
+            domain.consentNotice,
             actor,
             configId,
           ],
         );
         // 자식 전량 교체(delete-and-reinsert).
         await qr.query(`DELETE FROM "TBL_INTERLOCK_CONSENT_ITEM" WHERE config_id = $1`, [configId]);
-        await qr.query(`DELETE FROM "TBL_INTERLOCK_PARAMETER" WHERE config_id = $1`, [configId]);
       }
 
       // 동의 항목(ENT-002) INSERT.
@@ -472,27 +408,6 @@ export class ConfigService {
           [configId, c.label, c.description, c.termsContent, c.required, c.order],
         );
       }
-
-      // 전달 파라미터(ENT-003) INSERT — 지정 파라미터의 신규 행 id 를 포착.
-      let designatedParamId: string | null = null;
-      for (const p of domain.parameters) {
-        const ins: Array<{ id: string }> = await qr.query(
-          `INSERT INTO "TBL_INTERLOCK_PARAMETER"
-             (config_id, param_name, source_key_a, deliver_to_b, is_required, display_order)
-           VALUES ($1, $2, $3, $4, $5, $6)
-           RETURNING id`,
-          [configId, p.name, p.sourceKeyA, p.deliverToB, p.required, p.order],
-        );
-        if (p.isUserKey) {
-          designatedParamId = ins[0].id; // 정확히 1개(FN-006 통과 보장)
-        }
-      }
-
-      // 사용자 키값 파라미터 지정 참조 설정(자식 INSERT 후 부모 UPDATE — 순환 FK 대응, BIZ-001-07).
-      await qr.query(`UPDATE "TBL_INTERLOCK_CONFIG" SET user_key_param_id = $1 WHERE id = $2`, [
-        designatedParamId,
-        configId,
-      ]);
 
       await qr.commitTransaction();
       return configId;
@@ -512,14 +427,14 @@ export class ConfigService {
   }
 
   /**
-   * id 로 MDL-101(자식 포함·지정 참조 복원) 상세를 조립한다. 미삭제(deleted_at IS NULL)만 대상이며,
+   * id 로 MDL-101(자식 포함) 상세를 조립한다. 미삭제(deleted_at IS NULL)만 대상이며,
    * 대상이 없으면 null 을 반환한다(상세 조회의 "대상 없음"=200 data:null / 저장 결과 조회는 항상 존재).
    * 저장 결과 조립과 상세 조회(PROC-102 B3)가 동일 형상을 쓰도록 공용한다 — SCR-003 편집 프리필과 정합.
    */
   private async selectConfig(configId: string): Promise<ConfigResponse | null> {
     const configRows: ConfigRow[] = await this.dataSource.query(
-      `SELECT id, config_code, config_name, service_a_entry_url, service_b_delivery_url,
-              service_b_http_method, user_key_param_id, is_active,
+      `SELECT id, config_code, config_name, service_b_delivery_url,
+              service_b_http_method, is_active, consent_notice,
               created_at, created_by, updated_at, updated_by
        FROM "TBL_INTERLOCK_CONFIG" WHERE id = $1 AND deleted_at IS NULL`,
       [configId],
@@ -534,21 +449,15 @@ export class ConfigService {
        FROM "TBL_INTERLOCK_CONSENT_ITEM" WHERE config_id = $1 ORDER BY display_order ASC`,
       [configId],
     );
-    const paramRows: ParamRow[] = await this.dataSource.query(
-      `SELECT id, param_name, source_key_a, deliver_to_b, is_required, display_order
-       FROM "TBL_INTERLOCK_PARAMETER" WHERE config_id = $1 ORDER BY display_order ASC`,
-      [configId],
-    );
 
     return {
       id: cfg.id,
       configCode: cfg.config_code,
       configName: cfg.config_name,
-      serviceAEntryUrl: cfg.service_a_entry_url,
       serviceBDeliveryUrl: cfg.service_b_delivery_url,
       serviceBHttpMethod: cfg.service_b_http_method,
       isActive: cfg.is_active,
-      userKeyParamId: cfg.user_key_param_id,
+      consentNotice: cfg.consent_notice,
       consentItems: consentRows.map((c) => ({
         id: c.id,
         label: c.item_label,
@@ -556,16 +465,6 @@ export class ConfigService {
         termsContent: c.terms_content,
         required: c.is_required,
         order: c.display_order,
-      })),
-      parameters: paramRows.map((p) => ({
-        id: p.id,
-        name: p.param_name,
-        sourceKeyA: p.source_key_a,
-        deliverToB: p.deliver_to_b,
-        required: p.is_required,
-        order: p.display_order,
-        // 지정 참조 복원 — user_key_param_id 와 매칭되는 행에 true.
-        isUserKey: cfg.user_key_param_id != null && p.id === cfg.user_key_param_id,
       })),
       createdAt: toIso(cfg.created_at),
       createdBy: cfg.created_by,
@@ -580,11 +479,10 @@ interface ConfigRow {
   id: string;
   config_code: string;
   config_name: string;
-  service_a_entry_url: string;
   service_b_delivery_url: string;
   service_b_http_method: string;
-  user_key_param_id: string | null;
   is_active: boolean;
+  consent_notice: string | null;
   created_at: Date | string | null;
   created_by: string | null;
   updated_at: Date | string | null;
@@ -595,14 +493,6 @@ interface ConsentRow {
   item_label: string;
   item_description: string | null;
   terms_content: string | null;
-  is_required: boolean;
-  display_order: number;
-}
-interface ParamRow {
-  id: string;
-  param_name: string;
-  source_key_a: string;
-  deliver_to_b: boolean;
   is_required: boolean;
   display_order: number;
 }
@@ -623,6 +513,15 @@ function isBlank(value: string | null | undefined): boolean {
 // http/https 절대 URL(FE 1차 검증·DB CHECK 와 정합). 공백 없는 스킴 이후 1자 이상.
 function isHttpUrl(value: string): boolean {
   return /^https?:\/\/\S+$/i.test(value);
+}
+
+// 선택 입력 문자열 정규화 — 트림 후 빈 문자열은 NULL(미노출 조건, BIZ-002-08).
+function emptyToNull(value: string | null | undefined): string | null {
+  if (value == null) {
+    return null;
+  }
+  const trimmed = value.trim();
+  return trimmed.length > 0 ? trimmed : null;
 }
 
 // PostgreSQL unique_violation(23505) 판별 — TypeORM QueryFailedError 래핑 포함.

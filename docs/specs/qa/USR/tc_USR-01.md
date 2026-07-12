@@ -76,15 +76,16 @@
 
 - **데이터 검증**: 복호화 미수행 — 추적 키 없어 처리 상태(ENT-004)·연동이력(ENT-007) **미생성**(감사만, EXC-DATA-03·EXC-BIZ-11·BIZ-002-07). mock 수신처 B 미수신. 접근 컨텍스트 폐기.
 
-### USR-01_008 필수 동의 미충족 서버 재검증(승인 차단)
-- **유형/우선순위/자동화**: Negative · 보통 · 반자동 | **PROC/분기**: PROC-202 / BIZ-002-06
+### USR-01_008 필수 동의 미충족 승인 차단(집계 신뢰 서버 게이팅)
+- **유형/우선순위/자동화**: Negative · 보통 · 반자동 | **PROC/분기**: PROC-202 / BIZ-002-06·BIZ-002-04
+- **정책 근거**: 서버는 활성 구성·필수 항목 실재를 독립 재확인하고, 그 위에서 요청 집계값(requiredConsentMet)을 게이팅 조건으로 신뢰한다 — 동의 증빙 원장 미저장(BIZ-002-04)이라 항목별 체크 배열이 와이어 모델(MDL-203)에 없어 항목별 서버 재계산은 불가(`#239` 사양 긴장 = 집계 신뢰로 확정).
 
 | 단계 | 실행 | 입력 | 기대 결과 | 매핑 PROC |
 |--|--|--|--|--|
-| 1 | SCR-005 | 필수 동의 항목 미체크 | 승인 버튼 비활성(FE 1차 방어) | F1 |
-| 2 | POST /api/interlock/approve (우회) | decision=AGREE·requiredConsentMet=true 이나 서버 필수 미충족 | FN-008 서버 재검증 → approved:false → 200 `{result:'REJECTED'}`(복호화 미수행) | B2·B3a(BIZ-002-06) |
+| 1 | SCR-005 | 필수 동의 항목 미체크 | 승인 버튼 비활성(FE 1차 방어)·집계값 requiredConsentMet=false 파생 | F1 |
+| 2 | POST /api/interlock/approve | decision=AGREE·requiredConsentMet=false(필수 미충족) | FN-008 서버 게이팅(집계 false) → approved:false → 200 `{result:'REJECTED'}`(복호화 미수행) | B2·B3a(BIZ-002-06) |
 
-- **데이터 검증**: 화면 값 단독 신뢰 금지 — 서버가 accessAddressId 로 활성 구성·필수 동의 재검증. 미충족은 거부 처리(복호화·전달 미수행, 상태·이력 미생성).
+- **데이터 검증**: 서버가 accessAddressId 로 활성 구성·필수 항목 실재를 독립 재확인하고, 필수 항목이 실재하면 집계값(requiredConsentMet)을 신뢰해 게이팅한다(항목별 재계산 없음). requiredConsentMet=true 우회 제출 시 서버는 집계값을 신뢰해 승인 진행하므로(항목별 재검증 불가), 필수 미충족의 정탐은 집계값 false 로 표현된다. 미충족(집계 false)은 거부 처리(복호화·전달 미수행, 상태·이력 미생성).
 
 ### USR-01_009 유효하지 않은 접근 주소로 승인
 - **유형/우선순위/자동화**: Negative · 보통 · 자동 | **PROC/분기**: PROC-202 / EX-SEC-004
@@ -133,10 +134,10 @@
 
 | 단계 | 실행 | 입력 | 기대 결과 | 매핑 PROC |
 |--|--|--|--|--|
-| 1 | POST /api/interlock/approve | AGREE, encX·encY 누락 또는 Base64URL 형식 오류 | 400 EX-SEC-007(내부 PROC-203 전파) | B3b |
+| 1 | POST /api/interlock/approve | AGREE, encX·encY **부재(필드 완전 누락)**·빈값 또는 Base64URL 형식 오류 | 400 EX-SEC-007(내부 PROC-203 전파) | B3b |
 | 2 | 결과 전이 | — | SCR-006 링크 오류 안내(발송처 문의, **재입력 불가**) | F2 |
 
-- **데이터 검증**: 복호화 미수행 — 처리 상태·연동이력 미생성(감사만). 복호화 실패(재입력 가능)와 구별(EXC-BIZ-13).
+- **데이터 검증**: 복호화 미수행 — 처리 상태·연동이력 미생성(감사만). 복호화 실패(재입력 가능)와 구별(EXC-BIZ-13). **완전 누락도 EX-SEC-004 가 아닌 EX-SEC-007**(FN-020 단일 판정, 승인 DTO 선차단 없음 — `#238`).
 
 ### USR-01_015 링크 오류(추적 키 필드 누락·X 파싱 실패)
 - **유형/우선순위/자동화**: Negative · 높음 · 자동 | **PROC/분기**: PROC-202 / EX-BIZ-008(전파)

@@ -1,5 +1,5 @@
 /*
- * SCR-003 연동 구성 등록·편집 폼 스타일. 색·간격·라운딩은 토큰(tokens.css)만 참조한다.
+ * SCR-003 발송처 접근 주소 구성 등록·편집 폼 스타일. 색·간격·라운딩은 토큰(tokens.css)만 참조한다.
  * 반응형: desktop 2컬럼(라벨-입력), mobile(<640px) 1컬럼(필드 세로 스택).
  */
 
@@ -71,81 +71,7 @@
   margin-bottom: var(--space-2);
 }
 
-/* 사용자 키값 지정 요약 바 */
-.ukBar {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-2);
-  padding: var(--control-pad-y) var(--control-pad-x);
-  background: var(--color-primary-weak);
-  border: 1px solid #bfdbfe;
-  border-radius: var(--radius-md);
-  margin-bottom: var(--space-3);
-  font-size: var(--text-label-size);
-}
-.ukBarError {
-  background: var(--color-danger-weak);
-  border-color: #fca5a5;
-}
-.ukInfo {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: var(--space-1) var(--space-2);
-}
-.ukInfo b {
-  color: #1e3a8a;
-}
-.reqMark {
-  color: var(--color-danger);
-}
-.ukNote {
-  color: #1e3a8a;
-  font-size: var(--text-caption-size);
-  font-weight: var(--font-weight-regular);
-}
-.ukReqError {
-  color: var(--color-danger);
-  font-size: var(--text-caption-size);
-  font-weight: var(--font-weight-semibold);
-}
-
-/* 파라미터 행 헤더의 사용자 키값 라디오 라인 */
-.ukLine {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-2);
-  min-height: var(--control-height-md);
-  color: var(--color-text);
-  cursor: pointer;
-}
-.ukLine input {
-  width: 18px;
-  height: 18px;
-  accent-color: var(--color-primary);
-  cursor: pointer;
-}
-.ukBadge {
-  display: inline-flex;
-  align-items: center;
-  height: 22px;
-  padding: 0 var(--space-2);
-  border-radius: var(--radius-sm);
-  font-size: 12px;
-  font-weight: var(--font-weight-semibold);
-  background: #1e40af;
-  color: var(--color-text-inverse);
-}
-
-/* 반복 행 내부 필드 그리드 */
-.paramGrid {
-  display: grid;
-  grid-template-columns: 1fr 1fr auto;
-  gap: var(--space-3);
-  align-items: end;
-}
+/* 반복 행 내부 필드 그리드(동의 항목) */
 .consentGrid {
   display: grid;
   grid-template-columns: 1fr 1.4fr auto;
@@ -204,6 +130,15 @@
   color: var(--color-danger);
 }
 
+/* 필드 보조 안내 캡션(동의 대상 설명 문구 등 — TextField 힌트 캡션과 동일 규칙). */
+.fieldHint {
+  display: block;
+  margin-top: var(--space-2);
+  font-size: var(--text-caption-size);
+  line-height: var(--text-caption-line);
+  color: var(--color-text-muted);
+}
+
 /* 하단 액션(우측 정렬) */
 .formActions {
   display: flex;
@@ -227,7 +162,6 @@
 /* 반응형 — mobile 1컬럼 */
 @media (max-width: 640px) {
   .grid2,
-  .paramGrid,
   .consentGrid {
     grid-template-columns: 1fr;
   }
