@@ -1,6 +1,7 @@
 /*
- * 애플리케이션 루트 — 라우팅 구성(관리자 웹 SPA).
- * 백엔드(NestJS)가 /api·/interlock 을 제외한 경로를 index.html 로 폴백 서빙하므로
+ * 애플리케이션 루트 — 라우팅 구성(관리자 웹 SPA + 사용자 이용 동의 Public 화면).
+ * 백엔드(NestJS)가 /api 를 제외한 전 경로를 index.html 로 폴백 서빙하므로(app.module.ts
+ * ServeStaticModule exclude=['/api/{*splat}'], `#214`(P5) 로 /interlock 제외 제거)
  * 클라이언트 라우팅(BrowserRouter)으로 화면을 분기한다. 경로는 same-origin 상대 경로.
  * 전역 Toast(ToastProvider)는 라우터 상위에 두어 화면 전환 후에도 토스트가 유지된다.
  */
@@ -22,10 +23,10 @@ const ROUTES = {
   configNew: '/admin/configs/new',
   configDetail: '/admin/configs/:id',
   configEdit: '/admin/configs/:id/edit',
-  // 사용자 이용 동의(Public) — 서비스 A 진입 후 발급된 요청 키값으로 접근.
-  consent: '/consent/:requestKey',
-  // 사용자 동의 결과(Public) — SCR-005 제출 성공 후 네비게이션 상태(result)로만 렌더.
-  consentResult: '/consent/:requestKey/result',
+  // 사용자 이용 동의(Public) — 발송처 링크로 진입(접근 주소 고유 ID=발송처 판별값 + encX·encY 쿼리, `#214`).
+  consentEntry: '/interlock/entry/:accessAddressId',
+  // 사용자 동의 결과(Public) — SCR-005 제출 결과 컨텍스트(state.result)로만 렌더, 민감값 미포함 경로.
+  consentResult: '/interlock/result',
 } as const;
 
 /**
@@ -56,10 +57,10 @@ export default function App() {
           <Route path={ROUTES.configNew} element={<ConfigFormPage mode="create" />} />
           <Route path={ROUTES.configEdit} element={<ConfigFormPage mode="edit" />} />
           <Route path={ROUTES.configDetail} element={<ConfigDetailPage />} />
-          {/* 사용자 이용 동의(SCR-005) — 서비스 A 진입 후 발급된 요청 키값으로 접근(Public). */}
-          {/* 결과 세그먼트(/…/result, SCR-006)가 :requestKey 보다 더 구체적이라 우선 매칭된다(react-router 랭킹). */}
+          {/* 사용자 이용 동의(SCR-005) — 발송처 링크로 진입한 접근 주소 고유 ID 로 접근(Public, `#214`). */}
+          {/* 사용자 동의 결과(SCR-006) — 정적 경로(/interlock/result)라 세그먼트 겹침 없이 독립 매칭된다. */}
           <Route path={ROUTES.consentResult} element={<ConsentResultPage />} />
-          <Route path={ROUTES.consent} element={<ConsentPage />} />
+          <Route path={ROUTES.consentEntry} element={<ConsentPage />} />
           {/* 기본 진입은 로그인으로 유도(MVP 관리자 웹 기준). */}
           <Route path="/" element={<Navigate to={ROUTES.login} replace />} />
           {/* 미정의 경로 폴백 — 로그인으로 유도. */}

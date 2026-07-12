@@ -27,22 +27,39 @@
   margin: 0 0 var(--space-2);
 }
 
-.lead {
+/* 동의 대상 설명 문구(consentNotice, 구성 설정값·선택 — BIZ-002-08). 설정 시만 렌더(제목 아래). */
+.notice {
+  background: var(--color-primary-weak);
+  color: var(--color-text);
+  border-radius: var(--radius-md);
+  padding: var(--space-3) var(--space-4);
   font-size: var(--text-label-size);
   line-height: var(--text-label-line);
-  color: var(--color-text-muted);
   margin: 0 0 var(--space-6);
 }
 
-/* 제출 실패 배너 영역 간격. */
+/* 제출 실패 배너 영역 간격(EX-SEC-004/005·EX-OPS-001·EX-BIZ-004 — 본 화면 유지). */
 .banner {
   margin-bottom: var(--space-4);
 }
 
-/* 동의 항목 목록 — 카드 내부 경계 묶음. */
+/* 본인확인·동의 항목 섹션 — 섹션 간 24px(design-system.md §간격 스케일 요소 간격). */
+.section {
+  margin-bottom: var(--space-6);
+}
+
+.sectionTitle {
+  font-size: var(--text-label-size);
+  line-height: var(--text-label-line);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text);
+  margin: 0 0 var(--space-3);
+}
+
+/* 동의 항목 목록 — 카드 내부 경계 묶음. 상위 .section 이 하단 간격을 담당하므로 자체 마진은 0. */
 .itemList {
   list-style: none;
-  margin: 0 0 var(--space-6);
+  margin: 0;
   padding: 0;
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
@@ -127,14 +144,14 @@
   color: var(--color-text-muted);
 }
 
-/* 동의/거부 버튼 — 세로 스택(모바일·데스크톱 공통 단일 컬럼). */
+/* 승인/거부 버튼 — 세로 스택(모바일·데스크톱 공통 단일 컬럼). */
 .actions {
   display: flex;
   flex-direction: column;
   gap: var(--space-3);
 }
 
-/* 필수 미충족 안내(동의 버튼 비활성 사유 병기). */
+/* 필수 미충족 안내(승인 버튼 비활성 사유 병기). */
 .hint {
   margin: var(--space-3) 0 0;
   text-align: center;
@@ -150,7 +167,7 @@
   gap: var(--space-3);
 }
 
-/* 골격 블록(항목·버튼 자리) 위 간격 확대. */
+/* 골격 블록(섹션·버튼 자리) 위 간격 확대. */
 .skeletonBlock {
   margin-top: var(--space-4);
 }
