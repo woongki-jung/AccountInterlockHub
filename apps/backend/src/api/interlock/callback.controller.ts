@@ -23,7 +23,7 @@ import { CallbackDto } from './dto/callback.dto';
 export class CallbackController {
   constructor(private readonly callbackService: CallbackService) {}
 
-  /** POST /api/interlock/callback — {configCode, userKey} 스코프 미수신 최신 1건에 완료 콜백 수신 기록. */
+  /** POST /api/interlock/callback — 연동 추적 키 스코프 미수신 최신 1건에 완료 콜백 수신 기록. */
   @Post('callback')
   @HttpCode(200)
   async callback(@Body() dto: CallbackDto): Promise<void> {
