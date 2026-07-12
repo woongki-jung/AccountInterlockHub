@@ -63,7 +63,7 @@ export class ServiceApiGuard implements CanActivate {
           timestamp: headerValue(req, TIMESTAMP_HEADER),
           signature: headerValue(req, SIGNATURE_HEADER),
         },
-        requestKey: (req.params?.requestKey as string | undefined) ?? null,
+        trackingKey: (req.params?.trackingKey as string | undefined) ?? null,
         now: new Date(),
       },
       metadata,
