@@ -1,17 +1,18 @@
 /*
- * SCR-003 연동 구성 등록·편집 폼 화면 — PROC-101(제출) / PROC-102(편집 프리필) / SVC-001 / ADM-01.
+ * SCR-003 발송처 접근 주소 구성 등록·편집 폼 화면 — PROC-101(제출) / PROC-102(편집 프리필) / SVC-001 / ADM-01.
  * 정본: docs/specs/screens/screen_SCR-003.md · design-system.md · docs/specs/processes/process_PROC-101.md.
  *
  * 구성:
- *  - 섹션 순서(기본 정보 → 서비스 A 진입 → 전달 파라미터 → 동의 항목 → 서비스 B 전달) + 하단 저장/취소.
- *  - 전달 파라미터·동의 항목은 RepeatableRows 로 동적 입력. order 는 화면 순서(배열 인덱스)로 직렬화.
- *  - 사용자 키값 지정(BR-107): 파라미터 행 전체 단일 라디오 그룹, 정확히 1개 필수. 미선택 시 저장 비활성 + 경고.
- *  - 상태: 등록 Initial(빈 폼·각 1행) / 편집 Loading(Skeleton)·Loaded·Error / Submitting / Success(Toast+상세 이동)
- *          / Error(422 필드 매핑·409 코드 중복·400·413 Banner).
- *
- * ⚠️ 편집 프리필의 GET 상세(PROC-102)는 ADM-P6 착수 후 실동작한다 — 그 전에는 Error 상태로 안내한다.
+ *  - 섹션 순서: (1) 기본 정보(접근 주소 고유 ID·구성명·활성 여부·동의 대상 설명 문구) → (2) 수신처 B 전달(전달
+ *    주소·HTTP 메서드) → (3) 사용자 동의 항목. 하단 저장·취소.
+ *  - 동의 항목은 RepeatableRows 로 동적 입력(최소 1개). order 는 화면 순서(배열 인덱스)로 직렬화한다.
+ *  - `#214`(P3) 로 서비스 A 진입 주소·전달 파라미터 정의·사용자 키값 exactly-one 지정을 폐기했다 — 회원 키·
+ *    연동 추적 키는 발송처가 암호화 JSON(encX·encY)에 담아 전달하며 허브는 구성에 저장하지 않는다(EXC-BIZ-14).
+ *    `#215` 로 동의 대상 설명 문구(consentNotice, 선택·≤1000, BIZ-002-08)를 신설했다 — SCR-005 상단 노출용.
+ *  - 상태: 등록 Initial(빈 폼·동의 항목 1행) / 편집 Loading(Skeleton)·Loaded·Error / Submitting / Success(Toast+상세 이동)
+ *          / Error(422 필드 매핑·409 고유 ID 중복·400·413 Banner).
  */
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useId, useMemo, useState } from 'react';
 import type { FormEvent } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import {
@@ -30,7 +31,6 @@ import {
 import { ApiError } from '../lib/apiClient';
 import { createConfig, getConfigDetail, updateConfig } from '../lib/configApi';
 import type { HttpMethod } from '../lib/configApi';
-import { detectPiiParamNames } from '../lib/pii';
 import {
   HTTP_METHOD_OPTIONS,
   LIMITS,
@@ -39,7 +39,6 @@ import {
   formStateFromDetail,
   hasAnyError,
   newConsentRow,
-  newParameterRow,
   validateForm,
 } from '../lib/configForm';
 import type { ConfigFormState, FormErrors } from '../lib/configForm';
@@ -60,6 +59,7 @@ export function ConfigFormPage({ mode }: ConfigFormPageProps) {
   const configId = routeParams.id;
   const { showToast } = useToast();
   const isEdit = mode === 'edit';
+  const consentNoticeId = useId();
 
   const [form, setForm] = useState<ConfigFormState>(() => createInitialFormState());
   const [loadState, setLoadState] = useState<LoadState>(isEdit ? 'loading' : 'loaded');
@@ -113,9 +113,6 @@ export function ConfigFormPage({ mode }: ConfigFormPageProps) {
 
   // ── 파생 값 ──
   const feErrors = useMemo(() => validateForm(form), [form]);
-  const userKeyMissing = !form.parameters.some((p) => p.isUserKey);
-  const piiHits = useMemo(() => detectPiiParamNames(form.parameters), [form.parameters]);
-  const canSubmit = !submitting && !userKeyMissing;
 
   // ── 오류 정리·변경 핸들러 ──
   function clearServerFeedback() {
@@ -144,29 +141,6 @@ export function ConfigFormPage({ mode }: ConfigFormPageProps) {
     setForm((prev) => ({
       ...prev,
       consentItems: prev.consentItems.filter((_, i) => i !== index),
-    }));
-    clearServerFeedback();
-  }
-
-  function updateParam(index: number, patch: Partial<ConfigFormState['parameters'][number]>) {
-    setForm((prev) => ({
-      ...prev,
-      parameters: prev.parameters.map((p, i) => (i === index ? { ...p, ...patch } : p)),
-    }));
-    clearServerFeedback();
-  }
-  function addParam() {
-    setForm((prev) => ({ ...prev, parameters: [...prev.parameters, newParameterRow()] }));
-  }
-  function removeParam(index: number) {
-    setForm((prev) => ({ ...prev, parameters: prev.parameters.filter((_, i) => i !== index) }));
-    clearServerFeedback();
-  }
-  /** 사용자 키값 지정 — 선택 행만 isUserKey=true, 나머지 false(라디오 단일 선택, BR-107). */
-  function selectUserKey(index: number) {
-    setForm((prev) => ({
-      ...prev,
-      parameters: prev.parameters.map((p, i) => ({ ...p, isUserKey: i === index })),
     }));
     clearServerFeedback();
   }
@@ -213,11 +187,10 @@ export function ConfigFormPage({ mode }: ConfigFormPageProps) {
           switch (field) {
             case 'configCode':
             case 'configName':
-            case 'serviceAEntryUrl':
+            case 'consentNotice':
             case 'serviceBDeliveryUrl':
             case 'serviceBHttpMethod':
             case 'consentItems':
-            case 'parameters':
               next[field] = message;
               break;
             default:
@@ -234,7 +207,7 @@ export function ConfigFormPage({ mode }: ConfigFormPageProps) {
         break;
       }
       case 'EX-BIZ-002':
-        setServerErrors({ configCode: '이미 존재하는 구성입니다.' });
+        setServerErrors({ configCode: '이미 존재하는 접근 주소 고유 ID 입니다.' });
         break;
       case 'EX-SEC-004':
         setBannerError('입력 형식이 올바르지 않습니다.');
@@ -265,20 +238,18 @@ export function ConfigFormPage({ mode }: ConfigFormPageProps) {
   }
   const consentRowError = (i: number) =>
     submitAttempted ? feErrors.consentRows?.[i] : undefined;
-  const paramRowError = (i: number) => (submitAttempted ? feErrors.paramRows?.[i] : undefined);
-  const paramsCountError =
-    (typeof serverErrors?.parameters === 'string' ? serverErrors.parameters : null) ??
-    (submitAttempted ? (feErrors.parameters ?? null) : null);
-  const userKeyMessage = userKeyMissing ? '사용자 키값 파라미터를 1개 지정해주세요.' : null;
+  const consentItemsListError =
+    (typeof serverErrors?.consentItems === 'string' ? serverErrors.consentItems : null) ??
+    (submitAttempted ? (feErrors.consentItems ?? null) : null);
 
-  const title = isEdit ? '연동 구성 편집' : '연동 구성 등록';
+  const title = isEdit ? '발송처 접근 주소 편집' : '발송처 접근 주소 등록';
 
   // ── 편집 로드 상태 분기 ──
   if (isEdit && loadState !== 'loaded') {
     return (
       <AdminShell>
         <nav className={styles.crumb}>
-          <a href={CONFIGS_LIST_PATH}>연동 구성 목록</a> / {title}
+          <a href={CONFIGS_LIST_PATH}>발송처 접근 주소 목록</a> / {title}
         </nav>
         <h1 className={styles.title}>{title}</h1>
         {loadState === 'loading' && <ConfigFormSkeleton />}
@@ -312,7 +283,7 @@ export function ConfigFormPage({ mode }: ConfigFormPageProps) {
   return (
     <AdminShell>
       <nav className={styles.crumb}>
-        <a href={CONFIGS_LIST_PATH}>연동 구성 목록</a> / {isEdit ? '편집' : '신규 등록'}
+        <a href={CONFIGS_LIST_PATH}>발송처 접근 주소 목록</a> / {isEdit ? '편집' : '신규 등록'}
       </nav>
       <h1 className={styles.title}>{title}</h1>
 
@@ -326,16 +297,23 @@ export function ConfigFormPage({ mode }: ConfigFormPageProps) {
 
           {/* (1) 기본 정보 */}
           <Card>
-            <SectionHeader title="기본 정보" desc="연동 구성을 식별하는 코드와 이름, 활성 여부를 설정합니다." />
+            <SectionHeader
+              title="기본 정보"
+              desc="발송처 접근 주소 구성을 식별하는 고유 ID와 이름, 활성 여부, 사용자 동의 화면 상단 안내 문구를 설정합니다."
+            />
             <div className={styles.grid2}>
               <TextField
-                label="구성 코드"
+                label="접근 주소 고유 ID"
                 required
                 value={form.configCode}
                 readOnly={isEdit}
                 maxLength={LIMITS.configCode}
                 placeholder="예: CFG-PAYLINK-01"
-                hint={isEdit ? '편집 시 고유성·참조 안정성을 위해 변경할 수 없습니다.' : '영문·숫자·하이픈. 최대 64자.'}
+                hint={
+                  isEdit
+                    ? '접근 주소 고유 ID 는 관리자가 직접 입력한 값으로, 등록 후 변경할 수 없어 편집 시 읽기전용입니다(BIZ-001-11).'
+                    : '관리자가 직접 입력합니다(자동 생성 아님). 영문·숫자·하이픈, 최대 64자. 이미 등록된 값과 중복이면 실패합니다.'
+                }
                 error={scalarError('configCode')}
                 onChange={(e) => patchForm({ configCode: e.target.value })}
                 onBlur={() => markTouched('configCode')}
@@ -360,117 +338,71 @@ export function ConfigFormPage({ mode }: ConfigFormPageProps) {
                   onBlur={() => markTouched('configName')}
                 />
               </div>
+              <div className={styles.fieldFull}>
+                <label className={styles.termsLabel} htmlFor={consentNoticeId}>
+                  동의 대상 설명 문구 <span className={styles.optMark}>(선택)</span>
+                </label>
+                <textarea
+                  id={consentNoticeId}
+                  className={styles.textarea}
+                  value={form.consentNotice}
+                  maxLength={LIMITS.consentNotice}
+                  placeholder="사용자 동의 화면 상단에 노출할 안내 문구를 입력하세요(선택)."
+                  aria-invalid={Boolean(scalarError('consentNotice')) || undefined}
+                  aria-describedby={
+                    scalarError('consentNotice') ? `${consentNoticeId}-error` : `${consentNoticeId}-hint`
+                  }
+                  onChange={(e) => patchForm({ consentNotice: e.target.value })}
+                  onBlur={() => markTouched('consentNotice')}
+                />
+                {scalarError('consentNotice') ? (
+                  <span id={`${consentNoticeId}-error`} className={styles.listError} role="alert">
+                    {scalarError('consentNotice')}
+                  </span>
+                ) : (
+                  <span id={`${consentNoticeId}-hint`} className={styles.fieldHint}>
+                    입력하면 사용자 동의 화면(SCR-005) 상단에 노출됩니다(BIZ-002-08). 미입력 시 노출되지
+                    않습니다. 최대 1000자.
+                  </span>
+                )}
+              </div>
             </div>
           </Card>
 
-          {/* (2) 서비스 A 진입 */}
-          <Card>
-            <SectionHeader title="서비스 A 진입" desc="사용자가 진입하는 서비스 A 호출(진입) 주소입니다." />
-            <TextField
-              label="서비스 A 호출 주소"
-              type="url"
-              required
-              value={form.serviceAEntryUrl}
-              maxLength={LIMITS.url}
-              placeholder="https://service-a.example.com/interlock/entry"
-              error={scalarError('serviceAEntryUrl')}
-              onChange={(e) => patchForm({ serviceAEntryUrl: e.target.value })}
-              onBlur={() => markTouched('serviceAEntryUrl')}
-            />
-          </Card>
-
-          {/* (3) 전달 파라미터 정의 */}
+          {/* (2) 수신처 B 전달 */}
           <Card>
             <SectionHeader
-              title="전달 파라미터 정의"
-              desc="서비스 A 원천 키에서 값을 취해 서비스 B로 전달할 파라미터를 정의합니다. 최소 1개."
+              title="수신처 B 전달"
+              desc="동의 승인 후 허브가 복호화한 데이터를 전달할 수신처(서비스 B) 주소와 전달 방식입니다."
             />
-            {piiHits.length > 0 && (
-              <div className={styles.bannerSlot}>
-                <Banner variant="warning">
-                  일부 파라미터명({piiHits.join(', ')})이 개인정보성 명칭 패턴에 해당할 수 있습니다. 안내이며
-                  저장을 차단하지 않습니다(BIZ-001-05).
-                </Banner>
+            <div className={styles.grid2}>
+              <div className={styles.fieldFull}>
+                <TextField
+                  label="수신처 B 전달 주소"
+                  type="url"
+                  required
+                  value={form.serviceBDeliveryUrl}
+                  maxLength={LIMITS.url}
+                  placeholder="https://service-b.example.com/receive"
+                  error={scalarError('serviceBDeliveryUrl')}
+                  onChange={(e) => patchForm({ serviceBDeliveryUrl: e.target.value })}
+                  onBlur={() => markTouched('serviceBDeliveryUrl')}
+                />
               </div>
-            )}
-            {/* 사용자 키값 지정 요약 바(필수 · 정확히 1개) */}
-            <div className={[styles.ukBar, userKeyMissing ? styles.ukBarError : ''].join(' ')}>
-              <div className={styles.ukInfo}>
-                <span>
-                  사용자 키값 파라미터 <span className={styles.reqMark}>*</span>:{' '}
-                  <b>{form.parameters.find((p) => p.isUserKey)?.name?.trim() || '미지정'}</b>
-                </span>
-                <span className={styles.ukNote}>
-                  (필수 · 구성당 정확히 1개 · 지정 값이 연동이력·완료 확인/콜백의 사용자 키값 근거, BIZ-001-07)
-                </span>
-              </div>
-              {userKeyMessage && (
-                <span className={styles.ukReqError} role="alert">
-                  ⚠ {userKeyMessage}
-                </span>
-              )}
+              <Select
+                label="전달 방식"
+                required
+                options={HTTP_METHOD_OPTIONS}
+                value={form.serviceBHttpMethod}
+                error={scalarError('serviceBHttpMethod')}
+                onChange={(e) =>
+                  patchForm({ serviceBHttpMethod: e.target.value as HttpMethod })
+                }
+              />
             </div>
-            <RepeatableRows
-              items={form.parameters}
-              getKey={(p) => p.key}
-              addLabel="+ 파라미터 행 추가"
-              removeAriaLabel="파라미터 행 삭제"
-              disabled={submitting}
-              removeDisabled={() => form.parameters.length <= 1}
-              rowHighlighted={(p) => p.isUserKey}
-              onAdd={addParam}
-              onRemove={removeParam}
-              renderHeader={(p, i) => (
-                <label className={styles.ukLine}>
-                  <input
-                    type="radio"
-                    name="userKey"
-                    checked={p.isUserKey}
-                    onChange={() => selectUserKey(i)}
-                    aria-label={`사용자 키값 파라미터로 지정: ${p.name.trim() || `파라미터 ${i + 1}`}`}
-                  />
-                  <span>사용자 키값</span>
-                  {p.isUserKey && <span className={styles.ukBadge}>지정됨</span>}
-                </label>
-              )}
-              renderRow={(p, i) => (
-                <div className={styles.paramGrid}>
-                  <TextField
-                    label="파라미터명"
-                    required
-                    value={p.name}
-                    maxLength={LIMITS.paramName}
-                    placeholder="예: orderId"
-                    error={paramRowError(i)?.name ?? null}
-                    onChange={(e) => updateParam(i, { name: e.target.value })}
-                  />
-                  <TextField
-                    label="서비스 A 원천 키명"
-                    required
-                    value={p.sourceKeyA}
-                    maxLength={LIMITS.sourceKeyA}
-                    placeholder="예: a_order_id"
-                    error={paramRowError(i)?.sourceKeyA ?? null}
-                    onChange={(e) => updateParam(i, { sourceKeyA: e.target.value })}
-                  />
-                  <div className={styles.checkCell}>
-                    <Checkbox
-                      label="서비스 B 전달"
-                      checked={p.deliverToB}
-                      onChange={(e) => updateParam(i, { deliverToB: e.target.checked })}
-                    />
-                  </div>
-                </div>
-              )}
-            />
-            {paramsCountError && (
-              <span className={styles.listError} role="alert">
-                {paramsCountError}
-              </span>
-            )}
           </Card>
 
-          {/* (4) 사용자 동의 항목 */}
+          {/* (3) 사용자 동의 항목 */}
           <Card>
             <SectionHeader
               title="사용자 동의 항목"
@@ -532,52 +464,18 @@ export function ConfigFormPage({ mode }: ConfigFormPageProps) {
                 </div>
               )}
             />
-            {(submitAttempted || typeof serverErrors?.consentItems === 'string') &&
-              (serverErrors?.consentItems || feErrors.consentItems) && (
-                <span className={styles.listError} role="alert">
-                  {serverErrors?.consentItems ?? feErrors.consentItems}
-                </span>
-              )}
-          </Card>
-
-          {/* (5) 서비스 B 전달 */}
-          <Card>
-            <SectionHeader
-              title="서비스 B 전달"
-              desc="동의 완료 시 요청을 전달할 서비스 B 주소와 전달 방식입니다."
-            />
-            <div className={styles.grid2}>
-              <div className={styles.fieldFull}>
-                <TextField
-                  label="서비스 B 전달 주소"
-                  type="url"
-                  required
-                  value={form.serviceBDeliveryUrl}
-                  maxLength={LIMITS.url}
-                  placeholder="https://service-b.example.com/receive"
-                  error={scalarError('serviceBDeliveryUrl')}
-                  onChange={(e) => patchForm({ serviceBDeliveryUrl: e.target.value })}
-                  onBlur={() => markTouched('serviceBDeliveryUrl')}
-                />
-              </div>
-              <Select
-                label="전달 방식"
-                required
-                options={HTTP_METHOD_OPTIONS}
-                value={form.serviceBHttpMethod}
-                error={scalarError('serviceBHttpMethod')}
-                onChange={(e) =>
-                  patchForm({ serviceBHttpMethod: e.target.value as HttpMethod })
-                }
-              />
-            </div>
+            {consentItemsListError && (
+              <span className={styles.listError} role="alert">
+                {consentItemsListError}
+              </span>
+            )}
           </Card>
 
           <div className={styles.formActions}>
             <Button type="button" variant="secondary" onClick={handleCancel}>
               취소
             </Button>
-            <Button type="submit" variant="primary" loading={submitting} disabled={!canSubmit}>
+            <Button type="submit" variant="primary" loading={submitting}>
               저장
             </Button>
           </div>

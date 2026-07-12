@@ -1,17 +1,19 @@
 /*
- * SCR-002 연동 구성 목록 화면 — PROC-102(조회·목록) / PROC-105(활성 전환) / PROC-106(삭제) / SVC-002 / ADM-02.
+ * SCR-002 발송처 접근 주소 구성 목록 화면 — PROC-102(조회·목록) / PROC-105(활성 전환) / PROC-106(삭제) / SVC-002 / ADM-02.
  * 정본: docs/specs/screens/screen_SCR-002.md · design-system.md · process_PROC-102/105/106.md.
  *
  * 구성:
- *  - AdminShell(헤더·로그아웃) + 1120px 컨테이너. 제목 + "연동 구성 등록" + 활성 필터·검색 + 목록 Table.
+ *  - AdminShell(헤더·로그아웃) + 1120px 컨테이너. 제목 + "발송처 접근 주소 등록" + 활성 필터·검색 + 목록 Table.
  *  - 상태: Initial/Loading(Skeleton 3행) · Loaded(Table) · Empty(EmptyState) · Error(Banner+재시도) · 세션 만료(중앙 리다이렉트).
  *  - 행 액션: 활성 Toggle(PATCH)·삭제(확인 Modal→DELETE)·구성명 클릭(상세 이동)·등록 버튼(신규 폼 이동).
+ *  - `#214`(P3) 로 '연동 구성'을 '발송처 접근 주소 구성'으로 용어 정합했다(목록 필드 구조 자체는 변화 없음).
  *
  * 구현 결정(SCR-002 §구현 가이드 — 택1):
  *  - 활성 전환은 "응답 확정 후 반영"(confirm-after-response)을 채택한다. 낙관적 업데이트·롤백 대신
  *    전환 중 해당 행 Toggle 을 비활성(disabled)하고, 서버가 확정한 isActive 로 행을 갱신한다(대상 없음이면 행 제거).
  *    사유: 롤백 상태 관리 없이 서버 확정값을 단일 진실로 두어 리뷰·회귀 안전성을 높인다.
  *  - 검색어는 300ms 디바운스 후 재조회한다(활성 필터는 즉시). 길이 100 초과는 재조회 없이 인라인 에러만 표기.
+ *  - 기본 필터=활성 우선(screen_SCR-002.md §데이터 표시, mockup/SCR-002.html 활성만 selected) — 초기 activeFilter='ACTIVE'.
  */
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -60,10 +62,10 @@ export function ConfigsPage() {
   const navigate = useNavigate();
   const { showToast } = useToast();
 
-  // 조회 조건(검색어는 디바운스 후 appliedKeyword 로 반영).
+  // 조회 조건(검색어는 디바운스 후 appliedKeyword 로 반영). 기본 필터=활성 우선(SCR-002 §데이터 표시).
   const [keyword, setKeyword] = useState('');
   const [appliedKeyword, setAppliedKeyword] = useState('');
-  const [activeFilter, setActiveFilter] = useState<ActiveFilter>('ALL');
+  const [activeFilter, setActiveFilter] = useState<ActiveFilter>('ACTIVE');
 
   // 목록·로드 상태.
   const [rows, setRows] = useState<ConfigListItem[]>([]);
@@ -161,7 +163,7 @@ export function ConfigsPage() {
   const columns: Array<TableColumn<ConfigListItem>> = [
     {
       key: 'configCode',
-      header: '구성 코드',
+      header: '접근 주소 고유 ID',
       hideOnMobile: true,
       nowrap: true,
       render: (row) => <span className={styles.mono}>{row.configCode}</span>,
@@ -232,10 +234,10 @@ export function ConfigsPage() {
   return (
     <AdminShell>
       <div className={styles.pagehead}>
-        <h1 className={styles.title}>연동 구성 목록</h1>
+        <h1 className={styles.title}>발송처 접근 주소 구성 목록</h1>
         <span className={styles.spacer} />
         <Button variant="primary" onClick={() => navigate(CONFIG_NEW_PATH)}>
-          + 연동 구성 등록
+          + 발송처 접근 주소 등록
         </Button>
       </div>
 
@@ -244,9 +246,9 @@ export function ConfigsPage() {
           <TextField
             label="검색어"
             value={keyword}
-            placeholder="구성명 · 구성 코드 검색"
+            placeholder="구성명 · 접근 주소 고유 ID 검색"
             error={keywordError}
-            hint="구성명 또는 구성 코드로 검색합니다."
+            hint="구성명 또는 접근 주소 고유 ID로 검색합니다."
             onChange={(e) => setKeyword(e.target.value)}
           />
         </div>
@@ -276,11 +278,11 @@ export function ConfigsPage() {
       {status === 'ready' && rows.length === 0 && (
         <EmptyState
           icon="📭"
-          title="등록된 연동 구성이 없습니다"
-          description="첫 연동 구성을 등록해 서비스 A ↔ 서비스 B 연동을 시작하세요."
+          title="등록된 발송처 접근 주소가 없습니다"
+          description="첫 발송처 접근 주소를 등록해 연동을 시작하세요."
           action={
             <Button variant="primary" onClick={() => navigate(CONFIG_NEW_PATH)}>
-              + 연동 구성 등록
+              + 발송처 접근 주소 등록
             </Button>
           }
         />
@@ -292,10 +294,10 @@ export function ConfigsPage() {
             columns={columns}
             rows={rows}
             getRowKey={(row) => row.id}
-            ariaLabel="연동 구성 목록"
+            ariaLabel="발송처 접근 주소 목록"
           />
           <p className={styles.listNote}>
-            기본 정렬: 생성일 내림차순. 페이지네이션 규약은 build 확정(FN-015).
+            기본 정렬: 생성일 내림차순 · 기본 필터: 활성 우선. 페이지네이션 규약은 build 확정(FN-015).
           </p>
         </>
       )}
@@ -303,7 +305,7 @@ export function ConfigsPage() {
       {/* 삭제 확인 Modal(PROC-106 — 되돌릴 수 없어 확인 강제) */}
       <Modal
         open={deleteTarget !== null}
-        title="연동 구성 삭제"
+        title="발송처 접근 주소 삭제"
         onClose={() => {
           if (!deleting) {
             setDeleteTarget(null);
@@ -324,7 +326,7 @@ export function ConfigsPage() {
           </>
         }
       >
-        <strong>{deleteTarget?.configName}</strong> 구성을 삭제하시겠습니까? 이 작업은 되돌릴 수
+        <strong>{deleteTarget?.configName}</strong> 을(를) 삭제하시겠습니까? 이 작업은 되돌릴 수
         없으며 감사 로그에 기록됩니다(OPS-002).
       </Modal>
     </AdminShell>
@@ -335,7 +337,7 @@ export function ConfigsPage() {
 function ListSkeleton() {
   const skeletonRows = [{ id: 's1' }, { id: 's2' }, { id: 's3' }];
   const skeletonColumns: Array<TableColumn<{ id: string }>> = [
-    { key: 'configCode', header: '구성 코드', hideOnMobile: true, render: () => <Skeleton width="110px" height="14px" /> },
+    { key: 'configCode', header: '접근 주소 고유 ID', hideOnMobile: true, render: () => <Skeleton width="110px" height="14px" /> },
     { key: 'configName', header: '구성명', render: () => <Skeleton width="160px" height="14px" /> },
     { key: 'isActive', header: '활성 여부', render: () => <Skeleton width="90px" height="14px" /> },
     { key: 'consentItemCount', header: '동의 항목 수', align: 'right', hideOnMobile: true, render: () => <Skeleton width="24px" height="14px" /> },

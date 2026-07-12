@@ -1,20 +1,24 @@
 /*
- * 연동 구성 등록·편집·상세·목록·활성전환·삭제 API 호출 — SVC-001/SVC-002 / PROC-101·PROC-102·PROC-105·PROC-106.
- * 백엔드 계약(ADM-P4 등록·편집, ADM-P6 목록·상세·활성·삭제)을 그대로 소비한다 — 엔드포인트·필드명·타입을 임의로 바꾸지 않는다.
+ * 발송처 접근 주소 구성 등록·편집·상세·목록·활성전환·삭제 API 호출 — SVC-001/SVC-002 / PROC-101·PROC-102·PROC-105·PROC-106.
+ * 백엔드 계약(P3 개정판 — accountinterlockhub#227)을 그대로 소비한다 — 엔드포인트·필드명·타입을 임의로 바꾸지 않는다.
  *  - CREATE: POST   /api/admin/configs
  *  - EDIT:   PUT    /api/admin/configs/:id (config_code 는 서버 불변 — 제출해도 무시됨)
  *  - LIST:   GET    /api/admin/configs?active=&keyword=  (MDL-102[] 요약)
  *  - DETAIL: GET    /api/admin/configs/:id               (MDL-101 | null)
  *  - ACTIVE: PATCH  /api/admin/configs/:id/active         ({ id, isActive } | null)
  *  - DELETE: DELETE /api/admin/configs/:id                ({ id, deleted } | null)
- * 성공 응답 data 는 MDL-101(ConfigDetail, 자식·userKeyParamId 포함) 또는 MDL-102(요약).
+ * 성공 응답 data 는 MDL-101(ConfigDetail) 또는 MDL-102(요약, ConfigListItem).
  * 대상 없음은 오류가 아니라 200 { data: null } 로 오므로 null 을 반환할 수 있다(상세·활성·삭제).
+ *
+ * `#214` 개정(P3): 입력이 단일 암호화 JSON(encX·encY)으로 바뀌어 serviceAEntryUrl·parameters[]·isUserKey·
+ * userKeyParamId 를 전량 제거했다(EXC-BIZ-14 — 회원 키·연동 추적 키는 발송처가 전달 데이터 X 안에 담아 전달하며
+ * 허브는 구성에 저장하지 않는다). `#215` 로 consentNotice(동의 대상 설명 문구, 선택·≤1000, BIZ-002-08)를 신설했다.
  */
 import { apiGet, apiPost, apiRequest } from './apiClient';
 
 export type HttpMethod = 'GET' | 'POST' | 'PUT' | 'PATCH';
 
-/** 요청 DTO — 동의 항목(ENT-002). */
+/** 요청·응답 공용 — 동의 항목(ENT-002). */
 export interface ConsentItemPayload {
   label: string;
   description: string | null;
@@ -23,26 +27,15 @@ export interface ConsentItemPayload {
   order: number;
 }
 
-/** 요청 DTO — 전달 파라미터(ENT-003). isUserKey 는 지정 행만 true(정확히 1개). */
-export interface ParameterPayload {
-  name: string;
-  sourceKeyA: string;
-  deliverToB: boolean;
-  required: boolean;
-  order: number;
-  isUserKey: boolean;
-}
-
 /** 요청 DTO — MDL-101(SaveConfigDto 형상). */
 export interface SaveConfigPayload {
   configCode: string;
   configName: string;
-  serviceAEntryUrl: string;
+  consentNotice: string | null;
   serviceBDeliveryUrl: string;
   serviceBHttpMethod: HttpMethod;
   isActive: boolean;
   consentItems: ConsentItemPayload[];
-  parameters: ParameterPayload[];
 }
 
 /** 응답 DTO — 동의 항목(id 포함). */
@@ -55,29 +48,16 @@ export interface ConsentItemResponse {
   order: number;
 }
 
-/** 응답 DTO — 전달 파라미터(id·isUserKey 포함). */
-export interface ParameterResponse {
-  id: string;
-  name: string;
-  sourceKeyA: string;
-  deliverToB: boolean;
-  required: boolean;
-  order: number;
-  isUserKey: boolean;
-}
-
-/** 응답 DTO — MDL-101 상세(자식·지정 참조·타임스탬프 포함). */
+/** 응답 DTO — MDL-101 상세(자식·타임스탬프 포함). */
 export interface ConfigDetail {
   id: string;
   configCode: string;
   configName: string;
-  serviceAEntryUrl: string;
+  consentNotice: string | null;
   serviceBDeliveryUrl: string;
   serviceBHttpMethod: HttpMethod;
   isActive: boolean;
-  userKeyParamId: string | null;
   consentItems: ConsentItemResponse[];
-  parameters: ParameterResponse[];
   createdAt: string | null;
   createdBy: string | null;
   updatedAt: string | null;
