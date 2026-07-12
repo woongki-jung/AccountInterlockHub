@@ -41,26 +41,28 @@ export class HubDecryptService {
   /**
    * FN-020_decryptInterlock(encX, encY, birthDate, accessAddressId) → { X, trackingKey }
    *
-   * @param encX 이중 암호값 1(Base64URL, X 암호문) — NotBlank, 로그·저장 미기록
-   * @param encY 이중 암호값 2(Base64URL, encX 키 문자열 암호문) — NotBlank, 로그·저장 미기록
+   * @param encX 이중 암호값 1(Base64URL, X 암호문) — 부재(완전 누락)·빈값·형식오류는 EX-SEC-007(#238), 로그·저장 미기록
+   * @param encY 이중 암호값 2(Base64URL, encX 키 문자열 암호문) — 부재(완전 누락)·빈값·형식오류는 EX-SEC-007(#238), 로그·저장 미기록
    * @param birthDate 사용자 생년월일(yyMMdd, 복호화 요소) — 로그·저장 미기록. 형식 검증은 승인 처리
    *   진입 단계(consent 제출) 책임이며 본 함수는 값을 그대로 키 유도 원문으로 사용한다(AUTH-004-01).
    * @param accessAddressId 접근 주소 고유 ID(감사 target — 발송처 식별자, 비민감). 유효성은 호출자(PROC-203)
    *   가 이미 구성 조회로 확정한 뒤 넘기는 값이라 본 함수는 재검증하지 않는다(pseudocode 정합).
    * @throws AppException
-   *   - EX-SEC-007: encX·encY 누락 또는 Base64URL 형식 오류(발송처 링크 오류·재입력 불가)
+   *   - EX-SEC-007: encX·encY 부재(완전 누락)·빈값 또는 Base64URL 형식 오류(발송처 링크 오류·재입력 불가)
    *   - EX-SEC-006: 복호화 실패=패딩·키 불일치(생년월일 오류·재입력 가능, 하드 잠금 없음)
    *   - EX-BIZ-008: 복호화된 X 파싱 실패 또는 trackingKey 필드 누락·공백(발송처 데이터 오류·재입력 불가)
    */
   async decryptInterlock(
-    encX: string,
-    encY: string,
+    encX: string | undefined,
+    encY: string | undefined,
     birthDate: string,
     accessAddressId: string,
   ): Promise<DecryptResult> {
-    // 1. 암호 파라미터 형식 검증(SEC-006-05). pseudocode 정합 — 본 단계는 감사 미기록(FAIL_DECRYPT·
+    // 1. 암호 파라미터 부재·형식 검증(SEC-006-05). pseudocode 정합 — 본 단계는 감사 미기록(FAIL_DECRYPT·
     //    FAIL_SENDER_DATA 만 감사 대상, function_FN-020.md 의사코드 참조).
-    if (isBlank(encX) || isBlank(encY)) {
+    // #238: 필드 자체 부재(완전 누락)도 빈값·공백과 동일한 발송처 링크 오류로 EX-SEC-007 로 통합한다
+    //       (승인 DTO 는 부재를 EX-SEC-004 로 선차단하지 않고 본 단계에 위임). null 체크로 이후 string 확정.
+    if (encX == null || encY == null || isBlank(encX) || isBlank(encY)) {
       throw new AppException('EX-SEC-007');
     }
     let rawY: Buffer;

@@ -70,9 +70,10 @@ export class InterlockService {
       return { result: 'REJECTED' }; // 200 정상 종료(EXC-BIZ-03)
     }
 
-    // B3b. 승인 경로 — 접근 컨텍스트(AGREE 시 ApproveDto.ValidateIf 가 NotBlank 를 보장) 존재 확인.
-    // 정상 게이팅 통과 경로에서는 항상 참이다 — 방어적 가드(도달 시 서버 데이터 정합 문제로 간주).
-    if (dto.encX == null || dto.encY == null || dto.birthDate == null) {
+    // B3b. 승인 경로 — birthDate 존재 확인(AGREE 시 ApproveDto 가 NotBlank 보장, 방어적 가드).
+    // encX·encY 는 부재·빈값·형식오류를 FN-020 이 EX-SEC-007 로 판정하므로(#238) 여기서 선차단하지 않고
+    // 그대로 넘긴다 — DTO 가 부재를 EX-SEC-004 로 막지 않도록 완화한 것과 정합(단일 판정 지점 = FN-020).
+    if (dto.birthDate == null) {
       throw new AppException('EX-SEC-004');
     }
 
@@ -105,8 +106,8 @@ export class InterlockService {
    */
   private async executeInterlock(
     config: DeliveryConfig,
-    encX: string,
-    encY: string,
+    encX: string | undefined,
+    encY: string | undefined,
     birthDate: string,
     accessAddressId: string,
     now: Date,
