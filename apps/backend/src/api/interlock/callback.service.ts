@@ -31,6 +31,20 @@ import { HistoryScopeService } from './history-scope.service';
  * 전달받은 키값 원문을 남기지 않는다(FN-010 마스킹, SEC-005-01).
  *
  * DB 접근은 파라미터 바인딩만 사용한다(SEC-004-02).
+ *
+ * ⚠ **P9 선행 미완료 표기**(`accountinterlockhub#232` P8 시점) — FN-019(HistoryScopeService)가 build P8 에서
+ * {연동 구성 식별자 + 사용자 키값} 스코프에서 **연동 추적 키 단독** 스코프로 재키잉됐다(`resolveHistoryScope`
+ * 시그니처 (trackingKey, pendingOnly), 구 eligible 반환값·requestKey 필드 폐기 — function_FN-019.md).
+ * CallbackDto(MDL-305)·본 서비스는 아직 구 {configCode, userKey} 계약 그대로이며(재키잉은 P9 소관), 아래는
+ * **컴파일 유지만을 위한 임시 조정**이다 — 기능 동작을 보장하지 않는다:
+ *  - resolveHistoryScope 호출에 userKey 를 trackingKey 자리에 임시 전달한다(자리표시자 — 실제 조회 의미 없음).
+ *  - 구 `!res.eligible`(구성 미존재·미지정) 분기는 FN-019 반환값 축소로 제거했다. 신 FN-019 는 eligible 이
+ *    없어 `res.target == null` 처리만으로 수렴한다(공교롭게도 function_FN-018.md 의사코드와 일치하는 형태).
+ *  - `res.target.requestKey` → `res.target.id`(신 InterlockHistory 의 내부 surrogate PK)로 치환했다. 다만
+ *    아래 UPDATE 문의 `WHERE request_key = $2`(P1 마이그레이션에서 이미 제거된 컬럼)는 그대로 남아 있어
+ *    런타임 조회는 성립하지 않는다 — function_FN-018.md 처리 흐름 3 은 `WHERE id = :res.target.id` 를
+ *    명시하므로, **P9 는 CallbackDto 를 {trackingKey} 로 재키잉하고 이 UPDATE 문의 컬럼도 `id` 로 고쳐야
+ *    한다**(SQL 은 컴파일 대상이 아니라 본 Phase 는 손대지 않았다).
  */
 
 // 완료 기록 UPDATE 의 RETURNING 결과 행(영향 행 수 판정용).
@@ -55,22 +69,13 @@ export class CallbackService {
   async recordCompletionCallback(callback: CallbackDto, now: Date): Promise<void> {
     const { configCode, userKey } = callback;
 
-    // 1. 스코프 해석(FN-019, pendingOnly=true — 미수신 최신 1건 + 재통지 멱등 판정 anyInScope).
-    const res = await this.historyScopeService.resolveHistoryScope(configCode, userKey, true);
+    // 1. 스코프 해석 — ⚠ P9 임시 조정(클래스 doc 참조): FN-019 가 trackingKey 단독으로 재키잉되어 구
+    //    {configCode,userKey} 인자를 더 이상 받지 않는다. userKey 를 자리표시자로 전달한다(P9 가 교체).
+    const res = await this.historyScopeService.resolveHistoryScope(userKey, true);
 
-    // 2. 구성 미존재·미지정 → 대상 미특정 404(존재 여부 비노출).
-    if (!res.eligible) {
-      await this.auditService.write({
-        eventType: AuditEventType.CALLBACK_TARGET_MISS,
-        actorType: ActorType.SERVICE,
-        target: configCode,
-        result: AuditResult.FAIL,
-        detail: `userKey=${maskToken(userKey)}`,
-      });
-      throw new AppException('EX-BIZ-006');
-    }
-
-    // 3. 미수신 최신 이력 없음 — 완료 이력만 존재(재통지 멱등) / 스코프 내 이력 자체 없음(404) 분기.
+    // 2. 미수신 최신 이력 없음 — 완료 이력만 존재(재통지 멱등) / 스코프 내 이력 자체 없음(404) 분기.
+    //    ⚠ P9 임시 조정: 구 `!res.eligible`(구성 미존재·미지정) 분기는 FN-019 반환값 축소로 제거됐다 —
+    //    아래 `res.target == null` 처리만으로 수렴한다(신 FN-019 는 eligible 자체가 없다).
     if (res.target == null) {
       if (res.anyInScope) {
         // 재통지: 상태 변경 없이 멱등 성공(EXC-BIZ-10).
@@ -94,17 +99,20 @@ export class CallbackService {
       throw new AppException('EX-BIZ-006');
     }
 
-    // 4. 완료 기록(내부 PROC-403 단건 UPDATE, 동시성 가드) — 연동이력만 대상(처리상태 ENT-004 불변경, BIZ-004-06).
+    // 3. 완료 기록(내부 PROC-403 단건 UPDATE, 동시성 가드) — 연동이력만 대상(처리상태 ENT-004 불변경, BIZ-004-06).
     //    WHERE ... AND callback_received=false 가 곧 동시성 가드다. RETURNING 결과로 영향 행을 판정한다.
     //    ⚠ 형상 주의(회귀 #43): 이 TypeORM+node-postgres 조합에서 UPDATE...RETURNING 은 평탄 배열이 아니라
     //    `[행배열, affected]` 튜플을 반환한다(매칭 [[{...}], 1] / 미매칭 [[], 0]). firstUpdatedRow 로 안쪽
     //    행배열의 첫 행을 추출해 undefined(미갱신) / 존재(갱신)로 판정한다.
+    //    ⚠ P9 미완료(클래스 doc 참조): WHERE 절이 request_key(P1 마이그레이션에서 이미 제거된 컬럼)를
+    //    참조해 런타임 조회는 성립하지 않는다 — function_FN-018.md 처리 흐름 3 은 `WHERE id = :res.target.id`
+    //    를 명시하므로 P9 가 이 컬럼을 id 로 재작성해야 한다. 바인딩 값만 신 InterlockHistory.id 로 맞춘다.
     const result = await this.dataSource.query(
       `UPDATE "TBL_INTERLOCK_HISTORY"
           SET callback_received = true, callback_received_at = $1
         WHERE request_key = $2 AND callback_received = false
         RETURNING request_key`, // 동시성 가드(callback_received=false) + 영향 행 판정
-      [now, res.target.requestKey],
+      [now, res.target.id],
     );
     const updatedRow = firstUpdatedRow<UpdatedRow>(result);
 
@@ -120,13 +128,13 @@ export class CallbackService {
       return;
     }
 
-    // 5. 콜백 수신 감사(CALLBACK_RECORDED) — userKey 는 FN-010 마스킹, 원문 미기록(SEC-005-01).
+    // 4. 콜백 수신 감사(CALLBACK_RECORDED) — userKey 는 FN-010 마스킹, 원문 미기록(SEC-005-01).
     await this.auditService.write({
       eventType: AuditEventType.CALLBACK_RECORDED,
       actorType: ActorType.SERVICE,
       target: configCode,
       result: AuditResult.SUCCESS,
-      detail: `userKey=${maskToken(userKey)}, requestKey=${res.target.requestKey}`,
+      detail: `userKey=${maskToken(userKey)}, id=${res.target.id}`,
     });
   }
 }
