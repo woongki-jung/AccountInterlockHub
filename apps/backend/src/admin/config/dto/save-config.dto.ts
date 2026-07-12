@@ -68,11 +68,13 @@ export class SaveConfigDto {
   // 서비스가 기존 값으로 대체한다(제출값 무시, EXC-BIZ-02).
   @Transform(trim)
   @IsString()
+  @IsNotEmpty()
   @MaxLength(64)
   configCode!: string;
 
   @Transform(trim)
   @IsString()
+  @IsNotEmpty()
   @MaxLength(100)
   configName!: string;
 
