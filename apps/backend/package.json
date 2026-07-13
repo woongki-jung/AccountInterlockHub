@@ -11,6 +11,7 @@
     "migration:run": "nest build && node --env-file=.env dist/database/run-migrations.js",
     "migration:revert": "nest build && node --env-file=.env dist/database/run-migrations.js --revert",
     "seed:admin": "nest build && node --env-file=.env dist/database/seed-admin.js",
+    "hash-password": "ts-node src/database/hash-password.ts",
     "batch:retention": "nest build && node --env-file=.env dist/batch/run-retention-batch.js"
   },
   "dependencies": {
