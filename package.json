@@ -11,7 +11,8 @@
     "build": "npm run build:frontend && npm run build:backend",
     "start": "npm --prefix apps/backend run start:prod",
     "start:dev": "npm --prefix apps/backend run start:dev",
-    "migration:run": "npm --prefix apps/backend run migration:run"
+    "migration:run": "npm --prefix apps/backend run migration:run",
+    "dummy-test": "npm --prefix apps/backend run dummy-test --"
   },
   "dependencies": {
     "@slack/bolt": "^4.0.0"
