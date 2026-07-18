@@ -1,0 +1,8 @@
+{
+    "bot_name": "ai-pm",
+    "display_name": "ai-pm",
+    "exec_machine": "WOONGS-WORK",
+    "redmine_projects": ["ai-workgroup-ops", "accountinterlockhub"],
+    "ops_status_issue": 406,
+    "_comment": "ai-pm Redmine 폴링 오케스트레이터 설정 — ai/strategies/ai-pm.md §런타임 구성 요소. exec_machine=지정 실행 장비(단일 출처), redmine_projects=감시(폴링) 프로젝트 식별자, ops_status_issue=운영 상태 공지 상시 작업세션 이슈 번호."
+}

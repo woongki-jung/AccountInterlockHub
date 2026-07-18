@@ -53,7 +53,7 @@
 	- 추적이 필요한 요청을 접수·위임·진행·완료 처리하거나 전체 진행 현황을 확인할 때 참조.
 
 - **ai-pm 오케스트레이션 전략**: [`ai/strategies/ai-pm.md`](ai-pm.md)
-	- 프로젝트 Slack 워크스페이스의 전체 채널 대화를 확인해 필요한 작업을 서브에이전트로 디스패치하고, 결과를 채널·담당자에게 보고하는 마스터 세션 ai-pm 을 정의. 작업 수행 기록 정본은 Redmine 일감, 대화형 협업 통로는 Slack. 서브에이전트의 담당자 질의·승인은 ai-pm 릴레이(§질의·승인 릴레이)로 처리.
+	- Redmine 작업세션 이슈를 폴링해 담당자 지시를 인지하고 필요한 작업을 서브에이전트로 디스패치하며, 결과를 작업세션 이슈 노트·상태로 회신하는 마스터 세션 ai-pm 을 정의. 소통·작업 기록 정본은 Redmine 일감(작업세션 이슈 = 대화 스레드, 봇은 댓글만·이슈 생성은 담당자). 서브에이전트의 담당자 질의·승인은 ai-pm 릴레이(§질의·승인 릴레이)로 처리.
 	- ai-pm 세션의 협업 구조·트래킹·디스패치·실행 모드를 확인할 때 참조.
 
 - **릴리스·배포·유지보수 전략**: [`ai/strategies/delivery.md`](delivery.md)
@@ -65,12 +65,12 @@
 	- 단계 작업의 브랜치 생성·커밋 메시지·병합·릴리스 태그 규칙을 확인할 때 참조.
 
 - **프로젝트 부트스트랩 전략**: [`ai/strategies/project-bootstrap.md`](project-bootstrap.md)
-	- 워크스페이스를 템플릿으로 복제해 **새 프로젝트를 시작**할 때(및 다른 PC 재구성 시)의 준비 절차 전체 — PC 도구·git 원격·루트 설정·Redmine·Slack·이전 산출물 정리·통합 검증·TC 실행 환경(검증 도구) — 를 정의하는 단일 출처. 진행 기록은 `CLAUDE.local.md` §준비 체크리스트(수행 여부만).
+	- 워크스페이스를 템플릿으로 복제해 **새 프로젝트를 시작**할 때(및 다른 PC 재구성 시)의 준비 절차 전체 — PC 도구·git 원격·루트 설정·Redmine·ai-pm·이전 산출물 정리·통합 검증·TC 실행 환경(검증 도구) — 를 정의하는 단일 출처. 진행 기록은 `CLAUDE.local.md` §준비 체크리스트(수행 여부만).
 	- 새 프로젝트 착수·프로젝트 교체·다른 PC 재구성 시 무엇을 어떻게 갖출지 확인하거나, 담당자로부터 준비 항목을 위임받아 수행할 때 참조.
 
 ## ai-pm 세션 실행 모드
 
-세션이 `ai-pm 세션 시작` 류 프롬프트로 시작되면, 그 세션은 **ai-pm 마스터 세션**으로 동작한다. 즉시 [`ai/strategies/ai-pm.md`](ai-pm.md) 를 읽고 그대로 따른다 — 프로젝트 Slack 워크스페이스의 전체 채널 대화를 확인해 필요한 작업을 서브에이전트로 디스패치하고, 결과를 채널·담당자에게 알린다. 보통 세션 래퍼 `ai/scripts/ai-pm-session.ps1` 로 기동한다. 동일 ai-pm 세션을 둘 띄우지 않는다.
+세션이 `ai-pm 세션 시작` 류 프롬프트로 시작되면, 그 세션은 **ai-pm 마스터 세션**으로 동작한다. 즉시 [`ai/strategies/ai-pm.md`](ai-pm.md) 를 읽고 그대로 따른다 — Redmine 작업세션 이슈를 폴링해 담당자 지시를 인지하고 필요한 작업을 서브에이전트로 디스패치하며, 결과를 작업세션 이슈 노트·상태로 회신한다. 보통 세션 래퍼 `ai/scripts/ai-pm-session.ps1` 로 기동한다. 동일 ai-pm 세션을 둘 띄우지 않는다.
 
 ## 환경 구성 (경로·제품 명칭 · 환경변수 키 목록)
 
@@ -86,8 +86,7 @@
 
 | 분류 | 키 이름 | 비고 |
 |------|--------|------|
-| Redmine | `REDMINE_BASE_URL`, `REDMINE_API_KEY` | 공용 Redmine 서비스 작업 티켓 정본([`work-tracking.md`](work-tracking.md)). admin 키(MCP 폴백). 값은 `CLAUDE.local.md` §Redmine 자격증명 |
-| Slack | `SLACK_BOT_TOKEN`, `SLACK_APP_TOKEN` | ai-pm Slack 봇 토큰([`ai-pm.md`](ai-pm.md)). 값은 `ai/bots/ai-pm/_slack/.env`(git 비관리, 양식 `.env.example`), 등록 안내는 `CLAUDE.local.md` §Slack 자격증명 |
+| Redmine | `REDMINE_BASE_URL`, `REDMINE_API_KEY` | 공용 Redmine 서비스 작업 티켓 정본([`work-tracking.md`](work-tracking.md))·ai-pm 폴링 오케스트레이터([`ai-pm.md`](ai-pm.md)). admin 키(MCP 폴백). 값은 `CLAUDE.local.md` §Redmine 자격증명 |
 
 ## 워크스페이스 구성 준비
 
