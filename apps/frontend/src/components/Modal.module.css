@@ -84,6 +84,9 @@
   max-height: min(640px, calc(100vh - 64px));
   padding: 0;
   overflow: hidden;
+  /* 승인 목업 SCR-005.html .modal-u 는 --shadow-md — 기반 .modal 의 --shadow-lg 상속을 여기서 override
+   * 한다(목업 충실도 방침, Phase 3 이월-1). 관리자 클래스(.scrim·.modal·.sizeSm·.sizeMd 등)는 무변경. */
+  box-shadow: var(--shadow-md);
   animation: modalUserEnter var(--motion-u-base) var(--ease-u-decelerate) both;
 }
 

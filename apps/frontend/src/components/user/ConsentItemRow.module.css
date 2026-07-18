@@ -25,12 +25,17 @@
 }
 
 /*
- * 히트 영역(label, 클릭 시 체크 토글) 최소 높이 44px — 목업 SCR-005.html .citem-main{min-height:44px}과
- * 렌더 동일화(리뷰 S-2). design-system Checkbox(user) "히트 영역=항목 행 전체(최소 48px)"는 이 label 이
- * 앉혀진 .row 의 렌더 높이(패딩 12px 상하 + 본 44px = 68px)로 충족된다(48px < 68px) — §사용자 화면
- * 접근성 보강의 일반 기준 "44x44px 이상"은 본 label 자체가 직접 충족한다. 두 사양 제약 모두 유지.
- * (구 48px 은 리뷰어가 지목한 "목업보다 24px 높음"의 실제 원인이었으나, 목업 .citem 자체의 min-height:48px
- * 는 citem-main 44px+패딩 24px=68px 에 가려 항상 비구속이라 실제 차이는 4px 였다 — 계산 근거는 완료 보고.)
+ * 히트 영역(label, 클릭 시 체크 토글) — align-self:stretch 로 부모 .row 의 렌더 높이를 그대로 채운다
+ * (Phase 3 이월-2). 이전에는 min-height:44px 고정이라 [상세] 버튼이 있는 행에서 라벨 하단 일부가
+ * label·버튼 어느 히트 영역에도 속하지 않는 사각지대였다 — align-self:stretch 는 그 사각지대를
+ * 없애 "히트 영역=항목 행 전체"를 문자 그대로(우연한 일치가 아니라 레이아웃 불변식으로) 충족시킨다.
+ * 렌더 높이(box-sizing:border-box, index.css 전역): [상세] 없는 행 = 라벨 44px(min-height) + 행 패딩
+ * 12px×2 + 투명 보더 1px×2 = 70px. [상세] 있는 행 = ghost-link 버튼 44px(min-height)+margin-top 2px
+ * =46px(라벨 44px 보다 커 행 높이를 결정) + 행 패딩 24px + 보더 2px = 72px(목업은 [상세] 없는 70px
+ * 기준 — 구 주석의 "68px" 은 투명 보더 1px×2 를 빠뜨린 값이었다). 어느 쪽이든 48px 이상이라
+ * design-system Checkbox(user) "히트 영역=항목 행 전체(최소 48px)"와 §사용자 화면 접근성 보강의 일반
+ * 기준 44x44px 를 모두 충족한다. 시각 변화 없음(label 배경은 여전히 투명, .row 자체의 hover·선택
+ * 배경만 보인다 — [상세] 있는 행에서 라벨 박스가 44→46px 로 늘어나는 차이도 육안으로는 무의미하다).
  */
 .main {
   display: flex;
@@ -39,6 +44,7 @@
   flex: 1 1 auto;
   min-width: 0;
   min-height: 44px;
+  align-self: stretch;
   cursor: pointer;
 }
 

@@ -1,0 +1,60 @@
+/*
+ * ResultIcon(user) — design-system.md §결과 상태 아이콘. 원형 64x64px 채움 + 글리프 28x28px
+ * (선 굵기 2.5px·선 끝 둥글게, 형태 서술은 ResultIcon.tsx 의 Glyph 참조). 결과 유형별 3종 색 토큰
+ * 쌍(-bg 채움·-fg 글리프, Badge(user) 와 동일 매핑: 완료=success·거부=info(중립)·링크오류=danger·
+ * Fallback=neutral)을 variant 클래스로 적용한다.
+ * 등장은 motion-u-slow·ease-u-decelerate(불투명도 0→1 + Y 8px) 1회 — mount 시 자연히 1회만 재생된다
+ * (SCR-006 §레이아웃 구성 마이크로 인터랙션).
+ */
+.icon {
+  flex: none;
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: resultIconEnter var(--motion-u-slow) var(--ease-u-decelerate) both;
+}
+
+.glyph {
+  width: 28px;
+  height: 28px;
+}
+
+.success {
+  background: var(--color-u-success-bg);
+  color: var(--color-u-success-fg);
+}
+
+.info {
+  background: var(--color-u-info-bg);
+  color: var(--color-u-info-fg);
+}
+
+.danger {
+  background: var(--color-u-danger-bg);
+  color: var(--color-u-danger-fg);
+}
+
+.neutral {
+  background: var(--color-u-neutral-bg);
+  color: var(--color-u-neutral-fg);
+}
+
+@keyframes resultIconEnter {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .icon {
+    animation-duration: 0.01ms !important;
+  }
+}

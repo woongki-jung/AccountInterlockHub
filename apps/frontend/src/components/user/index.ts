@@ -10,3 +10,7 @@ export { ConsentItemRow } from './ConsentItemRow';
 export type { ConsentItemRowProps } from './ConsentItemRow';
 export { UserBanner } from './UserBanner';
 export type { UserBannerProps } from './UserBanner';
+export { UserBadge } from './UserBadge';
+export type { UserBadgeProps, UserBadgeVariant } from './UserBadge';
+export { ResultIcon } from './ResultIcon';
+export type { ResultIconProps, ResultIconVariant } from './ResultIcon';
