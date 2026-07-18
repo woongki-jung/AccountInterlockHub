@@ -26,12 +26,15 @@ export function ConsentItemRow({
   onOpenDetail,
 }: ConsentItemRowProps) {
   const inputId = `consent-item-${item.order}`;
-  const descId = `consent-item-desc-${item.order}`;
 
   return (
     <li className={[styles.row, checked ? styles.rowSelected : ''].filter(Boolean).join(' ')}>
       <label className={styles.main} htmlFor={inputId}>
         <span className={styles.checkboxWrap}>
+          {/* aria-describedby 미사용(리뷰 S-4) — 설명 span 이 이 input 을 감싸는 <label> 의 자식이라 이미
+            * 접근가능한 이름(accessible name)에 포함된다. aria-describedby 로 같은 텍스트를 다시 연결하면
+            * 스크린리더가 이름과 설명으로 두 번 낭독한다(목업 SCR-005.html 도 미사용). 설명이 label 밖으로
+            * 나가는 구조로 바뀌면 그때 다시 연결한다. */}
           <input
             id={inputId}
             type="checkbox"
@@ -40,7 +43,6 @@ export function ConsentItemRow({
             disabled={disabled}
             onChange={(e) => onToggle(item.order, e.target.checked)}
             aria-required={item.required || undefined}
-            aria-describedby={item.description ? descId : undefined}
           />
           {checked && (
             <svg
@@ -68,7 +70,7 @@ export function ConsentItemRow({
             </span>
           </span>
           {item.description && (
-            <span id={descId} className={styles.desc}>
+            <span className={styles.desc}>
               {item.description}
             </span>
           )}

@@ -6,7 +6,7 @@
 .row {
   display: flex;
   align-items: flex-start;
-  gap: 8px;
+  gap: var(--space-2);
   padding: 12px 14px;
   border-radius: var(--radius-u-control);
   border: 1px solid transparent;
@@ -24,14 +24,21 @@
   border-color: var(--color-primary);
 }
 
-/* 히트 영역 = 항목 행 전체(체크박스+라벨+설명), 최소 높이 48px. */
+/*
+ * 히트 영역(label, 클릭 시 체크 토글) 최소 높이 44px — 목업 SCR-005.html .citem-main{min-height:44px}과
+ * 렌더 동일화(리뷰 S-2). design-system Checkbox(user) "히트 영역=항목 행 전체(최소 48px)"는 이 label 이
+ * 앉혀진 .row 의 렌더 높이(패딩 12px 상하 + 본 44px = 68px)로 충족된다(48px < 68px) — §사용자 화면
+ * 접근성 보강의 일반 기준 "44x44px 이상"은 본 label 자체가 직접 충족한다. 두 사양 제약 모두 유지.
+ * (구 48px 은 리뷰어가 지목한 "목업보다 24px 높음"의 실제 원인이었으나, 목업 .citem 자체의 min-height:48px
+ * 는 citem-main 44px+패딩 24px=68px 에 가려 항상 비구속이라 실제 차이는 4px 였다 — 계산 근거는 완료 보고.)
+ */
 .main {
   display: flex;
   align-items: flex-start;
-  gap: 12px;
+  gap: var(--space-u-stack);
   flex: 1 1 auto;
   min-width: 0;
-  min-height: 48px;
+  min-height: 44px;
   cursor: pointer;
 }
 
@@ -95,7 +102,7 @@
   display: flex;
   align-items: baseline;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: var(--space-2);
 }
 
 .itemLabel {
@@ -103,7 +110,7 @@
   min-width: 0;
   font-size: var(--text-u-item-size);
   line-height: var(--text-u-item-line);
-  font-weight: 500;
+  font-weight: var(--font-weight-medium);
   color: var(--color-text);
 }
 
@@ -111,7 +118,7 @@
   flex: none;
   font-size: var(--text-u-caption-size);
   line-height: var(--text-u-caption-line);
-  font-weight: 700;
+  font-weight: var(--font-weight-bold);
   color: var(--color-text);
 }
 
@@ -119,7 +126,7 @@
   flex: none;
   font-size: var(--text-u-caption-size);
   line-height: var(--text-u-caption-line);
-  font-weight: 400;
+  font-weight: var(--font-weight-regular);
   color: var(--color-u-text-muted);
 }
 

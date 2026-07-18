@@ -12,12 +12,12 @@
   align-items: flex-start;
   justify-content: center;
   background: var(--color-u-canvas);
-  padding: var(--space-u-shell-y) 16px;
+  padding: var(--space-u-shell-y) var(--space-4);
 }
 
 @media (min-width: 640px) {
   .page {
-    padding: var(--space-u-shell-y) 24px;
+    padding: var(--space-u-shell-y) var(--space-6);
   }
 }
 
@@ -71,7 +71,7 @@
 .title {
   font-size: var(--text-u-title-size);
   line-height: var(--text-u-title-line);
-  font-weight: 700;
+  font-weight: var(--font-weight-bold);
   color: var(--color-text);
   margin: 0;
 }
@@ -113,7 +113,7 @@
   padding-right: 6px;
   font-size: var(--text-u-lead-size);
   line-height: var(--text-u-lead-line);
-  font-weight: 400;
+  font-weight: var(--font-weight-regular);
   color: var(--color-u-text-muted);
   white-space: pre-wrap;
 }
@@ -134,7 +134,7 @@
 .sectionLabel {
   font-size: var(--text-u-section-size);
   line-height: var(--text-u-section-line);
-  font-weight: 600;
+  font-weight: var(--font-weight-semibold);
   letter-spacing: var(--text-u-section-tracking);
   color: var(--color-u-text-muted);
   margin: 0;
@@ -157,7 +157,7 @@
   padding: 0;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: var(--space-2);
   max-height: inherit;
   overflow-y: auto;
   padding-right: 6px;
@@ -183,7 +183,7 @@
 .actions {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: var(--space-u-stack);
   margin-top: var(--space-u-section);
 }
 

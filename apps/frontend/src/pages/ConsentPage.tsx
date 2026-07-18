@@ -444,10 +444,11 @@ function TermsModal({ item, onClose, onAgree }: TermsModalProps) {
       onClose={onClose}
       footer={
         <>
-          <UserButton variant="primary" onClick={onAgree}>
+          {/* 모달 푸터는 카드 액션(승인/거부)과 달리 항상 내용 맞춤 — fitContent(리뷰 S-1). */}
+          <UserButton variant="primary" fitContent onClick={onAgree}>
             동의
           </UserButton>
-          <UserButton variant="secondary" onClick={onClose}>
+          <UserButton variant="secondary" fitContent onClick={onClose}>
             닫기
           </UserButton>
         </>

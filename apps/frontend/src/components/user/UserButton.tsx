@@ -16,6 +16,13 @@ export interface UserButtonProps extends Omit<ButtonHTMLAttributes<HTMLButtonEle
   variant?: UserButtonVariant;
   /** 제출 대기 — 스피너 노출 + 비활성 + aria-busy(승인·거부 버튼 전용, ghost-link 는 미사용). */
   loading?: boolean;
+  /**
+   * true 면 반응형 폭 규칙(폭 100% <640px·내용 맞춤 ≥640px)과 데스크톱 min-width(140px)를 모두
+   * 무력화하고 항상 내용 맞춤(width:auto·min-width:0)으로 렌더한다. 약관 모달(Modal(user/terms)) 푸터
+   * [동의]/[닫기] 전용 — design-system 의 "폭=100%(<640px)"는 카드 액션(승인/거부) 맥락이라 모달 푸터에는
+   * 적용 근거가 없다(목업 SCR-005.html 모달 버튼 style="width:auto;min-width:0" 대응, 리뷰 S-1·S-3).
+   */
+  fitContent?: boolean;
   children: ReactNode;
 }
 
@@ -31,10 +38,16 @@ export function UserButton({
   disabled = false,
   type = 'button',
   className,
+  fitContent = false,
   children,
   ...rest
 }: UserButtonProps) {
-  const classes = [styles.button, variantClass[variant], className ?? '']
+  const classes = [
+    styles.button,
+    variantClass[variant],
+    fitContent ? styles.fitContent : '',
+    className ?? '',
+  ]
     .filter(Boolean)
     .join(' ');
 

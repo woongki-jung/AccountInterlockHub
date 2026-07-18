@@ -30,7 +30,7 @@
   border-radius: var(--radius-u-control);
   padding: 0 20px;
   font-size: 15px;
-  font-weight: 600;
+  font-weight: var(--font-weight-semibold);
   width: 100%;
 }
 
@@ -38,7 +38,21 @@
   .primary,
   .secondary {
     width: auto;
+    /* 목업 .ubtn(≥640px) min-width:140px — 승인·거부 두 버튼 폭을 맞춰 내용 길이 차(승인(동의) vs 거부)로
+     * 폭이 크게 갈리지 않게 한다(리뷰 S-3). 내용 맞춤 원칙과 상충하지 않음 — min-width 는 하한일 뿐이며
+     * 내용이 더 길면 자연히 늘어난다. 로딩 스켈레톤(ConsentPage.tsx, 140px)과도 정합. */
+    min-width: 140px;
   }
+}
+
+/*
+ * 내용 맞춤 강제(약관 모달 [동의]/[닫기] 전용, 리뷰 S-1·S-3) — 위 반응형 폭(100%/auto)과 데스크톱
+ * min-width(140px)를 모두 무력화한다. 결합 셀렉터(.button.fitContent, 특이도 0,2,0)로 .primary/.secondary
+ * (특이도 0,1,0)를 소스 순서와 무관하게 항상 이긴다 — 목업 style="width:auto;min-width:0" 대응.
+ */
+.button.fitContent {
+  width: auto;
+  min-width: 0;
 }
 
 .primary {
@@ -75,7 +89,7 @@
   padding: 6px 10px;
   border-radius: var(--radius-md);
   font-size: 13px;
-  font-weight: 600;
+  font-weight: var(--font-weight-semibold);
   line-height: 20px;
   color: var(--color-primary);
   text-decoration: none;

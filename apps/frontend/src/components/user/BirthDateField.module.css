@@ -21,10 +21,10 @@
 
 /* "필수" 텍스트 태그 — 별표(*) 미사용. ConsentItem(user) 필수 태그와 동일 규격. */
 .requiredTag {
-  margin-left: 4px;
+  margin-left: var(--space-1);
   font-size: var(--text-u-caption-size);
   line-height: var(--text-u-caption-line);
-  font-weight: 700;
+  font-weight: var(--font-weight-bold);
   color: var(--color-text);
 }
 
