@@ -1,0 +1,47 @@
+/*
+ * Banner(user) — design-system.md §컴포넌트 사용자 변형. danger 변형만 사용(role=alert).
+ * 여백 14px 16px·radius-u-control·배경 -bg+1px -border+텍스트 -fg 14px/20px, 좌측 20x20 아이콘.
+ * 등장은 motion-u-base·ease-u-decelerate(불투명도 0→1 + Y 8px, §마이크로 인터랙션).
+ */
+.banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 14px 16px;
+  border-radius: var(--radius-u-control);
+  background: var(--color-u-danger-bg);
+  border: 1px solid var(--color-u-danger-border);
+  color: var(--color-u-danger-fg);
+  font-size: 14px;
+  line-height: 20px;
+  animation: userBannerEnter var(--motion-u-base) var(--ease-u-decelerate) both;
+}
+
+.icon {
+  flex: none;
+  width: 20px;
+  height: 20px;
+  margin-top: 1px;
+  color: var(--color-u-danger-fg);
+}
+
+.content {
+  flex: 1 1 auto;
+}
+
+@keyframes userBannerEnter {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .banner {
+    animation-duration: 0.01ms !important;
+  }
+}

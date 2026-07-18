@@ -1,0 +1,120 @@
+/*
+ * Button(user/primary·secondary·ghost-link) — design-system.md §컴포넌트 사용자 변형.
+ * primary·secondary: 높이 48px·radius-u-control·15px/600·좌우 20px, 폭 100%(<640px)/내용 맞춤(≥640px).
+ * ghost-link: [상세] 전용 — 가시 높이 32px(line-height 20px+padding 6px 상하) + 히트 영역 44x44 이상.
+ */
+.button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  font-family: inherit;
+  border: 1px solid transparent;
+  cursor: pointer;
+  white-space: nowrap;
+  background: transparent;
+  transition:
+    background-color var(--motion-u-fast) var(--ease-u-standard),
+    border-color var(--motion-u-fast) var(--ease-u-standard),
+    color var(--motion-u-fast) var(--ease-u-standard);
+}
+
+.button:disabled {
+  cursor: not-allowed;
+}
+
+/* primary·secondary 공통 규격 */
+.primary,
+.secondary {
+  height: 48px;
+  border-radius: var(--radius-u-control);
+  padding: 0 20px;
+  font-size: 15px;
+  font-weight: 600;
+  width: 100%;
+}
+
+@media (min-width: 640px) {
+  .primary,
+  .secondary {
+    width: auto;
+  }
+}
+
+.primary {
+  background: var(--color-primary);
+  color: var(--color-text-inverse);
+}
+.primary:hover:not(:disabled) {
+  background: var(--color-primary-hover);
+}
+.primary:disabled {
+  background: var(--color-disabled-bg);
+  color: var(--color-u-text-muted);
+  border-color: transparent;
+}
+
+.secondary {
+  background: var(--color-bg);
+  color: var(--color-text);
+  border-color: var(--color-u-border);
+}
+.secondary:hover:not(:disabled) {
+  border-color: var(--color-u-border-strong);
+}
+.secondary:disabled {
+  background: var(--color-disabled-bg);
+  color: var(--color-u-text-muted);
+  border-color: transparent;
+}
+
+/* ghost-link — 약관 [상세] 전용. 사양상 전역 Button 의 sm 변형은 쓰지 않는다. */
+.ghostLink {
+  min-height: 44px;
+  min-width: 44px;
+  padding: 6px 10px;
+  border-radius: var(--radius-md);
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 20px;
+  color: var(--color-primary);
+  text-decoration: none;
+  text-underline-offset: 2px;
+}
+.ghostLink:hover:not(:disabled),
+.ghostLink:focus-visible {
+  text-decoration: underline;
+}
+.ghostLink:disabled {
+  color: var(--color-u-text-muted);
+}
+
+.spinner {
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: 2px solid currentColor;
+  border-top-color: transparent;
+  animation: userButtonSpin 800ms linear infinite;
+}
+
+.loadingLabel {
+  opacity: 0.85;
+}
+
+@keyframes userButtonSpin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* prefers-reduced-motion: 회전 정지(속도 저하가 아니라 완전 정지) + 색 전환 즉시 렌더(design-system.md §모션). */
+@media (prefers-reduced-motion: reduce) {
+  .button {
+    transition-duration: 0.01ms !important;
+  }
+  .spinner {
+    animation: none !important;
+  }
+}

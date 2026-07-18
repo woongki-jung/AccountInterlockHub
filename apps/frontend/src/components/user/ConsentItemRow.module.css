@@ -1,0 +1,143 @@
+/*
+ * ConsentItem(user) — design-system.md §컴포넌트 사용자 변형.
+ * 행 여백 12px 14px·radius-u-control, hover=color-u-row-hover, 체크 시 color-u-row-selected+1px primary.
+ * 필수/선택 태그는 라벨 우측 간격 8px, 필수=700/color-text·선택=400/color-u-text-muted(별표·색 단독 금지).
+ */
+.row {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 12px 14px;
+  border-radius: var(--radius-u-control);
+  border: 1px solid transparent;
+  transition:
+    background-color var(--motion-u-fast) var(--ease-u-standard),
+    border-color var(--motion-u-fast) var(--ease-u-standard);
+}
+
+.row:hover:not(.rowSelected) {
+  background: var(--color-u-row-hover);
+}
+
+.rowSelected {
+  background: var(--color-u-row-selected);
+  border-color: var(--color-primary);
+}
+
+/* 히트 영역 = 항목 행 전체(체크박스+라벨+설명), 최소 높이 48px. */
+.main {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 48px;
+  cursor: pointer;
+}
+
+.row:has(.checkboxInput:disabled) .main {
+  cursor: not-allowed;
+}
+
+.checkboxWrap {
+  position: relative;
+  flex: none;
+  width: 20px;
+  height: 20px;
+  margin-top: 2px;
+}
+
+.checkboxInput {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 20px;
+  height: 20px;
+  margin: 0;
+  border-radius: var(--radius-sm);
+  border: 2px solid var(--color-u-border);
+  background: var(--color-bg);
+  cursor: pointer;
+  transition:
+    background-color var(--motion-u-fast) var(--ease-u-standard),
+    border-color var(--motion-u-fast) var(--ease-u-standard);
+}
+
+.checkboxInput:checked {
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+}
+
+.checkboxInput:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.checkGlyph {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 12px;
+  height: 10px;
+  transform: translate(-50%, -50%);
+  color: var(--color-text-inverse);
+  pointer-events: none;
+}
+
+.copy {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.topRow {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.itemLabel {
+  flex: 1 1 auto;
+  min-width: 0;
+  font-size: var(--text-u-item-size);
+  line-height: var(--text-u-item-line);
+  font-weight: 500;
+  color: var(--color-text);
+}
+
+.reqTag {
+  flex: none;
+  font-size: var(--text-u-caption-size);
+  line-height: var(--text-u-caption-line);
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+.optTag {
+  flex: none;
+  font-size: var(--text-u-caption-size);
+  line-height: var(--text-u-caption-line);
+  font-weight: 400;
+  color: var(--color-u-text-muted);
+}
+
+.desc {
+  display: block;
+  font-size: var(--text-u-caption-size);
+  line-height: var(--text-u-caption-line);
+  color: var(--color-u-text-muted);
+}
+
+.detailButton {
+  flex: none;
+  margin-top: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .row,
+  .checkboxInput {
+    transition-duration: 0.01ms !important;
+  }
+}

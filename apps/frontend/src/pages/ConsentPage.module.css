@@ -1,181 +1,212 @@
 /*
- * SCR-005 사용자 이용 동의 — 헤더 없는 단일 중앙 카드(design-system.md §레이아웃 사용자 셸).
- * 색·크기·간격·라운딩은 tokens.css 참조(하드코딩 금지).
+ * SCR-005 사용자 이용 동의 — 헤더 없는 단일 중앙 카드(design-system.md §사용자 표면 확장).
+ * 색·크기·간격·라운딩·모션은 tokens.css 의 -u- 접두 토큰을 참조한다(하드코딩 금지).
+ * 브레이크포인트는 min-width:640px 로 통일한다(carryover — 정확히 640px 에서 데스크톱 값으로
+ * 일관되게 해석되도록, 구 관리자 CSS 의 max-width:640px 데스크톱퍼스트 관례와 혼용하지 않는다).
  */
 
-/* 페이지 — 중앙 카드, 상하 여백 48px, 모바일 좌우 거터 16px. 긴 내용은 위에서부터 흐르게 flex-start. */
+/* 페이지 — 중앙 카드, 배경 color-u-canvas. 상하 여백은 space-u-shell-y(토큰 자체가 640px 반응형). */
 .page {
   min-height: 100vh;
   display: flex;
   align-items: flex-start;
   justify-content: center;
-  padding: var(--space-12) var(--space-4);
+  background: var(--color-u-canvas);
+  padding: var(--space-u-shell-y) 16px;
 }
 
-/* 동의 카드 — 최대 폭 480px(사용자 셸). Card 기본 여백을 상하 32px·좌우 24px 로 조정. */
+@media (min-width: 640px) {
+  .page {
+    padding: var(--space-u-shell-y) 24px;
+  }
+}
+
+/*
+ * Card(user) — 최대 폭 480px·radius-u-card·shadow-u-card·배경 color-bg·외곽선 없음.
+ * 상단 4px color-primary 액센트 라인(::before, overflow:hidden 로 카드 라운딩에 맞춰 클리핑).
+ * 등장은 motion-u-base·ease-u-decelerate(불투명도 0→1 + Y 8px) — 카드는 mount 시 1회만 나타나므로
+ * CSS animation 이 자연히 1회 재생된다(§마이크로 인터랙션 "카드 등장").
+ */
 .card {
+  position: relative;
+  overflow: hidden;
   width: 100%;
-  max-width: var(--user-card-max-width);
-  padding: var(--space-8) var(--space-6);
+  max-width: 480px;
+  background: var(--color-bg);
+  border: none;
+  border-radius: var(--radius-u-card);
+  box-shadow: var(--shadow-u-card);
+  padding: var(--space-u-card);
+  animation: cardEnter var(--motion-u-base) var(--ease-u-decelerate) both;
+}
+
+.card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: var(--color-primary);
+}
+
+@keyframes cardEnter {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* 상단 블록(제목·consentNotice·오류 Banner) — 섹션 내 요소 간 space-u-stack. */
+.topBlock {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-u-stack);
 }
 
 .title {
-  font-size: var(--text-h1-size);
-  line-height: var(--text-h1-line);
-  font-weight: var(--font-weight-bold);
+  font-size: var(--text-u-title-size);
+  line-height: var(--text-u-title-line);
+  font-weight: 700;
   color: var(--color-text);
-  margin: 0 0 var(--space-2);
+  margin: 0;
 }
 
-/* 동의 대상 설명 문구(consentNotice, 구성 설정값·선택 — BIZ-002-08). 설정 시만 렌더(제목 아래). */
+/* 스크롤 가능 컨테이너 공통 — 상하 8px 페이드(장식, §콘텐츠 상한·오버플로). */
+.scrollFadeWrap {
+  position: relative;
+}
+
+.scrollFadeWrap::before,
+.scrollFadeWrap::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 8px;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.scrollFadeWrap::before {
+  top: 0;
+  background: linear-gradient(to bottom, rgba(17, 24, 39, 0.08), rgba(17, 24, 39, 0));
+}
+
+.scrollFadeWrap::after {
+  bottom: 0;
+  background: linear-gradient(to top, rgba(17, 24, 39, 0.08), rgba(17, 24, 39, 0));
+}
+
+/* 동의 대상 설명 문구(consentNotice) — 최대 높이 144px(6줄)+내부 스크롤, 미설정 시 미렌더, 말줄임 없음. */
+.noticeWrap {
+  max-height: 144px;
+}
+
 .notice {
-  background: var(--color-primary-weak);
-  color: var(--color-text);
-  border-radius: var(--radius-md);
-  padding: var(--space-3) var(--space-4);
-  font-size: var(--text-label-size);
-  line-height: var(--text-label-line);
-  margin: 0 0 var(--space-6);
+  max-height: inherit;
+  overflow-y: auto;
+  padding-right: 6px;
+  font-size: var(--text-u-lead-size);
+  line-height: var(--text-u-lead-line);
+  font-weight: 400;
+  color: var(--color-u-text-muted);
+  white-space: pre-wrap;
 }
 
-/* 제출 실패 배너 영역 간격(EX-SEC-004/005·EX-OPS-001·EX-BIZ-004 — 본 화면 유지). */
-.banner {
-  margin-bottom: var(--space-4);
+/* 섹션 구분선 — 정확히 2곳(상단 블록↔본인확인, 본인확인↔동의 항목)에만 배치, 상하 여백 각 14px. */
+.divider {
+  height: 1px;
+  background: var(--color-u-divider);
+  margin: 14px 0;
 }
 
-/* 본인확인·동의 항목 섹션 — 섹션 간 24px(design-system.md §간격 스케일 요소 간격). */
 .section {
-  margin-bottom: var(--space-6);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-u-stack);
 }
 
-.sectionTitle {
-  font-size: var(--text-label-size);
-  line-height: var(--text-label-line);
-  font-weight: var(--font-weight-semibold);
-  color: var(--color-text);
-  margin: 0 0 var(--space-3);
+.sectionLabel {
+  font-size: var(--text-u-section-size);
+  line-height: var(--text-u-section-line);
+  font-weight: 600;
+  letter-spacing: var(--text-u-section-tracking);
+  color: var(--color-u-text-muted);
+  margin: 0;
 }
 
-/* 동의 항목 목록 — 카드 내부 경계 묶음. 상위 .section 이 하단 간격을 담당하므로 자체 마진은 0. */
+/* 동의 항목 목록 — 항목 수·내용 길이와 무관하게 상시 최대 높이(모바일 320px/데스크톱 360px) + 스크롤. */
+.itemListWrap {
+  max-height: 320px;
+}
+
+@media (min-width: 640px) {
+  .itemListWrap {
+    max-height: 360px;
+  }
+}
+
 .itemList {
   list-style: none;
   margin: 0;
   padding: 0;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  overflow: hidden;
-}
-
-/* 항목 1행 — 체크박스 + 본문. 행 간 구분선. */
-.item {
   display: flex;
-  gap: var(--space-3);
-  padding: var(--space-4);
-  border-bottom: 1px solid var(--color-border);
+  flex-direction: column;
+  gap: 8px;
+  max-height: inherit;
+  overflow-y: auto;
+  padding-right: 6px;
 }
 
-.item:last-child {
-  border-bottom: none;
+/*
+ * 필수 미충족 안내 — 동의 항목 섹션 캡션(§고정 문구 정본, role=alert 없음). 승인 버튼 비활성 사유를
+ * 텍스트로 안내하는 중립 캡션이라 text-u-caption 기본색(color-u-text-muted)을 쓴다 — danger 색은
+ * EX-SEC-006(서버 판정)·Banner(4xx/5xx) 전용이며 목업도 이 캡션에 is-error 를 적용하지 않는다.
+ */
+.consentHint {
+  margin: 0;
+  font-size: var(--text-u-caption-size);
+  line-height: var(--text-u-caption-line);
+  color: var(--color-u-text-muted);
 }
 
-/* 네이티브 체크박스(디자인 시스템 Checkbox 와 동일 액센트·크기). 첫 줄 텍스트에 정렬. */
-.checkbox {
-  width: 18px;
-  height: 18px;
-  margin-top: 3px;
-  accent-color: var(--color-primary);
-  cursor: pointer;
-  flex: 0 0 auto;
-}
-
-.checkbox:disabled {
-  cursor: not-allowed;
-}
-
-.itemBody {
-  flex: 1 1 auto;
-  min-width: 0;
-}
-
-/* 라벨 행 — 라벨(좌, 신축) + [상세](우, 고정). */
-.itemHeader {
-  display: flex;
-  align-items: flex-start;
-  gap: var(--space-2);
-}
-
-.itemLabel {
-  flex: 1 1 auto;
-  min-width: 0;
-  font-size: var(--text-label-size);
-  line-height: var(--text-label-line);
-  font-weight: var(--font-weight-medium);
-  color: var(--color-text);
-  cursor: pointer;
-}
-
-/* 필수 표식(*) + 텍스트 병기(색만으로 전달하지 않음, 접근성 §의미 전달). */
-.required {
-  margin-left: var(--space-1);
-  font-size: var(--text-caption-size);
-  font-weight: var(--font-weight-regular);
-  color: var(--color-danger);
-  white-space: nowrap;
-}
-
-.optional {
-  margin-left: var(--space-1);
-  font-size: var(--text-caption-size);
-  font-weight: var(--font-weight-regular);
-  color: var(--color-text-muted);
-  white-space: nowrap;
-}
-
-/* [상세] 버튼 — 라벨 행 상단 정렬. */
-.detailButton {
-  flex: 0 0 auto;
-}
-
-/* 항목 설명(text-caption 보조 텍스트). */
-.itemDesc {
-  margin: var(--space-1) 0 0;
-  font-size: var(--text-caption-size);
-  line-height: var(--text-caption-line);
-  color: var(--color-text-muted);
-}
-
-/* 승인/거부 버튼 — 세로 스택(모바일·데스크톱 공통 단일 컬럼). */
+/*
+ * 액션 — 동의 항목과의 사이는 구분선 없이 space-u-section(28px)만으로 분리한다(§레이아웃 구성).
+ * 모바일(<640px) 세로 스택(각 폭 100%), 데스크톱(≥640px) 가로 배치 + 카드 우측 정렬.
+ * 좌→우 승인→거부 순서는 DOM 순서 그대로(버튼 자체가 이 순서로 렌더된다) 유지한다.
+ */
 .actions {
   display: flex;
   flex-direction: column;
-  gap: var(--space-3);
+  gap: 12px;
+  margin-top: var(--space-u-section);
 }
 
-/* 필수 미충족 안내(승인 버튼 비활성 사유 병기). */
-.hint {
-  margin: var(--space-3) 0 0;
-  text-align: center;
-  font-size: var(--text-caption-size);
-  line-height: var(--text-caption-line);
-  color: var(--color-text-muted);
+@media (min-width: 640px) {
+  .actions {
+    flex-direction: row;
+    justify-content: flex-end;
+  }
 }
 
 /* 초기 로딩 골격 — 세로 간격. */
 .skeletonWrap {
   display: flex;
   flex-direction: column;
-  gap: var(--space-3);
+  gap: var(--space-u-stack);
 }
 
-/* 골격 블록(섹션·버튼 자리) 위 간격 확대. */
 .skeletonBlock {
-  margin-top: var(--space-4);
+  margin-top: var(--space-u-section);
 }
 
-/* 모바일: 카드 좌우 여백 16px 로 전체 폭(design-system §반응형 사용자 카드). */
-@media (max-width: 640px) {
+@media (prefers-reduced-motion: reduce) {
   .card {
-    padding-left: var(--space-4);
-    padding-right: var(--space-4);
+    animation-duration: 0.01ms !important;
   }
 }

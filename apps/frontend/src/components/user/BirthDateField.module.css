@@ -1,0 +1,99 @@
+/*
+ * TextField(user/birthdate) — design-system.md §컴포넌트 사용자 변형.
+ * 높이 48px·radius-u-control·1px color-u-border·값 text-u-value·placeholder color-u-text-muted.
+ * focus=경계 primary(전역 :focus-visible 포커스 링과 별개로 경계색도 전환). error=경계 danger-border+
+ * 캡션 danger-fg+aria-invalid. 입력 배경은 흰색 유지(판독성 우선, 착색 금지).
+ */
+.field {
+  display: flex;
+  flex-direction: column;
+}
+
+.label {
+  display: flex;
+  align-items: baseline;
+  font-size: var(--text-label-size);
+  line-height: var(--text-label-line);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text);
+  margin-bottom: 6px;
+}
+
+/* "필수" 텍스트 태그 — 별표(*) 미사용. ConsentItem(user) 필수 태그와 동일 규격. */
+.requiredTag {
+  margin-left: 4px;
+  font-size: var(--text-u-caption-size);
+  line-height: var(--text-u-caption-line);
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+.input {
+  width: 160px;
+  height: 48px;
+  padding: 0 14px;
+  border: 1px solid var(--color-u-border);
+  border-radius: var(--radius-u-control);
+  background: var(--color-bg);
+  color: var(--color-text);
+  font-family: ui-monospace, Menlo, Consolas, monospace;
+  font-size: var(--text-u-value-size);
+  line-height: var(--text-u-value-line);
+  letter-spacing: var(--text-u-value-tracking);
+  text-align: center;
+  transition: border-color var(--motion-u-fast) var(--ease-u-standard);
+}
+
+.input::placeholder {
+  color: var(--color-u-text-muted);
+  letter-spacing: normal;
+  font-family: var(--font-family-base);
+}
+
+.input:focus {
+  border-color: var(--color-primary);
+}
+
+.input:disabled {
+  background: var(--color-disabled-bg);
+  color: var(--color-u-text-muted);
+  cursor: not-allowed;
+}
+
+.inputError {
+  border-color: var(--color-u-danger-border);
+}
+
+.caption {
+  margin: 6px 0 0;
+  font-size: var(--text-u-caption-size);
+  line-height: var(--text-u-caption-line);
+  color: var(--color-u-text-muted);
+}
+
+.captionError {
+  color: var(--color-u-danger-fg);
+  /* 인라인 에러 등장 = motion-u-base·ease-u-decelerate(§마이크로 인터랙션). 캡션은 error 상태로 바뀔
+   * 때 key 스왑으로 새로 mount 되므로(BirthDateField.tsx) 아래 애니메이션이 그 시점에 재생된다. */
+  animation: birthDateCaptionEnter var(--motion-u-base) var(--ease-u-decelerate) both;
+}
+
+@keyframes birthDateCaptionEnter {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .input {
+    transition-duration: 0.01ms !important;
+  }
+  .captionError {
+    animation-duration: 0.01ms !important;
+  }
+}

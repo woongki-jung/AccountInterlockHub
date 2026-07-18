@@ -67,3 +67,73 @@
   justify-content: flex-end;
   gap: var(--space-2);
 }
+
+/*
+ * Modal(user/terms) 전용 추가 규격(design-system.md §컴포넌트 사용자 변형, SCR-005 약관 상세).
+ * chrome='userTerms' 일 때만 위 클래스와 함께 적용되는 additive 클래스 — 위의 관리자 렌더용 클래스
+ * (.scrim·.modal·.sizeSm·.sizeMd·.title·.body·.scrollBody·.actions)는 이 절에서 전혀 수정하지 않는다.
+ * 헤더 64px·본문 가변(overflow-y:auto)·액션 76px 밴드 구조는 flex column 부모(.modal + .modalUser) 위에서
+ * 자연스럽게 성립한다(header/actions flex:none 고정, body flex:1 1 auto 로 나머지 공간 차지).
+ */
+.scrimUser {
+  background: rgba(17, 24, 39, 0.48);
+}
+
+.modalUser {
+  width: min(520px, calc(100vw - 32px));
+  max-height: min(640px, calc(100vh - 64px));
+  padding: 0;
+  overflow: hidden;
+  animation: modalUserEnter var(--motion-u-base) var(--ease-u-decelerate) both;
+}
+
+.titleUser {
+  flex: none;
+  height: 64px;
+  margin: 0;
+  padding: 0 24px;
+  display: flex;
+  align-items: center;
+  color: var(--color-text);
+  border-bottom: 1px solid var(--color-u-divider);
+}
+
+.bodyUser {
+  flex: 1 1 auto;
+  min-height: 0;
+  margin: 0;
+  padding: 16px 24px;
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  color: var(--color-text);
+  font-size: var(--text-u-lead-size);
+  line-height: var(--text-u-lead-line);
+  font-weight: 400;
+}
+
+.actionsUser {
+  flex: none;
+  min-height: 76px;
+  margin: 0;
+  padding: 14px 24px;
+  gap: var(--space-u-stack);
+  border-top: 1px solid var(--color-u-divider);
+}
+
+@keyframes modalUserEnter {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .modalUser {
+    animation-duration: 0.01ms !important;
+  }
+}

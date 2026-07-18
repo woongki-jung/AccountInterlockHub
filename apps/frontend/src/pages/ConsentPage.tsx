@@ -1,6 +1,6 @@
 /*
  * SCR-005 사용자 이용 동의 화면.
- * 정본: docs/specs/screens/screen_SCR-005.md · design-system.md(사용자 셸·TextField(birthdate)) ·
+ * 정본: docs/specs/screens/screen_SCR-005.md · design-system.md(사용자 표면 확장·TextField(birthdate)) ·
  *       docs/specs/processes/{process_PROC-201.md, process_PROC-202.md, process_PROC-203.md} ·
  *       function_FN-008.md·function_FN-020.md.
  *
@@ -14,10 +14,16 @@
  *   컴포넌트 상태(메모리)로 보유하고 URL 재기록·로컬 저장을 하지 않으며, 제출 시 요청 본문에만 싣는다
  *   (SCR-005 §데이터 표시·구현 가이드, DATA-001-04·SEC-005-06). 생년월일도 입력 필드 상태로만 두고
  *   로그·URL·제출 후 화면 어디에도 남기지 않는다.
+ *
+ * 시각 폴리시(`#408` — Phase 2/3): 사용자 표면 전용 컴포넌트(components/user/*)와 -u- 토큰(tokens.css
+ * Phase 1)으로 레이아웃·색·타이포·모션을 사양대로 구현한다. 기능·플로우·유효성 규칙·트리거 PROC·API
+ * 계약·민감값 노출 규칙은 이 개정에서 전혀 바뀌지 않는다 — 아래 상태·핸들러 로직은 이전과 동일하다.
  */
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import type { RefObject } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
-import { Banner, Button, Card, Modal, Skeleton, TextField } from '../components';
+import { Card, Modal, Skeleton } from '../components';
+import { BirthDateField, ConsentItemRow, UserBanner, UserButton } from '../components/user';
 import { ApiError } from '../lib/apiClient';
 import { getConsentView, submitApproval } from '../lib/consentApi';
 import type { ConsentDecision, ConsentItem, ConsentView } from '../lib/consentApi';
@@ -32,13 +38,18 @@ type LoadState =
   | { phase: 'loaded'; view: ConsentView }
   | { phase: 'error'; message: string };
 
-/** 화면 문구(SCR-005 §화면 상태 전이·입력 폼 정의 — 표기 그대로). */
+/** 생년월일 캡션 에러 상태 — role=alert 여부는 코드별로 다르다(§고정 문구 정본, EX-SEC-006 만 alert). */
+type BirthDateErrorState = { message: string; alert: boolean } | null;
+
+/** 화면 문구(SCR-005 §화면 상태 전이·입력 폼 정의·고정 문구 정본 — 표기 그대로). */
 const MESSAGE_INVALID = '요청이 올바르지 않습니다.';
 const MESSAGE_RATE_LIMIT = '잠시 후 다시 시도해 주세요.';
 const MESSAGE_DELIVERY_FAILED = '동의 처리에 실패했습니다. 다시 시도해주세요.';
 const MESSAGE_GENERIC = '요청 처리 중 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.';
 const BIRTHDATE_FORMAT_ERROR = '생년월일 6자리(YYMMDD)를 정확히 입력해 주세요.';
 const BIRTHDATE_DECRYPT_ERROR = '사용자 정보가 일치하지 않습니다.';
+// 안내 캡션(§레이아웃 구성·목업 SCR-005 — 마침표 없이 원문 그대로. 개정 전 코드는 마침표가 있었다).
+const BIRTHDATE_HINT = '연동 값 복원을 위한 본인확인입니다';
 const REQUIRED_CONSENT_ERROR = '필수 동의 항목에 동의해 주세요.';
 
 /** GET 조회 실패 → 카드 배너 문구(EX-OPS-001·EX-SEC-004/005 우선, 그 외 엔벨로프 메시지). */
@@ -85,8 +96,10 @@ export function ConsentPage() {
   // 생년월일 입력값(메모리 전용) — 제출 본문에만 실어 보내고 화면에 에코하지 않는다.
   const [birthDate, setBirthDate] = useState('');
   // 생년월일 인라인 에러 — FE 형식 위반과 서버 복호화 실패(EX-SEC-006)가 같은 캡션 영역을 공유한다
-  // (문구만 교체, SCR-005 §구현 가이드).
-  const [birthDateError, setBirthDateError] = useState<string | null>(null);
+  // (문구만 교체, SCR-005 §구현 가이드). alert 플래그는 §고정 문구 정본상 EX-SEC-006 에만 해당한다.
+  const [birthDateError, setBirthDateError] = useState<BirthDateErrorState>(null);
+  // 생년월일 입력 DOM — 복호화 실패(EX-SEC-006) 시 포커스 이동 + 값 전체 선택(AUTH-004-02)에 사용.
+  const birthDateInputRef = useRef<HTMLInputElement>(null);
   // 제출 진행 중인 결정(AGREE/REJECT). null 이면 제출 중 아님.
   const [pending, setPending] = useState<ConsentDecision | null>(null);
   // 제출 실패 배너 문구(EX-SEC-004/005·EX-OPS-001·EX-BIZ-004 — 본 화면 유지 + 재시도).
@@ -112,6 +125,16 @@ export function ConsentPage() {
     };
   }, [accessAddressId]);
 
+  // 복호화 실패(EX-SEC-006) 시 값 유지 + 포커스 이동 + 값 전체 선택(SCR-005 §구현 가이드 AUTH-004-02).
+  // 필드가 재활성화(disabled 해제)된 뒤에 실행돼야 하므로 setState 호출부가 아니라 커밋 후 effect 에서
+  // 수행한다 — DOM 포커스 이동은 React 문서가 명시하는 effect 의 정상 용례(외부 시스템 동기화)다.
+  useEffect(() => {
+    if (birthDateError?.alert) {
+      birthDateInputRef.current?.focus();
+      birthDateInputRef.current?.select();
+    }
+  }, [birthDateError]);
+
   // 필수 항목이 모두 체크됐는지(승인 게이팅의 절반, BIZ-002-06). 로드 전에는 항상 false(제출 불가).
   const requiredMet =
     load.phase === 'loaded'
@@ -134,7 +157,9 @@ export function ConsentPage() {
       setBirthDateError(null);
       return;
     }
-    setBirthDateError(isBirthDateFormatValid(birthDate) ? null : BIRTHDATE_FORMAT_ERROR);
+    setBirthDateError(
+      isBirthDateFormatValid(birthDate) ? null : { message: BIRTHDATE_FORMAT_ERROR, alert: false },
+    );
   }
 
   /** 승인/거부 제출(PROC-202, 승인 시 내부 PROC-203) — SCR-005 §화면 상태 전이 전 분기를 처리한다. */
@@ -174,8 +199,8 @@ export function ConsentPage() {
         }
         switch (error.code) {
           case 'EX-SEC-006':
-            // 복호화 실패(생년월일 불일치) — 본 화면 유지, 인라인 에러, 재입력·재제출 허용(하드 잠금 없음).
-            setBirthDateError(BIRTHDATE_DECRYPT_ERROR);
+            // 복호화 실패(생년월일 불일치) — 본 화면 유지, 인라인 에러(role=alert), 재입력·재제출 허용.
+            setBirthDateError({ message: BIRTHDATE_DECRYPT_ERROR, alert: true });
             setPending(null);
             return;
           case 'EX-SEC-007':
@@ -211,7 +236,7 @@ export function ConsentPage() {
       <Card className={styles.card} aria-busy={load.phase === 'loading' || submitting || undefined}>
         {load.phase === 'loading' && <LoadingSkeleton />}
 
-        {load.phase === 'error' && <Banner variant="error">{load.message}</Banner>}
+        {load.phase === 'error' && <UserBanner>{load.message}</UserBanner>}
 
         {load.phase === 'loaded' && (
           <LoadedView
@@ -220,6 +245,7 @@ export function ConsentPage() {
             requiredMet={requiredMet}
             birthDate={birthDate}
             birthDateError={birthDateError}
+            birthDateInputRef={birthDateInputRef}
             submitting={submitting}
             pending={pending}
             bannerMessage={bannerMessage}
@@ -249,14 +275,14 @@ export function ConsentPage() {
 function LoadingSkeleton() {
   return (
     <div className={styles.skeletonWrap}>
-      <Skeleton width="60%" height="22px" />
+      <Skeleton width="55%" height="24px" />
       <Skeleton width="90%" />
-      <Skeleton width="40%" height="14px" className={styles.skeletonBlock} />
-      <Skeleton width="160px" height="44px" />
-      <Skeleton width="40%" height="14px" className={styles.skeletonBlock} />
-      <Skeleton width="100%" height="56px" />
-      <Skeleton width="100%" height="56px" />
-      <Skeleton width="100%" height="44px" className={styles.skeletonBlock} />
+      <Skeleton width="35%" height="13px" className={styles.skeletonBlock} />
+      <Skeleton width="160px" height="48px" />
+      <Skeleton width="35%" height="13px" className={styles.skeletonBlock} />
+      <Skeleton width="100%" height="58px" />
+      <Skeleton width="100%" height="58px" />
+      <Skeleton width="140px" height="48px" className={styles.skeletonBlock} />
     </div>
   );
 }
@@ -266,7 +292,8 @@ interface LoadedViewProps {
   checked: Record<number, boolean>;
   requiredMet: boolean;
   birthDate: string;
-  birthDateError: string | null;
+  birthDateError: BirthDateErrorState;
+  birthDateInputRef: RefObject<HTMLInputElement>;
   submitting: boolean;
   pending: ConsentDecision | null;
   bannerMessage: string | null;
@@ -287,6 +314,7 @@ function LoadedView({
   requiredMet,
   birthDate,
   birthDateError,
+  birthDateInputRef,
   submitting,
   pending,
   bannerMessage,
@@ -304,75 +332,83 @@ function LoadedView({
 
   return (
     <>
-      <h1 className={styles.title}>서비스 연동 동의</h1>
+      {/* 상단 블록(제목·consentNotice·오류 Banner) — 본인확인 사이에 구분선 1(§섹션 구분선). */}
+      <div className={styles.topBlock}>
+        <h1 className={styles.title}>서비스 연동 동의</h1>
 
-      {view.consentNotice && <p className={styles.notice}>{view.consentNotice}</p>}
+        {view.consentNotice && (
+          <div className={`${styles.scrollFadeWrap} ${styles.noticeWrap}`}>
+            <div className={styles.notice} tabIndex={0} role="group" aria-label="동의 대상 설명 문구">
+              {view.consentNotice}
+            </div>
+          </div>
+        )}
 
-      {bannerMessage && (
-        <div className={styles.banner}>
-          <Banner variant="error">{bannerMessage}</Banner>
-        </div>
-      )}
+        {bannerMessage && <UserBanner>{bannerMessage}</UserBanner>}
+      </div>
+
+      <div className={styles.divider} />
 
       <section className={styles.section}>
-        <h2 className={styles.sectionTitle}>본인확인</h2>
-        <TextField
+        <h2 className={styles.sectionLabel}>본인확인</h2>
+        <BirthDateField
+          ref={birthDateInputRef}
           id="consent-birthdate"
-          label="생년월일(YYMMDD)"
-          type="birthdate"
-          required
           value={birthDate}
-          onChange={(e) => onBirthDateChange(e.target.value)}
+          onChange={onBirthDateChange}
           onBlur={onBirthDateBlur}
-          error={birthDateError}
-          hint="연동 값 복원을 위한 본인확인입니다."
+          error={birthDateError?.message ?? null}
+          errorIsAlert={birthDateError?.alert ?? false}
+          hint={BIRTHDATE_HINT}
           disabled={submitting}
         />
       </section>
 
+      <div className={styles.divider} />
+
       <section className={styles.section}>
-        <h2 className={styles.sectionTitle}>동의 항목</h2>
-        <ul className={styles.itemList}>
-          {view.items.map((item) => (
-            <ConsentItemRow
-              key={item.order}
-              item={item}
-              checked={!!checked[item.order]}
-              disabled={submitting}
-              onToggle={onToggle}
-              onOpenDetail={onOpenDetail}
-            />
-          ))}
-        </ul>
+        <h2 className={styles.sectionLabel}>동의 항목</h2>
+        <div className={`${styles.scrollFadeWrap} ${styles.itemListWrap}`}>
+          <ul className={styles.itemList} tabIndex={0} role="group" aria-label="동의 항목 목록">
+            {view.items.map((item) => (
+              <ConsentItemRow
+                key={item.order}
+                item={item}
+                checked={!!checked[item.order]}
+                disabled={submitting}
+                onToggle={onToggle}
+                onOpenDetail={onOpenDetail}
+              />
+            ))}
+          </ul>
+        </div>
+        {!requiredMet && (
+          <p id="consent-agree-hint" className={styles.consentHint}>
+            {REQUIRED_CONSENT_ERROR}
+          </p>
+        )}
       </section>
 
+      {/* 액션 — 동의 항목과의 사이에는 구분선을 두지 않는다(§레이아웃 구성, space-u-section 간격만). */}
       <div className={styles.actions}>
-        <Button
+        <UserButton
           variant="primary"
-          fullWidth
           loading={pending === 'AGREE'}
           disabled={!canApprove}
           aria-describedby={!requiredMet ? 'consent-agree-hint' : undefined}
           onClick={() => onSubmit('AGREE')}
         >
           승인(동의)
-        </Button>
-        <Button
+        </UserButton>
+        <UserButton
           variant="secondary"
-          fullWidth
           loading={pending === 'REJECT'}
           disabled={submitting}
           onClick={() => onSubmit('REJECT')}
         >
           거부
-        </Button>
+        </UserButton>
       </div>
-
-      {!requiredMet && (
-        <p id="consent-agree-hint" className={styles.hint}>
-          {REQUIRED_CONSENT_ERROR}
-        </p>
-      )}
 
       {detailItem && (
         <TermsModal
@@ -385,67 +421,6 @@ function LoadedView({
   );
 }
 
-interface ConsentItemRowProps {
-  item: ConsentItem;
-  checked: boolean;
-  disabled: boolean;
-  onToggle: (order: number, value: boolean) => void;
-  onOpenDetail: (order: number) => void;
-}
-
-/**
- * 동의 항목 1행 — 체크박스 + 라벨(필수/선택 텍스트 병기) + 설명 + (약관 있으면) [상세].
- * design-system Checkbox 는 문자열 라벨 단일 행 전용이라, 라벨·설명·[상세] 복합 구성을 위해
- * 토큰으로 스타일된 네이티브 체크박스를 label 연결(htmlFor)로 구성한다(라벨 클릭 영역 포함).
- */
-function ConsentItemRow({ item, checked, disabled, onToggle, onOpenDetail }: ConsentItemRowProps) {
-  const inputId = `consent-item-${item.order}`;
-  const descId = `consent-item-desc-${item.order}`;
-  return (
-    <li className={styles.item}>
-      <input
-        id={inputId}
-        type="checkbox"
-        className={styles.checkbox}
-        checked={checked}
-        disabled={disabled}
-        onChange={(e) => onToggle(item.order, e.target.checked)}
-        aria-describedby={item.description ? descId : undefined}
-      />
-      <div className={styles.itemBody}>
-        <div className={styles.itemHeader}>
-          <label htmlFor={inputId} className={styles.itemLabel}>
-            {item.label}
-            {item.required ? (
-              <span className={styles.required}>
-                <span aria-hidden="true">*</span> (필수)
-              </span>
-            ) : (
-              <span className={styles.optional}>(선택)</span>
-            )}
-          </label>
-          {item.termsContent && (
-            <Button
-              variant="ghost"
-              size="sm"
-              disabled={disabled}
-              onClick={() => onOpenDetail(item.order)}
-              className={styles.detailButton}
-            >
-              상세
-            </Button>
-          )}
-        </div>
-        {item.description && (
-          <p id={descId} className={styles.itemDesc}>
-            {item.description}
-          </p>
-        )}
-      </div>
-    </li>
-  );
-}
-
 interface TermsModalProps {
   item: ConsentItem;
   onClose: () => void;
@@ -453,26 +428,28 @@ interface TermsModalProps {
 }
 
 /**
- * 약관 상세 모달(콘텐츠 변형) — 제목=항목 라벨, 스크롤 본문=약관 컨텐츠, 하단 [닫기](secondary)·[동의](primary).
+ * 약관 상세 모달(Modal(user/terms)) — 제목=항목 라벨, 스크롤 본문=약관 컨텐츠, 하단 [동의](primary)·
+ * [닫기](secondary), 좌→우 동의→닫기(§레이아웃 구성·목업 순서 — 개정 전 코드는 순서가 반대였다).
  * [동의]=해당 항목 체크(동의) 후 닫기, [닫기]=닫기만(체크 불변). 둘 다 서버 호출 없음(EXC-BIZ-08).
- * ESC·배경 클릭·포커스 트랩은 Modal 컴포넌트가 제공하며 onClose([닫기]와 동일)로 연결된다.
+ * ESC·배경 클릭·포커스 트랩·스크롤 잠금은 공통 Modal 컴포넌트를 그대로 재사용하고(재구현 금지),
+ * chrome="userTerms" 로 시각 규격만 사용자 표면용으로 입힌다(관리자 호출부 렌더는 불변).
  */
 function TermsModal({ item, onClose, onAgree }: TermsModalProps) {
   return (
     <Modal
       open
-      size="md"
+      chrome="userTerms"
       scrollBody
       title={item.label}
       onClose={onClose}
       footer={
         <>
-          <Button variant="secondary" onClick={onClose}>
-            닫기
-          </Button>
-          <Button variant="primary" onClick={onAgree}>
+          <UserButton variant="primary" onClick={onAgree}>
             동의
-          </Button>
+          </UserButton>
+          <UserButton variant="secondary" onClick={onClose}>
+            닫기
+          </UserButton>
         </>
       }
     >
