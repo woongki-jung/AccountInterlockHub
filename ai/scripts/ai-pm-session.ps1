@@ -107,7 +107,7 @@ param(
   [Parameter(Mandatory=$true)][string]$WatchdogLog,
   [Parameter(Mandatory=$true)][string]$LastPollFile,
   [Parameter(Mandatory=$true)][string]$WrapperTag,
-  [int]$StallThresholdSec = 300,
+  [int]$StallThresholdSec = 600,
   [int]$StallCooldownSec = 600
 )
 # ai-pm 폴링 세션 워치독 — ai-pm-session.ps1 이 생성·기동한다. 직접 수정하지 말 것
