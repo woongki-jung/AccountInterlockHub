@@ -1,0 +1,104 @@
+# 워크스페이스 기반 지침
+
+이 워크스페이스는 지정 에이전트 기반의 여러 세션을 활용하여 인간 담당자와 소통하며 목표를 설정 및 달성하는 업무 환경을 제공한다.
+자격증명은 `CLAUDE.local.md` 에 격리되어 있으며 본 파일과 함께 커밋되지 않는다.
+
+## 기본 지침
+
+워크스페이스의 모든 동작은 다음 핵심 지침을 준수한다.
+
+- **데이터 참조 예외**: `etc/` 폴더 하위 **전체**는 **사람 참고 전용**이다 (구 구조 백업 `etc/bak/`, 작업 가이드 `etc/workflow-guide/` 등). 에이전트는 이 폴더를 **모든 참조·검색·인용·작업 대상에서 제외**한다 — 정책 판단·문서 작성·코드 작업의 근거로 삼지 않는다. 모든 정책·산출물의 단일 출처는 항상 `etc/` 바깥(`ai/`, 루트 config)에 둔다.
+- **프롬프트 입출력 지침**: [`ai/strategies/prompt-conversation.md`](prompt-conversation.md) - 프롬프트 실행 간 발생하는 각종 세션 진행간 대화 관련 지침(어투 / 응답 구성 / 검토 협의)을 정의하는 단일 출처.
+- **프로젝트 환경 변수**: `CLAUDE.env.md` - 경로, 제품명 등 프로젝트 속성에 해당하는 각종 속성값들.
+- **문서 작성 규칙**: [`ai/strategies/document-master-guide.md`](document-master-guide.md) - 워크스페이스 내 모든 산출 문서의 작성 규칙(독자·표현 / 길이·구조 / 현재 상태·이력 분리 / 경로·이름 표기)을 정의하는 단일 출처. 문서를 새로 쓰거나 고치기 전 참조한다.
+- **모델·추론 강도 활용 규칙**: 서브에이전트 실행 시 해당 에이전트 지침에 규정된 `model`·`effort` 를 **지정값 그대로 적용**한다(임의로 낮추거나 세션 구성 상속으로 대체하지 않는다). 별도 지침이 없는 경우, 작업 내용에 따라 opus(effort `max`)·sonnet(effort `xhigh`) 중 하나를 적용한다. 기준의 단일 출처는 [`ai/strategies/agents.md`](agents.md) §모델·추론 강도(effort) 정책.
+
+## 워크스페이스 운용 전략
+
+워크스페이스 내에서 수행되는 모든 작업은 다음 전략 중 하나 이상을 활용하여 수행한다.
+
+- **업무 수행 기반 전략**: [`ai/strategies/base-workflow.md`](base-workflow.md)
+	- 프로젝트 수행 전 과정을 4단계(`directing`·`spec`·`build`·`qa`)로 나눠 각 단계의 프로세스·실행 주체·산출물을 정의하는 최상위 흐름 문서. 4단계는 자동 연쇄하지 않고 **독립 완결 프로세스 + 담당자 승인 기반 수동 이행**으로 진행한다.
+	- 요청 업무가 어느 단계에 속하는지 판단하고 해당 단계의 흐름·담당 에이전트를 확인할 때 참조.
+
+- **저장소 구조 전략**: [`ai/strategies/doc-structure.md`](doc-structure.md)
+	- 워크스페이스 루트 디렉터리 트리와 각 폴더의 역할을 정의하는 단일 기준 문서.
+	- 새 산출물의 저장 위치를 결정하거나 기존 문서의 위치·역할을 확인할 때 참조.
+
+- **에이전트 정의·실행 전략**: [`ai/strategies/agents.md`](agents.md)
+	- 에이전트 파일 형식과 실행 규칙, 워크스페이스에 등록된 에이전트 카탈로그를 정의.
+	- 에이전트 기반의 작업 실행 시 어떤 에이전트를 사용할지 선택할 때 참조.
+
+- **스킬 정의·활용 전략**: [`ai/strategies/skills.md`](skills.md)
+	- 스킬 파일 형식과 워크스페이스에서 활용 가능한 핵심 스킬의 목록·역할을 정의.
+	- 스킬 기반의 작업 실행 시 적용 가능한 스킬을 선택할 때 참조.
+
+- **품질 검증 수행 전략**: [`ai/strategies/qa-execution.md`](qa-execution.md)
+	- 품질 검증 활동의 기본 지침(검증 범위·시점·원칙·산출물·실행 에이전트)을 정의. 환경 구성과 UI 자동화 도구 운용은 하위 문서에 위임.
+	- build·qa 단계의 검증 활동을 계획·실행하거나 검증 산출물의 위치·기준을 확인할 때 참조.
+
+- **정보 구조(IA) 작성 전략**: [`ai/strategies/ia.md`](ia.md)
+	- 제품 IA(서비스 제공 기능단위까지)의 표준 양식·`ia-code`·위치를 정의. IA 대부분은 directing 에서 PRD 와 함께 작성하고, spec 은 소비·보완한다.
+	- IA 를 작성·참조하거나 작업 범위·사양 소속·이력의 기준 좌표를 확인할 때 참조.
+- **IA 기반 이력 관리 전략**: [`ai/strategies/ia-history.md`](ia-history.md)
+	- 완료 작업의 누적 이력을 IA 노드별 시계열(`history/<ia-code>.md`)로 관리하는 정책. entry 양식·갱신 책임·횡단(common) 처리·연도 백업 정의.
+	- 산출물 commit 직전에 작업 서브에이전트가 영향 IA 의 history 를 갱신할 때 참조.
+
+- **운영 문서 개정 이력 관리 전략**: [`ai/strategies/doc-revision.md`](doc-revision.md)
+	- 에이전트·전략·스킬·루트 config 등 운영 문서를 개정할 때의 정책. 본문 직접 수정 원칙과 `history/changes/<날짜>/<영역>-<주제>.md` 외부 이력 양식·갱신 책임 정의.
+	- 운영 문서를 고치고 그 개정 이력을 남길 때 참조 (제품 산출물 이력은 ia-history.md 가 담당).
+
+- **업무 티켓 관리 전략**: [`ai/strategies/work-tracking.md`](work-tracking.md)
+	- 담당자 요청부터 완료까지 업무 1건의 생애주기를 **Redmine 이슈(정본)**로 단계 횡단 추적하는 정책. 접속·요소 식별자·프로젝트 생성 절차 등 운영 세부는 하위문서 [`work-tracking-redmine.md`](work-tracking-redmine.md).
+	- 추적이 필요한 요청을 접수·위임·진행·완료 처리하거나 전체 진행 현황을 확인할 때 참조.
+
+- **ai-pm 오케스트레이션 전략**: [`ai/strategies/ai-pm.md`](ai-pm.md)
+	- 프로젝트 Slack 워크스페이스의 전체 채널 대화를 확인해 필요한 작업을 서브에이전트로 디스패치하고, 결과를 채널·담당자에게 보고하는 마스터 세션 ai-pm 을 정의. 작업 수행 기록 정본은 Redmine 일감, 대화형 협업 통로는 Slack. 서브에이전트의 담당자 질의·승인은 ai-pm 릴레이(§질의·승인 릴레이)로 처리.
+	- ai-pm 세션의 협업 구조·트래킹·디스패치·실행 모드를 확인할 때 참조.
+
+- **릴리스·배포·유지보수 전략**: [`ai/strategies/delivery.md`](delivery.md)
+	- qa 배포 가능 판정 이후의 과정 — 버전 채번·릴리스 노트, 담당자 요청 기반 배포 실행, 유지보수(핫픽스) 경로와 사양 변경의 역방향 전파를 정의.
+	- 릴리스를 준비·수행하거나 운영 중 결함을 접수·처리할 때 참조.
+
+- **git flow 전략**: [`ai/strategies/git-flow.md`](git-flow.md)
+	- 저장소의 브랜치·커밋·병합(MR) 운용 규칙을 정의 — 단계 착수 1회 = 브랜치(`<단계>/<이슈번호>-<주제>`), Phase·작업 항목 = commit, 담당자 승인 시 main 병합(main = 승인 통과 기준선).
+	- 단계 작업의 브랜치 생성·커밋 메시지·병합·릴리스 태그 규칙을 확인할 때 참조.
+
+- **프로젝트 부트스트랩 전략**: [`ai/strategies/project-bootstrap.md`](project-bootstrap.md)
+	- 워크스페이스를 템플릿으로 복제해 **새 프로젝트를 시작**할 때(및 다른 PC 재구성 시)의 준비 절차 전체 — PC 도구·git 원격·루트 설정·Redmine·Slack·이전 산출물 정리·통합 검증·TC 실행 환경(검증 도구) — 를 정의하는 단일 출처. 진행 기록은 `CLAUDE.local.md` §준비 체크리스트(수행 여부만).
+	- 새 프로젝트 착수·프로젝트 교체·다른 PC 재구성 시 무엇을 어떻게 갖출지 확인하거나, 담당자로부터 준비 항목을 위임받아 수행할 때 참조.
+
+## ai-pm 세션 실행 모드
+
+세션이 `ai-pm 세션 시작` 류 프롬프트로 시작되면, 그 세션은 **ai-pm 마스터 세션**으로 동작한다. 즉시 [`ai/strategies/ai-pm.md`](ai-pm.md) 를 읽고 그대로 따른다 — 프로젝트 Slack 워크스페이스의 전체 채널 대화를 확인해 필요한 작업을 서브에이전트로 디스패치하고, 결과를 채널·담당자에게 알린다. 보통 세션 래퍼 `ai/scripts/ai-pm-session.ps1` 로 기동한다. 동일 ai-pm 세션을 둘 띄우지 않는다.
+
+## 환경 구성 (경로·제품 명칭 · 환경변수 키 목록)
+
+실행에 필요한 경로·제품 명칭 값과 환경변수 키를 관리한다. 출처는 셋으로 분리한다.
+
+- **프로젝트별 경로·제품 명칭 값** (비밀 아님·git 관리) → [`CLAUDE.env.md`](CLAUDE.env.md). `<INSTALL_ROOT>`·`<PRODUCT_DIR>`·`<APP_BIN>`·`<SLN_DIR>`·`<VENDOR>` 등 플레이스홀더의 실제 값과 INSTALL_ROOT_LIST·설치 산출물 경로를 단일 관리한다. 플레이스홀더 표기·해석·신규 추가의 강제 규칙은 [`document-master-guide.md`](document-master-guide.md) §경로·이름 표기 참조. 프로젝트가 바뀌면 부트스트랩 절차([`project-bootstrap.md`](project-bootstrap.md))에 따라 CLAUDE.env.md 를 갱신한다.
+- **환경변수 키 이름** (값은 비밀) → 아래 §환경변수 키 목록 에 이름만 나열한다. 키 이름을 본 파일에서 관리하는 이유는 담당자 간 키 자체를 누락하지 않도록 하기 위함이다.
+- **각 키의 실제 비밀 값** → 커밋되지 않는 [`CLAUDE.local.md`](CLAUDE.local.md).
+
+### 환경변수 키 목록 (값은 CLAUDE.local.md)
+
+담당자는 아래 키의 비밀 값을 `CLAUDE.local.md` 에 채운다 (키 누락 방지 체크리스트).
+
+| 분류 | 키 이름 | 비고 |
+|------|--------|------|
+| Redmine | `REDMINE_BASE_URL`, `REDMINE_API_KEY` | 공용 Redmine 서비스 작업 티켓 정본([`work-tracking.md`](work-tracking.md)). admin 키(MCP 폴백). 값은 `CLAUDE.local.md` §Redmine 자격증명 |
+| Slack | `SLACK_BOT_TOKEN`, `SLACK_APP_TOKEN` | ai-pm Slack 봇 토큰([`ai-pm.md`](ai-pm.md)). 값은 `ai/bots/ai-pm/_slack/.env`(git 비관리, 양식 `.env.example`), 등록 안내는 `CLAUDE.local.md` §Slack 자격증명 |
+
+## 워크스페이스 구성 준비
+
+새 프로젝트 착수·다른 PC 재구성 등 워크스페이스 준비는 [`project-bootstrap.md`](project-bootstrap.md) 절차로 수행한다 — 담당자가 주도하되, 위임 가능 항목(Redmine 프로젝트 생성·이전 산출물 정리 등)은 세션에 맡길 수 있다. 진행 기록은 [`CLAUDE.local.md`](CLAUDE.local.md) §준비 체크리스트에 **수행 여부만** 체크한다(PC 별·git 비관리) — 항목의 설명·수행 방법은 전부 project-bootstrap.md 가 갖는다.
+
+- **준비완료 플래그**: [`CLAUDE.local.md`](CLAUDE.local.md) §준비 상태의 `준비완료` 값(`예`/`아니오`) — git 비관리라 PC 마다 그 PC 의 상태를 반영한다. §준비 체크리스트 완주 후 담당자가 직접 `예` 로 바꾼다.
+- **안내 노출 규칙 (매 응답 시작 시)**: `준비완료` 가 `예` 면 아무것도 노출하지 않는다. `예` 가 **아니면**(`아니오`·값 미기재·CLAUDE.local.md 부재 포함) 응답 맨 앞에 아래 양식의 안내 블록을 노출한다.
+	- **부족한 설정 내역 도출**: §준비 체크리스트의 미체크 항목을 나열한다. 그 외에 자동 로드된 설정에서 직접 확인되는 공백(CLAUDE.local.md 자체 부재, §환경변수 키 목록 대비 미기재 키, `CLAUDE.env.md` 의 `TBD`·예시 값 잔존 등)이 보이면 함께 나열한다.
+	- **안내 양식** (항목 수·내용은 실제 상태에 맞춰 채운다):
+		> ⚠️ **워크스페이스 준비 미완료** — 아래 설정을 보완해 주세요.
+		> - <부족한 설정 1 — 무엇이 왜 필요한지 한 줄>
+		> - <부족한 설정 2>
+		>
+		> 보완 절차는 `ai/strategies/project-bootstrap.md` 의 해당 절을 참고하세요. 보완 후 `CLAUDE.local.md` §준비 상태의 `준비완료` 를 `예` 로 바꾸고 **세션을 재시작**하면 이 안내가 사라집니다.

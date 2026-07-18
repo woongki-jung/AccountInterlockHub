@@ -12,6 +12,7 @@
     "migration:revert": "nest build && node --env-file=.env dist/database/run-migrations.js --revert",
     "seed:admin": "nest build && node --env-file=.env dist/database/seed-admin.js",
     "hash-password": "ts-node src/database/hash-password.ts",
+    "dummy-test": "ts-node src/user/interlock/dummy-test.ts",
     "batch:retention": "nest build && node --env-file=.env dist/batch/run-retention-batch.js"
   },
   "dependencies": {
