@@ -6,7 +6,7 @@
 ai/                         # 에이전트 기반 운영 자산
   agents/                   # 단계 서브에이전트 정의 (정책: agents.md)
   bots/                     # 마스터 봇 런타임
-    ai-pm/                  # ai-pm 디스패처 (정의 + _slack 런타임). 정책: ai-pm.md
+    ai-pm/                  # ai-pm 디스패처 (정의 + config·mcp-curate·_session 런타임, Redmine 폴링). 정책: ai-pm.md
   scripts/                  # 세션 래퍼 등 운영 스크립트
   skills/                   # 스킬 정의 (정책: skills.md)
   strategies/               # 운영 전략 문서 (단일 출처)
