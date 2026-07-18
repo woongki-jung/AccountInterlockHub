@@ -3,18 +3,23 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>SCR-006 동의 결과 · 목업</title>
+<title>SCR-006 동의 결과 · 목업 · 개선 후</title>
 <style>
 :root{
-  --primary:#2563EB;--primary-hover:#1D4ED8;--primary-weak:#DBEAFE;
-  --danger:#DC2626;--danger-weak:#FEE2E2;--success:#16A34A;--warning:#D97706;--info:#0891B2;
-  --text:#111827;--muted:#6B7280;--inverse:#fff;
-  --border:#D1D5DB;--bg:#fff;--subtle:#F9FAFB;--disabled:#E5E7EB;
-  --r-sm:4px;--r-md:8px;--r-lg:12px;
-  --sh-sm:0 1px 2px rgba(0,0,0,.06);--sh-md:0 4px 12px rgba(0,0,0,.10);
+  --primary:#2563EB;--text:#111827;--bg:#FFFFFF;
+  --u-canvas:#EEF2F7;--u-text-muted:#5F6773;--u-divider:#DDE3EA;
+  --u-success-bg:#E7F6EC;--u-success-fg:#166534;--u-success-border:#15803D;
+  --u-info-bg:#E6F6FB;--u-info-fg:#155E75;--u-info-border:#0E7490;
+  --u-danger-bg:#FEF2F2;--u-danger-fg:#B91C1C;--u-danger-border:#DC2626;
+  --u-neutral-bg:#F1F5F9;--u-neutral-fg:#334155;--u-neutral-border:#64748B;
+  --radius-card:16px;--radius-control:10px;--radius-pill:999px;
+  --shadow-card:0 1px 2px rgba(16,24,40,.04),0 12px 32px rgba(16,24,40,.08);
+  --t-base:200ms;--t-slow:320ms;--ease-decel:cubic-bezier(0,0,0,1);
 }
 *{box-sizing:border-box}
-body{margin:0;font-family:system-ui,-apple-system,"Segoe UI",sans-serif;color:var(--text);background:var(--subtle);font-size:15px;line-height:22px}
+body{margin:0;font-family:system-ui,-apple-system,"Segoe UI",sans-serif;color:var(--text);background:var(--u-canvas);font-size:15px;line-height:22px}
+:focus{outline:2px solid var(--primary);outline-offset:2px}
+/* ===== 목업 전용 크롬(제품 UI 아님) ===== */
 .mock-chrome{position:sticky;top:0;z-index:60}
 .mock-nav{display:flex;flex-wrap:wrap;align-items:center;gap:4px 6px;padding:7px 16px;background:#0B1220;border-bottom:1px solid #374151;font-size:13px}
 .mock-nav a{color:#D1D5DB;text-decoration:none;padding:3px 9px;border-radius:4px;border:1px solid transparent;line-height:18px}
@@ -22,36 +27,54 @@ body{margin:0;font-family:system-ui,-apple-system,"Segoe UI",sans-serif;color:va
 .mock-nav a.mn-home{color:#fff;font-weight:600}
 .mock-nav a.current{background:#2563EB;border-color:#2563EB;color:#fff}
 .mock-nav .mn-grp{color:#6B7280;font-size:11px;letter-spacing:.04em;margin-left:8px;text-transform:uppercase}
+.compare-bar{display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding:6px 16px;background:#1E293B;border-bottom:1px solid #334155;font-size:12px;color:#CBD5E1}
+.compare-bar .cb-current{background:#2563EB;color:#fff;padding:3px 10px;border-radius:999px;font-weight:600}
+.compare-bar a{color:#CBD5E1;text-decoration:none;padding:3px 10px;border-radius:999px;border:1px solid #475569}
+.compare-bar a:hover{background:#334155;color:#fff}
 .mock-bar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding:8px 16px;background:#111827;color:#fff;font-size:13px}
 .mock-bar .lbl{color:#9CA3AF}
 .mock-bar button{background:#374151;color:#fff;border:1px solid #4B5563;border-radius:4px;padding:4px 10px;font-size:13px;cursor:pointer}
 .mock-bar button.active{background:var(--primary);border-color:var(--primary)}
 .mock-bar .tag{margin-left:auto;color:#9CA3AF}
-.wrap{min-height:calc(100vh - 40px);display:flex;align-items:flex-start;justify-content:center;padding:48px 16px}
-.card{width:100%;max-width:480px;background:#fff;border:1px solid var(--border);border-radius:var(--r-md);box-shadow:var(--sh-sm);padding:40px 24px;text-align:center}
-.ico{width:64px;height:64px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:32px;margin:0 auto 16px}
-.ico.ok{background:#DCFCE7}
-.ico.info{background:#CFFAFE}
-.ico.warn{background:#FEF3C7}
-.ico.err{background:var(--danger-weak)}
-.ico.neutral{background:#F3F4F6}
-.badge{display:inline-flex;align-items:center;gap:5px;height:26px;padding:0 12px;border-radius:var(--r-sm);font-size:13px;font-weight:500;margin-bottom:12px}
-.badge-success{background:#DCFCE7;color:#166534}
-.badge-info{background:#CFFAFE;color:#155E75}
-.badge-error{background:var(--danger-weak);color:#991B1B}
-.badge-neutral{background:#F3F4F6;color:#4B5563}
-h1{font-size:22px;line-height:30px;font-weight:700;margin:0 0 12px}
-.msg{font-size:15px;line-height:22px;color:var(--muted);margin:0 0 20px}
-.banner{display:flex;align-items:flex-start;gap:8px;padding:12px 14px;border-radius:var(--r-md);font-size:14px;line-height:20px;margin-bottom:20px;text-align:left}
-.banner-err{background:var(--danger-weak);color:#991B1B;border:1px solid #FCA5A5}
-.foot{font-size:13px;color:var(--muted);margin-top:8px}
-.btn{display:inline-flex;align-items:center;justify-content:center;height:44px;padding:0 20px;border-radius:var(--r-md);font-size:15px;font-weight:500;border:1px solid var(--border);background:#fff;color:var(--text);cursor:pointer;text-decoration:none;margin-top:4px}
-/* result visibility */
+/* ===== 사용자 셸 ===== */
+.wrap{min-height:calc(100vh - 40px);display:flex;align-items:flex-start;justify-content:center;padding:24px 16px}
+@media (min-width:640px){.wrap{padding:48px 24px}}
+.card{position:relative;overflow:hidden;width:100%;max-width:480px;background:var(--bg);border-radius:var(--radius-card);box-shadow:var(--shadow-card);padding:20px;text-align:center}
+@media (min-width:640px){.card{padding:28px}}
+.card::before{content:'';position:absolute;top:0;left:0;right:0;height:4px;background:var(--primary)}
+/* 타이포 토큰 */
+.u-title{font-size:24px;line-height:32px;font-weight:700;color:var(--text);margin:12px 0 0}
+.u-lead{font-size:15px;line-height:24px;font-weight:400;color:var(--u-text-muted);margin:12px 0 0}
+.u-caption{font-size:13px;line-height:18px;font-weight:400;color:var(--u-text-muted);margin:12px 0 0}
+/* 결과 상태 아이콘(ResultIcon user) — 원형64px·글리프28px·선굵기2.5px */
+.r-icon{width:64px;height:64px;border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto}
+.r-icon.k-success{background:var(--u-success-bg)}
+.r-icon.k-info{background:var(--u-info-bg)}
+.r-icon.k-danger{background:var(--u-danger-bg)}
+.r-icon.k-neutral{background:var(--u-neutral-bg)}
+.r-icon svg{width:28px;height:28px}
+.r-icon .qmark{width:28px;height:28px;font-size:26px;line-height:28px;font-weight:700;font-family:system-ui,sans-serif;color:var(--u-neutral-fg);display:block;text-align:center}
+@keyframes u-enter-slow{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+.r-icon-enter{animation:u-enter-slow var(--t-slow) var(--ease-decel) both}
+/* Badge(user) */
+.badge-u{display:inline-flex;align-items:center;justify-content:center;height:28px;padding:0 12px;border-radius:var(--radius-pill);font-size:12px;font-weight:700;border:1px solid transparent;margin-top:12px}
+.badge-u.k-success{background:var(--u-success-bg);color:var(--u-success-fg);border-color:var(--u-success-border)}
+.badge-u.k-info{background:var(--u-info-bg);color:var(--u-info-fg);border-color:var(--u-info-border)}
+.badge-u.k-danger{background:var(--u-danger-bg);color:var(--u-danger-fg);border-color:var(--u-danger-border)}
+.badge-u.k-neutral{background:var(--u-neutral-bg);color:var(--u-neutral-fg);border-color:var(--u-neutral-border)}
+/* Banner(user) — danger 전용(링크 오류만) */
+.banner-u{display:flex;align-items:flex-start;gap:10px;margin-top:12px;padding:14px 16px;border-radius:var(--radius-control);background:var(--u-danger-bg);border:1px solid var(--u-danger-border);color:var(--u-danger-fg);font-size:14px;line-height:20px;text-align:left}
+.banner-u svg{flex:none;margin-top:1px}
+/* 결과 표시 토글(목업 시연용) */
 .res{display:none}
 body[data-res="success"] .res-success,
 body[data-res="reject"] .res-reject,
 body[data-res="linkerr"] .res-linkerr,
 body[data-res="fallback"] .res-fallback{display:block}
+@media (prefers-reduced-motion: reduce){
+  *{animation-duration:.001ms !important;animation-iteration-count:1 !important;transition-duration:.001ms !important}
+  .r-icon-enter{opacity:1 !important;transform:none !important}
+}
 </style>
 </head>
 <body data-res="success">
@@ -69,11 +92,16 @@ body[data-res="fallback"] .res-fallback{display:block}
   <a href="SCR-006.html" data-scr>동의 결과</a>
 </nav>
 <script>(function(){var f=(location.pathname.split('/').pop()||'index.html').toLowerCase();document.querySelectorAll('.mock-nav a[data-scr]').forEach(function(a){if(a.getAttribute('href').toLowerCase()===f)a.classList.add('current');});})();</script>
+<div class="compare-bar">
+  <span>버전 비교(#408):</span>
+  <span class="cb-current">개선 후(현재)</span>
+  <a href="SCR-006-before.html">개선 전 보기 →</a>
+</div>
 <div class="mock-bar">
   <span class="lbl">결과 유형:</span>
   <button data-r="success" class="active" onclick="setRes('success')">연동 완료</button>
   <button data-r="reject" onclick="setRes('reject')">거부(취소)</button>
-  <button data-r="linkerr" onclick="setRes('linkerr')">링크 오류(400)</button>
+  <button data-r="linkerr" onclick="setRes('linkerr')">링크 오류</button>
   <button data-r="fallback" onclick="setRes('fallback')">Fallback(직접 진입)</button>
   <span class="tag">SCR-006 · /interlock/result</span>
 </div>
@@ -82,43 +110,43 @@ body[data-res="fallback"] .res-fallback{display:block}
 <div class="wrap">
   <div class="card">
 
-    <!-- 연동 완료 -->
+    <!-- 연동 완료(success) -->
     <div class="res res-success">
-      <div class="ico ok">✅</div>
-      <span class="badge badge-success">연동 완료</span>
-      <h1>연동이 완료되었습니다</h1>
-      <p class="msg">동의해 주셔서 감사합니다. 수신처로 요청이 정상 전달되었습니다. 이 창을 닫고 발송처 화면으로 돌아가셔도 됩니다.</p>
-      <p class="foot">처리 결과 안내 화면입니다. 회원 정보·연동 추적 키·처리 상태 값은 표시되지 않습니다(SEC-007-02).</p>
+      <div class="r-icon k-success" aria-hidden="true"><svg viewBox="0 0 28 28" fill="none"><path d="M7 15l5 5 10-11" stroke="#166534" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+      <span class="badge-u k-success">연동 완료</span>
+      <h1 class="u-title">연동이 완료되었습니다.</h1>
+      <p class="u-lead">동의해 주셔서 감사합니다. 수신처로 요청이 정상 전달되었습니다. 이 창을 닫고 발송처 화면으로 돌아가셔도 됩니다.</p>
+      <p class="u-caption">처리 결과 안내 화면입니다. 회원 정보·연동 추적 키·처리 상태 값은 표시되지 않습니다.</p>
     </div>
 
-    <!-- 거부(취소) -->
+    <!-- 거부(취소, reject) — 정상 종료. 오류 색·오류 기호 금지, 중립(info) 처리 -->
     <div class="res res-reject">
-      <div class="ico info">🚫</div>
-      <span class="badge badge-info">거부</span>
-      <h1>연동이 취소되었습니다</h1>
-      <p class="msg">동의하지 않아 연동을 진행하지 않고 종료했습니다. 수신처로 전달된 정보는 없습니다. 이 창을 닫으셔도 됩니다.</p>
-      <p class="foot">거부는 정상 종료로 처리됩니다(BIZ-002-07 EXC-BIZ-03).</p>
+      <div class="r-icon k-info" aria-hidden="true"><svg viewBox="0 0 28 28" fill="none"><path d="M6 14h16" stroke="#155E75" stroke-width="2.5" stroke-linecap="round"/></svg></div>
+      <span class="badge-u k-info">거부</span>
+      <h1 class="u-title">연동이 취소되었습니다.</h1>
+      <p class="u-lead">동의하지 않아 연동을 진행하지 않고 종료했습니다. 수신처로 전달된 정보는 없습니다. 이 창을 닫으셔도 됩니다.</p>
+      <p class="u-caption">거부는 정상 종료로 처리됩니다.</p>
     </div>
 
-    <!-- 전달 실패 결과 유형은 #215 로 SCR-005 재시도 알림으로 이관되어 본 화면에서 제거됨(완료·거부·링크오류·Fallback 만 표시) -->
-
-    <!-- 링크 오류 -->
+    <!-- 링크 오류(linkerr) -->
     <div class="res res-linkerr">
-      <div class="ico err">⛔</div>
-      <span class="badge badge-error">링크 오류</span>
-      <h1>연동 링크가 올바르지 않습니다</h1>
-      <div class="banner banner-err" role="alert"><span>⚠</span><span>연동 링크가 올바르지 않습니다. 발송처에 문의해 주세요.</span></div>
-      <p class="msg">암호화 파라미터 형식 오류 또는 연동에 필요한 값 누락으로 처리를 진행할 수 없습니다. 재입력으로는 해결되지 않습니다. (400 EX-SEC-007 / EX-BIZ-008)</p>
-      <p class="foot">발송처 링크·데이터 구성 문제로 사용자가 직접 정정할 수 없습니다(EXC-BIZ-13).</p>
+      <div class="r-icon k-danger" aria-hidden="true"><svg viewBox="0 0 28 28" fill="none"><path d="M14 6v11" stroke="#B91C1C" stroke-width="2.5" stroke-linecap="round"/><circle cx="14" cy="21.5" r="1.4" fill="#B91C1C"/></svg></div>
+      <span class="badge-u k-danger">링크 오류</span>
+      <h1 class="u-title">연동 링크가 올바르지 않습니다.</h1>
+      <p class="u-lead">암호화 파라미터 형식 오류 또는 연동에 필요한 값이 없어 처리를 진행할 수 없습니다. 재입력으로는 해결되지 않습니다.</p>
+      <div class="banner-u" role="alert">
+        <svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true" focusable="false"><circle cx="10" cy="10" r="8.5" stroke="currentColor" stroke-width="1.6"/><path d="M10 6v5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><circle cx="10" cy="13.4" r="1" fill="currentColor"/></svg>
+        <span>발송처에 문의해 주세요.</span>
+      </div>
+      <p class="u-caption">발송처 링크·데이터 구성 문제로 직접 정정할 수 없습니다.</p>
     </div>
 
-    <!-- Fallback (직접 진입/새로고침) -->
+    <!-- Fallback(직접 진입·새로고침) — 유효한 accessAddressId 가 없어 링크·버튼 없이 안내 문구만 제공(§이동 경로) -->
     <div class="res res-fallback">
-      <div class="ico neutral">🔄</div>
-      <span class="badge badge-neutral">안내</span>
-      <h1>표시할 결과가 없습니다</h1>
-      <p class="msg">동의 처리 결과 정보가 없습니다. 새로고침하거나 URL로 직접 접근한 경우일 수 있습니다. 발송처에서 다시 진입해 주세요.</p>
-      <a class="btn" href="SCR-005.html">동의 화면으로 이동</a>
+      <div class="r-icon k-neutral" aria-hidden="true"><span class="qmark">?</span></div>
+      <span class="badge-u k-neutral">안내</span>
+      <h1 class="u-title">표시할 결과가 없습니다.</h1>
+      <p class="u-lead">발송처에서 다시 진입해 주세요.</p>
     </div>
 
   </div>
@@ -127,12 +155,16 @@ body[data-res="fallback"] .res-fallback{display:block}
 <script>
 function setRes(r){
   document.body.dataset.res=r;
-  document.querySelectorAll('.mock-bar button').forEach(function(b){b.classList.toggle('active',b.dataset.r===r)});
+  document.querySelectorAll('.mock-bar button[data-r]').forEach(function(b){b.classList.toggle('active',b.dataset.r===r)});
+  // 결과 상태 아이콘 등장 모션(motion-u-slow·ease-u-decelerate) 재생 — 전환마다 1회
+  var icon=document.querySelector('.res-'+r+' .r-icon');
+  if(icon){icon.classList.remove('r-icon-enter'); void icon.offsetWidth; icon.classList.add('r-icon-enter');}
 }
-// SCR-005 제출 결과 상태를 쿼리로 전달받아 초기 표시(목업 시연용)
+// SCR-005 제출 결과를 쿼리로 전달받아 초기 표시(목업 시연용 — 실제 상태는 서버 응답 기반 클라이언트 상태)
 (function(){
   var m=location.search.match(/result=(\w+)/);
-  if(m){var v=m[1];if(v==='success')setRes('success');else if(v==='reject')setRes('reject');else if(v==='linkerr')setRes('linkerr');}
+  if(m){var v=m[1]; if(v==='success'||v==='reject'||v==='linkerr')setRes(v);}
+  else{setRes('success');}
 })();
 </script>
 </body>
