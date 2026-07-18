@@ -48,6 +48,14 @@ a{color:var(--primary);text-decoration:none}
 .card .desc{font-size:13px;line-height:19px;color:var(--muted);margin:0 0 14px;flex:1}
 .card .go{font-size:13px;font-weight:600;color:var(--primary)}
 .card:hover .go{color:var(--primary-hover)}
+/* 개선 전/후 비교 카드(SCR-005·006 한정, #408) */
+.go-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:auto}
+.go-btn{font-size:13px;font-weight:600;padding:7px 12px;border-radius:8px;text-decoration:none;display:inline-flex;align-items:center;gap:4px;line-height:18px}
+.go-btn.go-primary{background:var(--primary);color:#fff}
+.go-btn.go-primary:hover{background:var(--primary-hover)}
+.go-btn.go-secondary{background:var(--bg);color:var(--text);border:1px solid var(--border)}
+.go-btn.go-secondary:hover{border-color:var(--primary);color:var(--primary)}
+.card-compare .top .badge-new{margin-left:0;background:#DCFCE7;color:#166534;border:1px solid #86EFAC;border-radius:var(--r-sm);padding:2px 8px;font-size:11px;font-weight:700}
 /* footer */
 .foot{max-width:980px;margin:0 auto;padding:32px 24px 48px;font-size:13px;color:var(--muted)}
 .foot a{font-weight:500}
@@ -84,9 +92,16 @@ a{color:var(--primary);text-decoration:none}
 </div>
 
 <div class="note">
+  <div class="box rev">
+    <span>🎨</span>
+    <span><b>2026-07-18 <code>#408</code> 개정판(사용자 페이지 디자인 개선)</b> — 사용자 화면(SCR-005·006)의 <b>시각 디자인만</b> 개선했습니다. 근거는 <a href="../docs/specs/screens/design-system.md">design-system.md</a> §사용자 표면 확장 신설(<code>-u-</code> 접두 색·타이포·간격·모션 토큰, 결과 아이콘 규격, 콘텐츠 상한). 플로우·유효성 규칙·고정 문구·민감값 노출 규칙은 <b>불변</b>입니다. 아래 <b>👤 사용자 흐름</b> 카드에서 <b>개선 후</b>·<b>개선 전(비교용)</b> 두 버전을 바로 비교할 수 있습니다 — 개선 전 파일은 담당자 승인 후 폐기 예정입니다.</span>
+  </div>
+</div>
+
+<div class="note">
   <div class="box">
     <span>ℹ️</span>
-    <span>상단 <b>어두운 내비게이션 바</b>와 각 화면의 검은색 <b>"상태 시연" 바</b>는 목업 열람용 도구입니다(제품 UI 아님). 내비게이션 바로 모든 화면을 자유롭게 오갈 수 있고, 화면 내 링크(<code>등록·편집·상세·삭제·동의</code>)로 실제 흐름도 클릭해 따라갈 수 있습니다.</span>
+    <span>상단 <b>어두운 내비게이션 바</b>와 각 화면의 검은색 <b>"상태 시연" 바</b>는 목업 열람용 도구입니다(제품 UI 아님). 내비게이션 바로 모든 화면을 자유롭게 오갈 수 있고, 화면 내 링크(<code>등록·편집·상세·삭제·동의</code>)로 실제 흐름도 클릭해 따라갈 수 있습니다. 사용자 화면(SCR-005·006)에는 추가로 <b>버전 비교 바</b>가 있어 개선 후/개선 전을 즉시 오갈 수 있습니다.</span>
   </div>
 </div>
 
@@ -129,20 +144,26 @@ a{color:var(--primary);text-decoration:none}
   <h2>👤 사용자 흐름</h2>
   <p class="sub">발송처 링크로 진입한 사용자가 생년월일 본인확인·연동 이용 동의를 하고, 처리 결과를 안내받습니다.</p>
   <div class="grid">
-    <a class="card" href="SCR-005.html">
-      <div class="top"><span class="scr">SCR-005</span><span class="ia">USR-01</span></div>
+    <div class="card card-compare">
+      <div class="top"><span class="scr">SCR-005</span><span class="ia">USR-01</span><span class="badge-new">#408 개선</span></div>
       <h3>사용자 이용 동의</h3>
       <p class="path">/interlock/entry/:accessAddressId (+ ?encX·encY, 화면 미표시)</p>
-      <p class="desc">동의 대상 설명 문구(상단·#215) + 생년월일(YYMMDD) 본인확인 입력 + 동의 항목 확인([상세] 약관 모달) + 승인/거부. Skeleton·Submitting·복호화 실패 재입력·전달 실패 재시도(#215)·형식오류·요청제한 상태를 시연합니다. (#214 신설: 생년월일 입력)</p>
-      <span class="go">화면 열기 →</span>
-    </a>
-    <a class="card" href="SCR-006.html">
-      <div class="top"><span class="scr">SCR-006</span><span class="ia">USR-02</span></div>
+      <p class="desc">design-system §사용자 표면 확장(<code>-u-</code> 토큰) 반영. Skeleton·Loaded·Submitting·복호화 실패 재입력·FE 형식 위반·전달 실패 재시도·요청제한·약관 상세 Modal·동의 항목 필수/선택 혼재·consentNotice 예시·승인 버튼 활성 조건(비활성/활성)을 시연합니다.</p>
+      <div class="go-row">
+        <a class="go-btn go-primary" href="SCR-005.html">개선 후 보기 →</a>
+        <a class="go-btn go-secondary" href="SCR-005-before.html">개선 전(비교용)</a>
+      </div>
+    </div>
+    <div class="card card-compare">
+      <div class="top"><span class="scr">SCR-006</span><span class="ia">USR-02</span><span class="badge-new">#408 개선</span></div>
       <h3>동의 결과</h3>
       <p class="path">/interlock/result</p>
-      <p class="desc">연동 완료·거부(취소)·링크 오류(400, #214 신설)·Fallback(직접 진입) 결과를 안내합니다(전달 실패는 #215 로 SCR-005 재시도로 이관). 회원 정보·처리 상태 값·추적 키는 표시하지 않습니다.</p>
-      <span class="go">화면 열기 →</span>
-    </a>
+      <p class="desc">design-system §결과 상태 아이콘 규격 반영(원형64px·글리프28px). 연동 완료·거부(취소, 중립 아이콘)·링크 오류·Fallback 4종을 안내합니다. 회원 정보·처리 상태 값·추적 키는 표시하지 않습니다.</p>
+      <div class="go-row">
+        <a class="go-btn go-primary" href="SCR-006.html">개선 후 보기 →</a>
+        <a class="go-btn go-secondary" href="SCR-006-before.html">개선 전(비교용)</a>
+      </div>
+    </div>
   </div>
 </div>
 
