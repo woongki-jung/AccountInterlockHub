@@ -44,6 +44,7 @@ memory: project
 ## Redmine 미러링·IA
 
 - **미러**: 각 Phase 1건 → `기능` 일감 1건([`work-tracking.md`](../strategies/work-tracking.md) §단계별 미러링). 진척(작성→리뷰→검증→완료)에 따라 상태 동기화. 참조한 사양정의서의 `사양` 일감을 연관 일감으로 단다(§계층·연관).
+- **제목 상태 아이콘**: 정리 단계에서 각 Phase 일감 제목 맨 앞에 최종 판정 아이콘을 붙인다 — 세 책임 통과·잔여 없음 🟢 / 잠정 Pass 잔존 🔵🟣 / 보류 🟠 / 미해소 결함 중단 🔴. 단계 그룹 일감(`[build] …`)에는 종합 판정 아이콘을 붙인다. 상태 전이·노트와 **같은 갱신(PUT 1회)** 으로 처리하고, 재판정 시 **기존 선두 아이콘을 교체**한다(덧붙이지 않음 — [`work-tracking.md`](../strategies/work-tracking.md) §제목 상태 아이콘).
 - **종결 기준**: 자체검증(세 책임) 통과 후 **추가 확인이 필요 없으면 `완료`(닫힘)** 로 닫는다. **잔여 확인 항목**(잠정 Pass 🔵🟣 · 보류 항목 · 사양 결함 제기 · 담당자 판단 대기)이 하나라도 있으면 `해결` 로 두고 그 항목을 노트로 명시한다 — `해결`은 "확인이 더 남았다"는 신호 전용([`work-tracking.md`](../strategies/work-tracking.md) §단계 산출 일감 상태 매핑). 닫을 때는 **하위를 먼저, 부모를 나중에** 닫고 전이를 `GET /issues/<id>.json`(`status`·`closed_on`)으로 **실측 검증**한다([`work-tracking-redmine.md`](../strategies/work-tracking-redmine.md) §도구 함정).
 - **IA**: 작업 범위는 IA 노드 기준. 영향 IA 이력 entry 는 **작업 doer 가 산출물 commit 직전 추가**하고, 본 에이전트는 평가 확정 시 해당 row 의 상태만 갱신한다([`ia.md`](../strategies/ia.md)·[`ia-history.md`](../strategies/ia-history.md) §책임 분담).
 
