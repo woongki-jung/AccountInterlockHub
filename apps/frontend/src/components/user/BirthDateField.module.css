@@ -50,7 +50,10 @@
   font-family: var(--font-family-base);
 }
 
-.input:focus {
+/* :not(.inputError) 로 에러 상태를 제외한다 — 에러 시 입력은 `input inputError` 두 클래스를 함께
+ * 받는데(BirthDateField.tsx), 이 규칙이 그냥 `.input:focus`(특이도 0,2,0)면 `.inputError`(0,1,0)보다
+ * 우선해 복호화 실패(EX-SEC-006) 자동 포커스 시 danger 경계가 primary 에 가려진다(오류 #465). */
+.input:focus:not(.inputError) {
   border-color: var(--color-primary);
 }
 
