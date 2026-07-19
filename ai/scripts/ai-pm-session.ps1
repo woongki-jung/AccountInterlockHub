@@ -49,11 +49,22 @@ Remove-Item -Path $restartFlag, $stopFlag -Force -ErrorAction SilentlyContinue
 if (-not (Test-Path $configJson)) {
   throw "[ai-pm-session] $configJson 없음 — config.json(exec_machine·redmine_projects·ops_status_issue)을 두세요."
 }
+$botConfig = $null
+try { $botConfig = Get-Content $configJson -Raw | ConvertFrom-Json } catch {}
 $execMachine = $null
-try { $execMachine = (Get-Content $configJson -Raw | ConvertFrom-Json).exec_machine } catch {}
+if ($botConfig) { $execMachine = $botConfig.exec_machine }
 if (-not $execMachine) {
   throw "[ai-pm-session] config.json 에 exec_machine(지정 실행 장비) 미지정 — ai/strategies/ai-pm.md §운영 모델 참조."
 }
+
+# --- 워처(1계층) 설정 — 코드 폴링으로 '처리할 작업 유무'만 판정한다(LLM 미사용·토큰 0).
+#     세션(2계층)은 작업이 있을 때만 기동한다 — ai/strategies/ai-pm.md §운영 모델(2계층). ---
+$watchProjects  = @()
+if ($botConfig -and $botConfig.redmine_projects) { $watchProjects = @($botConfig.redmine_projects) }
+$wsTrackerId    = if ($botConfig -and $botConfig.worksession_tracker_id) { [int]$botConfig.worksession_tracker_id } else { 7 }
+$watchIntervalSec   = if ($botConfig -and $botConfig.watch_interval_sec) { [int]$botConfig.watch_interval_sec } else { 60 }
+$postRunCooldownSec = if ($botConfig -and $botConfig.post_run_cooldown_sec) { [int]$botConfig.post_run_cooldown_sec } else { 15 }
+$stateFile = Join-Path $sessionDir 'state.json'   # 워터마크 + in-flight 레지스트리(세션 경계를 넘는 유일한 상태)
 if ($env:COMPUTERNAME -ne $execMachine) {
   throw "[ai-pm-session] 실행 장비 불일치 — 지정: $execMachine / 현재: $env:COMPUTERNAME. ai-pm 은 지정 실행 장비에서만 기동한다."
 }
@@ -196,6 +207,67 @@ if ($wdExisting) {
   Write-Host "[ai-pm-session] 워치독 기동 (PID $($wdProc.Id)) — 세션 생존·폴링 하트비트 5초 간격 감시" -ForegroundColor DarkGray
 }
 
+# --- 워처(1계층) — Redmine 을 코드로 폴링해 '처리할 작업이 있는가'만 판정한다.
+#     LLM 을 쓰지 않으므로 '변화 없음' 틱의 토큰 비용이 0 이다(기존: 매 틱 max-effort 세션 턴).
+#     판정 규칙은 ai/strategies/ai-pm.md §처리 대상 식별과 동일하며, 코드로 판정 가능한 조건만 쓴다. ---
+function Read-AiPmState {
+  if (Test-Path $stateFile) {
+    try { return Get-Content $stateFile -Raw -Encoding UTF8 | ConvertFrom-Json } catch {}
+  }
+  return $null
+}
+function Get-Watermark {
+  $s = Read-AiPmState
+  if ($s -and $s.watermark_journal_id) { return [int]$s.watermark_journal_id }
+  return 0
+}
+function Get-InflightCount {
+  $s = Read-AiPmState
+  if ($s -and $s.inflight) { return @($s.inflight).Count }
+  return 0
+}
+function Test-AiPmWork {
+  # 반환: 처리 사유 문자열(작업 있음) 또는 $null(작업 없음).
+  param([string]$Base, [string]$Key, [int]$BotUserId)
+  $h = @{ 'X-Redmine-API-Key' = $Key }
+  # ① in-flight 가 남아 있으면 무조건 세션 필요 — 진척 점검·완료 회신·비정상 종료 정리 대상.
+  $inflight = Get-InflightCount
+  if ($inflight -gt 0) { return "in-flight $inflight 건 (진척 점검·완료 회신)" }
+  $wm = Get-Watermark
+  foreach ($proj in $watchProjects) {
+    $url = "$Base/issues.json?project_id=$proj&tracker_id=$wsTrackerId&status_id=*&limit=100"
+    $list = Invoke-RestMethod -Uri $url -Headers $h -TimeoutSec 20
+    foreach ($i in $list.issues) {
+      # ② 담당자 차례로 넘어온 작업세션 이슈(미착수)
+      if ($i.status.name -eq '신규' -or $i.status.name -eq '의견') { return "#$($i.id) 상태=$($i.status.name)" }
+      # ③ 워터마크 이후 '담당자(=봇 아님)' 노트가 추가된 이슈
+      $d = Invoke-RestMethod -Uri "$Base/issues/$($i.id).json?include=journals" -Headers $h -TimeoutSec 20
+      foreach ($j in $d.issue.journals) {
+        if ([int]$j.id -gt $wm -and $j.user -and [int]$j.user.id -ne $BotUserId) {
+          return "#$($i.id) 새 노트 journal=$($j.id) by $($j.user.name)"
+        }
+      }
+    }
+  }
+  return $null
+}
+
+# 워처가 쓸 Redmine 접속·봇 정체성 — 없으면 워처를 끄고 상시 세션(구 동작)으로 폴백한다.
+$watchEnabled = $false
+$botUserId = 0
+if ($env:REDMINE_BASE_URL -and $env:REDMINE_API_KEY -and $watchProjects.Count -gt 0) {
+  try {
+    $me = Invoke-RestMethod -Uri "$($env:REDMINE_BASE_URL)/users/current.json" -Headers @{ 'X-Redmine-API-Key' = $env:REDMINE_API_KEY } -TimeoutSec 20
+    $botUserId = [int]$me.user.id
+    $watchEnabled = $true
+    Write-Host "[ai-pm-session] 워처 활성 — 봇 계정 user $botUserId ($($me.user.login)), 감시 프로젝트: $($watchProjects -join ', '), 주기 ${watchIntervalSec}s" -ForegroundColor DarkGray
+  } catch {
+    Write-Host "[ai-pm-session] 워처 비활성 — Redmine 접속 실패($($_.Exception.Message)). 상시 세션 모드로 폴백" -ForegroundColor Yellow
+  }
+} else {
+  Write-Host "[ai-pm-session] 워처 비활성 — REDMINE_BASE_URL/API_KEY 또는 redmine_projects 미설정. 상시 세션 모드로 폴백" -ForegroundColor Yellow
+}
+
 # --- 세션 모델 — 봇 정의 frontmatter `model:` 단일 출처. `model fallback:` 은 1차 모델 기동 불가 시 대체 모델. ---
 $primaryModel  = ''
 $fallbackModel = ''
@@ -222,7 +294,30 @@ if ($effort -and ($validEffort -notcontains $effort)) {
 }
 
 try {
+  $noAdvanceCount = 0   # 세션이 워터마크를 못 올린 채 연속 기동된 횟수(무한 재기동 방지)
   while ($true) {
+    # --- 1계층 워처 — 처리할 작업이 생길 때까지 코드 폴링으로 대기(토큰 0). ---
+    if ($watchEnabled) {
+      $reason = $null
+      while ($true) {
+        if (Test-Path $stopFlag) { break }
+        try { $reason = Test-AiPmWork -Base $env:REDMINE_BASE_URL -Key $env:REDMINE_API_KEY -BotUserId $botUserId }
+        catch { Write-Host "[ai-pm-session] 워처 폴링 예외: $($_.Exception.Message)" -ForegroundColor Yellow; $reason = $null }
+        if ($reason) { break }
+        Start-Sleep -Seconds $watchIntervalSec
+      }
+      if (Test-Path $stopFlag) {
+        Remove-Item $stopFlag -Force -ErrorAction SilentlyContinue
+        Write-Host "[ai-pm-session] .stop flag 감지 — 워처 종료"
+        break
+      }
+      Write-Host ""
+      Write-Host "[ai-pm-session] 처리 대상 감지 → 세션 기동: $reason" -ForegroundColor Green
+      # 기동 직전 하트비트 baseline — 첫 턴이 길어도 워치독이 오탐하지 않도록.
+      Set-Content -Path $lastPollFile -Value ((Get-Date).ToString('o')) -Encoding UTF8 -ErrorAction SilentlyContinue
+    }
+    $wmBefore = if ($watchEnabled) { Get-Watermark } else { 0 }
+
     $claudeArgs = @('--dangerously-skip-permissions')
     if ($mcpArgs) { $claudeArgs += $mcpArgs }
     if ($activeModel) { $claudeArgs += @('--model', $activeModel) }
@@ -267,7 +362,30 @@ try {
       continue
     }
 
-    # 비대화식(스케줄러 등)에서는 Read-Host 가 블로킹/실패한다 — 프롬프트 없이 루프를 종료한다.
+    # --- 세션 자연 종료 — 워처 모드에서는 '작업 사이클 완료'를 뜻한다(정상). 다시 워처로 돌아가 대기한다. ---
+    if ($watchEnabled) {
+      $wmAfter = Get-Watermark
+      $inflight = Get-InflightCount
+      if ($wmAfter -le $wmBefore -and $inflight -eq 0) {
+        # 워터마크가 안 올랐는데 in-flight 도 없다 = 세션이 처리 기록을 남기지 못하고 끝났다.
+        # 그대로 두면 같은 사유로 무한 재기동하므로 백오프한다.
+        $noAdvanceCount++
+        if ($noAdvanceCount -ge 3) {
+          Write-Host "[ai-pm-session] 경고: 워터마크 미갱신 세션이 ${noAdvanceCount}회 연속 — 5분 백오프(담당자 확인 필요)" -ForegroundColor Red
+          Start-Sleep -Seconds 300
+        } else {
+          Write-Host "[ai-pm-session] 워터마크 미갱신(${noAdvanceCount}회) — ${postRunCooldownSec}s 후 재확인" -ForegroundColor Yellow
+          Start-Sleep -Seconds $postRunCooldownSec
+        }
+      } else {
+        $noAdvanceCount = 0
+        Write-Host "[ai-pm-session] 작업 사이클 완료 (watermark $wmBefore→$wmAfter, in-flight $inflight) — 워처 대기로 복귀" -ForegroundColor DarkGray
+        Start-Sleep -Seconds $postRunCooldownSec
+      }
+      continue
+    }
+
+    # --- 워처 비활성(폴백) — 기존 동작: 비대화식은 종료, 대화식은 재기동 여부 확인. ---
     $interactive = $false
     try { $interactive = [Environment]::UserInteractive -and -not [Console]::IsInputRedirected } catch {}
     if (-not $interactive) {
