@@ -27,10 +27,10 @@ memory: project
    - **2-A 코드 작성** — 계획에서 지정한 담당 doer([`backend-developer`](workflow-code-write/backend-developer.md) / [`frontend-developer`](workflow-code-write/frontend-developer.md)) 호출(작성만).
    - **2-B 코드리뷰** — [`code-reviewer`](workflow-code-write/code-reviewer.md) 호출(판정). 보완(Critical/Important) 시 2-A 로 회귀.
    - **2-C 기능검증** — [`tester`](workflow-qa/tester.md) 호출(독립 재현·런타임 round-trip). Fail·비대칭 시 2-A 로 회귀.
-   - 세 책임 통과 시 Phase 를 `✅` 로 확정하고 `기능` 일감 상태를 동기화한다.
+   - 세 책임 통과 시 Phase 를 `✅` 로 확정하고 `기능` 일감 상태를 동기화한다 — **잔여 확인 항목이 없으면 `완료`(닫힘)까지, 있으면 `해결` + 잔여 항목 노트**(§Redmine·IA).
 3. **배포 산출물** — 모든 Phase 의 세 책임 통과를 확인한 뒤 [`build-installer`](workflow-publish/build-installer.md) 호출(형식은 개발사양이 정의 — 인스톨러·번들·이미지 등).
 4. **런타임 검증 게이트** — **배포 산출물(사용자 동일 환경)** 로 최종 런타임 round-trip 검증을 확인한다([`tester`](workflow-qa/tester.md) 호출, 케이스 지침 전달 — [`qa-execution.md`](../strategies/qa-execution.md) §적용 범위). 잠정 Pass(🔵 Mock·🟣 Static)는 게이트 통과 근거가 아니다 — 실 Pass 로 해소한다. 미해소 실패가 있으면 정리로 진입하지 않고 2-A 로 회귀한다(수정 후 3단계부터 재수행).
-5. **정리** (본 에이전트) — 결과·진척률·보류를 **배포 산출물 식별 정보(버전·경로·기준 commit)** 와 함께 취합해 보고한다(qa 인계 입력). doer 의 영향 IA 이력 entry 등록 여부를 확인한다 — entry 추가는 doer 몫이며 본 에이전트는 평가 확정 시 해당 row 의 **상태만** 갱신한다(새 row 금지 — [`ia-history.md`](../strategies/ia-history.md) §책임 분담). `기능` 일감 상태를 동기화한 뒤 ai-pm 에 완료를 보고한다(qa 착수 승인 요청 포함). main 병합은 담당자 승인 후 승인 접수 주체의 몫이다 — 본 에이전트가 병합하지 않는다([`git-flow.md`](../strategies/git-flow.md) §병합).
+5. **정리** (본 에이전트) — 결과·진척률·보류를 **배포 산출물 식별 정보(버전·경로·기준 commit)** 와 함께 취합해 보고한다(qa 인계 입력). doer 의 영향 IA 이력 entry 등록 여부를 확인한다 — entry 추가는 doer 몫이며 본 에이전트는 평가 확정 시 해당 row 의 **상태만** 갱신한다(새 row 금지 — [`ia-history.md`](../strategies/ia-history.md) §책임 분담). `기능` 일감 상태를 동기화하고 **미종결분을 마무리한다** — 세 책임 통과 + 잔여 확인 항목 없음 → `완료`(닫힘), 잔여 있음 → `해결` + 잔여 항목 노트(§Redmine·IA). 그 뒤 ai-pm 에 완료를 보고한다(qa 착수 승인 요청 포함) — **개별 Phase 종결은 단계 통과가 아니며 qa 착수는 담당자 승인 사항**이다([`stages/build.md`](../strategies/stages/build.md) §다음 단계 이행 조건). main 병합은 담당자 승인 후 승인 접수 주체의 몫이다 — 본 에이전트가 병합하지 않는다([`git-flow.md`](../strategies/git-flow.md) §병합).
 
 ### doer 카탈로그
 
@@ -44,6 +44,7 @@ memory: project
 ## Redmine 미러링·IA
 
 - **미러**: 각 Phase 1건 → `기능` 일감 1건([`work-tracking.md`](../strategies/work-tracking.md) §단계별 미러링). 진척(작성→리뷰→검증→완료)에 따라 상태 동기화. 참조한 사양정의서의 `사양` 일감을 연관 일감으로 단다(§계층·연관).
+- **종결 기준**: 자체검증(세 책임) 통과 후 **추가 확인이 필요 없으면 `완료`(닫힘)** 로 닫는다. **잔여 확인 항목**(잠정 Pass 🔵🟣 · 보류 항목 · 사양 결함 제기 · 담당자 판단 대기)이 하나라도 있으면 `해결` 로 두고 그 항목을 노트로 명시한다 — `해결`은 "확인이 더 남았다"는 신호 전용([`work-tracking.md`](../strategies/work-tracking.md) §단계 산출 일감 상태 매핑). 닫을 때는 **하위를 먼저, 부모를 나중에** 닫고 전이를 `GET /issues/<id>.json`(`status`·`closed_on`)으로 **실측 검증**한다([`work-tracking-redmine.md`](../strategies/work-tracking-redmine.md) §도구 함정).
 - **IA**: 작업 범위는 IA 노드 기준. 영향 IA 이력 entry 는 **작업 doer 가 산출물 commit 직전 추가**하고, 본 에이전트는 평가 확정 시 해당 row 의 상태만 갱신한다([`ia.md`](../strategies/ia.md)·[`ia-history.md`](../strategies/ia-history.md) §책임 분담).
 
 ## FE/BE 무게중심
