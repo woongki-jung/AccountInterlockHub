@@ -38,7 +38,14 @@ export class EntryRateLimitMiddleware implements NestMiddleware {
 
   async use(req: Request, res: Response, next: NextFunction): Promise<void> {
     // 스코프 판별(FN-014) — 본 미들웨어가 적용되는 두 경로(InterlockModule.configure) 중 하나로 귀속시킨다.
-    const scope = req.path.startsWith('/api/consent') ? 'consent' : 'approve';
+    // 원본 요청 URL(req.originalUrl, 쿼리 제외)로 판별한다: NestJS 는 forRoutes 경로마다 미들웨어를
+    // Express app.use('/api/consent', ...) 형태로 마운트하므로 미들웨어 내부에서 req.path·req.url 은
+    // 마운트 상대경로(consent 요청이면 '/:accessAddressId' 값만, prefix 는 req.baseUrl 로 이동)로
+    // 재작성돼 절대 '/api/consent' 로 시작하지 않는다. req.path 로 판별하면 consent 가 항상 approve 로
+    // 오분류돼 두 스코프가 한 버킷을 공유하고 감사 target 이 늘 approve 가 된다(오류 #464). req.originalUrl
+    // 은 마운트에 의해 재작성되지 않는 원본 경로라 두 경로를 정확히 구분한다.
+    const requestPath = req.originalUrl.split('?')[0];
+    const scope = requestPath.startsWith('/api/consent') ? 'consent' : 'approve';
 
     // 출발지(원 클라이언트) IP 기준으로 요청을 센다(OPS-001·FN-014). 관리자 IP 게이트(AdminIpMiddleware)와
     // 동일 규칙으로 TRUST_PROXY 시 X-Forwarded-For 최좌측을, 아니면 소켓 원 IP 를 쓴다(source-ip.util).

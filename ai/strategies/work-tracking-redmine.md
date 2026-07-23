@@ -59,6 +59,8 @@ docker exec -e SECRET_KEY_BASE_DUMMY=1 redmine bin/rails runner /tmp/<script>.rb
 ## 도구 함정 (Redmine MCP)
 
 - **`create_issue` 가 `tracker_id`·`status_id` 무시**(priority·assignee 는 반영) → `redmine_request` 로 생성하거나 생성 후 PUT 으로 교정.
+- **`update_issue` 가 부분 실패를 성공으로 삼킴** — `notes`+`status_id` 를 함께 보냈는데 Redmine 이 상태 전이만 거부해도 응답은 `{"ok":true}` 다(노트만 남고 상태는 그대로). → **상태 전이는 응답을 믿지 말고 `GET /issues/<id>.json` 의 `status`·`closed_on` 으로 실측 검증**한다. 특히 `해결`→`완료`(닫힘).
+- **열린 하위가 있으면 부모 close 가 거부된다** → 종결은 **하위 먼저, 부모 나중** 순서로 수행한다(위 함정과 겹치면 부모가 안 닫힌 채 성공으로 보인다).
 - **`create_project` 는 기본 트래커만 활성** → §프로젝트 생성 표준 절차 2번으로 보완.
 - **admin 화면 전용(REST 생성 불가)**: 커스텀 필드·트래커·상태·워크플로 전이·역할·우선순위 → 이 객체들에 의존하지 않는 설계를 유지한다.
 - PUT/DELETE 성공 시 응답 본문이 비어 있다(HTTP 204).

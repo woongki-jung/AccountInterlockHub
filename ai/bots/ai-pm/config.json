@@ -4,5 +4,9 @@
     "exec_machine": "WOONGS-WORK",
     "redmine_projects": ["ai-workgroup-ops", "accountinterlockhub"],
     "ops_status_issue": 406,
-    "_comment": "ai-pm Redmine 폴링 오케스트레이터 설정 — ai/strategies/ai-pm.md §런타임 구성 요소. exec_machine=지정 실행 장비(단일 출처), redmine_projects=감시(폴링) 프로젝트 식별자, ops_status_issue=운영 상태 공지 상시 작업세션 이슈 번호."
+    "worksession_tracker_id": 7,
+    "watch_interval_sec": 60,
+    "post_run_cooldown_sec": 15,
+    "_comment": "ai-pm Redmine 폴링 오케스트레이터 설정 — ai/strategies/ai-pm.md §런타임 구성 요소. exec_machine=지정 실행 장비(단일 출처), redmine_projects=감시(폴링) 프로젝트 식별자, ops_status_issue=운영 상태 공지 상시 작업세션 이슈 번호.",
+    "_comment_watcher": "1계층 워처(래퍼가 코드로 수행, LLM 미사용) 설정 — worksession_tracker_id=작업세션 트래커 id(감지 대상 한정), watch_interval_sec=작업 유무 폴링 주기, post_run_cooldown_sec=세션 종료 후 워처 복귀 전 대기. ai/strategies/ai-pm.md §운영 모델(2계층)."
 }
