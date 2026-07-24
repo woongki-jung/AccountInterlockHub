@@ -4,6 +4,7 @@
 
 | 일시 (KST) | 단계 | 산출물·결과 | 관련 일감 | 상태 |
 |---|---|---|---|---|
+| 2026-07-18 23:16 | qa ⓒ | (공통 반영) `#416` Wave 3(최종) SCEN_001~006 E2E 여정 재검증 6/6 Pass(🟢3·🔵3, SCEN_001·004·006 처리상태 조회 경유) — common.md | `accountinterlockhub#416` | ℹ️ |
 | 2026-07-12 23:55 | build | #237 처리상태 응답 trackingKey 원문 에코 확정(FN-010 정본·spec 자기모순 해소) + #240 주입 TC 정책 정합 — 사양 `process_PROC-301.md`(B6 응답 원문 에코·EX-SEC-004 주입행 바인딩 단독 방어 정정)·`service_SVC-006.md`·`spec-services.md`(MDL-302)·TC `tc_API-01`(_001·_007 원문 에코, _008 주입→404 EX-DATA-003). **코드 무변경**(status.service.ts 이미 원문 에코 `row.tracking_key`·바인딩 준수, qa 실측 정합) | `accountinterlockhub#237`·`#240`·`#236` | ✅ |
 | 2026-07-12 22:00 | qa | API-01_001~010 검증 → 8 Pass·2 Fail(007 응답 trackingKey 마스킹 spec자기모순·008 주입TC). HMAC 인증·멱등 결과확인 실증. 오류 #237/240 | `accountinterlockhub#236` | 🚧 |
 | 2026-07-12 12:20 | build | `status.controller.ts`·`status.service.ts` 재키잉(P7, build #224) — `GET /api/status/:requestKey`(UUID v4 검증)→`:trackingKey`(불투명·비유니크, UUID_V4_PATTERN 폐기). FN-007 형식 검증(비공백·MaxLength255, 위반 400 EX-DATA-002)·FN-009 조회(tracking_key, processed_at DESC LIMIT 1, IX_STATUS_TRACKING, 미존재 404 EX-DATA-003)·결과 확인 갱신(surrogate id 스코프 멱등 UPDATE, BR-301)·응답 trackingKey 원문 에코(MDL-302, configId·회원 키 배제). STATUS_CHECK 감사 신설(OPS-002 적용 PROC-301 대칭, trackingKey 마스킹). ServiceApiGuard·ServiceApiAuthService 인증실패 감사 대상 필드 requestKey→trackingKey 동반 개정(app.module.ts·decorator 주석 포함). npm run build 0 에러. BAT-01(저장 측 FN-009)은 P5 기완료·본 Phase 미접촉 | `accountinterlockhub#231` | ✅ |
