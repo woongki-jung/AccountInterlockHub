@@ -118,6 +118,7 @@ param(
   [Parameter(Mandatory=$true)][string]$WatchdogLog,
   [Parameter(Mandatory=$true)][string]$LastPollFile,
   [Parameter(Mandatory=$true)][string]$WrapperTag,
+  [string]$StateFile = '',
   [int]$StallThresholdSec = 600,
   [int]$StallCooldownSec = 600
 )
@@ -151,6 +152,16 @@ function Get-PollAgeSec {
   } catch {}
   return $null
 }
+function Get-InflightCountWd {
+  # state.json 의 in-flight 건수. 못 읽으면 0(유휴 회수 쪽 안전 — 무한 재기동 방지).
+  try {
+    if ($StateFile -and (Test-Path $StateFile)) {
+      $s = Get-Content $StateFile -Raw -Encoding UTF8 | ConvertFrom-Json
+      if ($s -and $s.inflight) { return @($s.inflight).Count }
+    }
+  } catch {}
+  return 0
+}
 
 Write-WdLog "start (pid: $PID, stall>=${StallThresholdSec}s, heartbeat: $LastPollFile)"
 $stallCooldownUntil = $null
@@ -168,15 +179,25 @@ while ($true) {
       # 세션 생존 — 폴링 하트비트 정체 감지
       $age = Get-PollAgeSec
       if (($null -ne $age) -and ($age -ge $StallThresholdSec)) {
-        if (-not $stallWindowStart -or (($now - $stallWindowStart).TotalHours -ge 1)) { $stallWindowStart = $now; $stallCount = 0 }
-        if ($stallCount -ge 3) {
-          Write-WdLog "폴링 정체 지속 — 1시간 내 3회 재기동 초과. 자동 재기동 중단, 담당자 확인 필요 (poll-age=${age}s)"
-        } else {
-          Write-WdLog "폴링 정체 감지 (하트비트 ${age}s 정체 >= ${StallThresholdSec}s) — .restart + 세션 강제 재기동"
-          try { New-Item -ItemType File -Path $RestartFlag -Force | Out-Null } catch {}
-          foreach ($sp in $sessionPids) { Stop-Process -Id $sp -Force -ErrorAction SilentlyContinue; Write-WdLog "  세션 PID $sp 종료(재기동 유도)" }
-          $stallCount++
+        $inflight = Get-InflightCountWd
+        if ($inflight -le 0) {
+          # in-flight 0 = 작업 사이클을 마치고 유휴로 들어간 세션(2계층 세션 수명 — 정상 회수 대상).
+          # 헤드리스 claude 는 스스로 프로세스를 끝내지 못하므로 워치독이 회수한다. .restart 를 걸지
+          # 않아 래퍼가 워처 대기(토큰 0)로 복귀하게 하고, 백오프 카운트에도 넣지 않는다(정상 회수 ≠ 결함).
+          foreach ($sp in $sessionPids) { Stop-Process -Id $sp -Force -ErrorAction SilentlyContinue; Write-WdLog "유휴 세션 회수 PID $sp (in-flight 0, 완료 사이클 — 워처 복귀, 재기동 아님, poll-age=${age}s)" }
           $stallCooldownUntil = $now.AddSeconds($StallCooldownSec)
+        } else {
+          # in-flight > 0 인데 하트비트 정체 = 작업 중 세션이 멈춤(진짜 hang) — 재기동해 재개시킨다.
+          if (-not $stallWindowStart -or (($now - $stallWindowStart).TotalHours -ge 1)) { $stallWindowStart = $now; $stallCount = 0 }
+          if ($stallCount -ge 3) {
+            Write-WdLog "폴링 정체 지속(in-flight $inflight) — 1시간 내 3회 재기동 초과. 자동 재기동 중단, 담당자 확인 필요 (poll-age=${age}s)"
+          } else {
+            Write-WdLog "폴링 정체 감지 (in-flight $inflight, 하트비트 ${age}s >= ${StallThresholdSec}s) — .restart + 세션 강제 재기동"
+            try { New-Item -ItemType File -Path $RestartFlag -Force | Out-Null } catch {}
+            foreach ($sp in $sessionPids) { Stop-Process -Id $sp -Force -ErrorAction SilentlyContinue; Write-WdLog "  세션 PID $sp 종료(재기동 유도)" }
+            $stallCount++
+            $stallCooldownUntil = $now.AddSeconds($StallCooldownSec)
+          }
         }
       }
     }
@@ -201,6 +222,7 @@ if ($wdExisting) {
     '-RestartFlag', "`"$restartFlag`"",
     '-WatchdogLog', "`"$watchdogLog`"",
     '-LastPollFile', "`"$lastPollFile`"",
+    '-StateFile', "`"$stateFile`"",
     '-WrapperTag', $wrapperTag
   )
   $wdProc = Start-Process -FilePath 'powershell.exe' -ArgumentList $wdArgs -WindowStyle Hidden -PassThru

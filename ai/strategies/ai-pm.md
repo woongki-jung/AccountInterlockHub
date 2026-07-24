@@ -141,12 +141,12 @@ ai-pm 의 경계는 "어느 작업을 누구에게 맡길지"와 "결과를 작�
 
 ## 단계 연결 (base-workflow 4단계)
 
-ai-pm 은 [`base-workflow.md`](base-workflow.md) 4단계 작업의 시작·종료를 작업세션 이슈로 매개한다.
+ai-pm 은 [`base-workflow.md`](base-workflow.md) 4단계 작업의 시작·종료를 작업세션 이슈로 매개하며, 요청 내용으로 **directing(준비) / 제품 루프(spec·build·qa) 둘로 분기**한다 — 방향 설정·신규·방향 변경이면 directing, 사양·구현·검증이면 제품 루프.
 
-- **directing** — ai-pm 이 작업세션 이슈에서 담당자와 **직접 노트 대화로 진행**한다(별도 서브에이전트 없이 ai-pm 이 퍼실리테이션). 방향 정의서를 도출하고 그 작업을 Redmine 일감으로 추적한다. 상세는 [`stages/directing.md`](stages/directing.md).
-- **spec · build · qa** — 작업 맥락을 전달해 단계 오케스트레이터 서브에이전트를 디스패치한다. 서브에이전트가 작업을 수행하며 관련 Redmine 일감(들)을 등록·반영한다. 단계 흐름은 `stages/` 각 문서, 에이전트 바인딩은 [`agents.md`](agents.md) 가 정본이다.
+- **directing** — ai-pm 이 작업세션 이슈에서 담당자와 **직접 노트 대화로 진행**한다(별도 방향 작성 서브에이전트 없이 ai-pm 이 퍼실리테이션하되, 요구사항 세분화·루프 진입 준비도 평가는 평가 doer `prd-reviewer` 를 반복 호출). 방향 정의서·IA·프로그램 구성표·개발사양·환경 값을 도출하고 그 작업을 Redmine 일감으로 추적한다. 상세는 [`stages/directing.md`](stages/directing.md).
+- **제품 루프 (spec · build · qa)** — 개별 단계를 따로 디스패치하지 않고 **제품 루프 오케스트레이터([`product-loop`](../agents/product-loop.md)) 1개를 디스패치**한다. 오케스트레이터가 spec→build→qa 를 하이브리드(체크포인트) 승인으로 순서 제어하며 각 단계 오케스트레이터를 하위 호출한다 — 단계 전이 자동/승인 규칙은 [`base-workflow.md`](base-workflow.md) §단계 진행 모델, 단계 흐름은 `stages/` 각 문서, 에이전트 바인딩은 [`agents.md`](agents.md) 가 정본이다. 어느 단계 진입점 요청이든 이 오케스트레이터를 통한다(단일 창구).
 
-각 단계 작업의 브랜치·커밋·병합은 [`git-flow.md`](git-flow.md) 를 따른다 — directing 의 브랜치(`directing/<이슈번호>-<주제>`) 생성과 단계 승인 후 main 병합은 ai-pm 이 수행한다.
+브랜치·커밋·병합은 [`git-flow.md`](git-flow.md) 를 따른다 — directing 은 `directing/<이슈번호>-<주제>`, 제품 루프는 **단일 루프 브랜치**(`loop/<이슈번호>-<주제>`, §제품 루프 브랜치). 브랜치 생성은 각 오케스트레이터가, **체크포인트 승인 후 main 병합은 ai-pm(승인 접수 주체)** 이 수행한다.
 
 ## 런타임 구성 요소
 
