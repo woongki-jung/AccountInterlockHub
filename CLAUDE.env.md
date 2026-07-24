@@ -27,6 +27,31 @@
 | ----------- | --------------------- | ----------------- |
 | `<PROJECT>` | `AccountInterlockHub` | 워크스페이스 전역 프로젝트명.  |
 
+## 연동 구성 상수
+
+이 서비스의 연동 구성은 **배포 시점 상수**이며 본 절이 단일 출처다([`docs/prd/PRD.md`](docs/prd/PRD.md) §시스템 제약사항). 값은 배포 시 애플리케이션 설정으로 주입되고, 변경은 재배포로만 반영된다([`docs/prd/devspec/infra.md`](docs/prd/devspec/infra.md) §연동 구성 상수 주입). 연동은 **하나의 발송처 ↔ 하나의 수신처 1:1 고정**이므로 각 값은 하나씩만 존재한다.
+
+| 변수 | 값 | 설명 |
+| ---- | -- | ---- |
+| `<INTERLOCK_ENTRY_PATH>` | TBD | 사용자 진입 경로. 발송처가 이 경로에 `encX`·`encY`를 붙여 사용자를 유도한다 |
+| `<HUB_BASE_URL_PROD>` | TBD | 운영 환경 허브 기준 URL. 연동 라이브러리의 요청 URL 생성 입력 |
+| `<HUB_BASE_URL_DEV>` | TBD | 개발·로컬 환경 허브 기준 URL |
+| `<RECEIVER_DELIVERY_URL>` | TBD | 수신처(서비스 B) 전달 주소. 승인·복호화 완료 시 전달 데이터(X)를 보내는 대상 |
+| `<CONSENT_ITEMS>` | TBD | 사용자에게 노출할 동의 항목 목록(항목명·필수 여부·설명) |
+| `<CONSENT_NOTICE>` | TBD | 동의 대상 설명 문구(사용자 화면 상단 안내). 미설정 시 미표시 |
+| `<RETENTION_MONTHS>` | `3` | 연동 추적 레코드 보관 기간(개월). 결과 확인 완료 기준 |
+
+> 발송처키는 **비밀 값**이므로 본 파일에 두지 않는다([`document-master-guide.md`](ai/strategies/document-master-guide.md) §경로·이름 표기 — 비밀 값 제외). 위치 확정은 담당자 대기 항목이다([`docs/prd/PRD.md`](docs/prd/PRD.md) §미결·확인 필요).
+
+## 연동 라이브러리 식별자
+
+발송처에 제공하는 암호화·요청 URL 생성 라이브러리의 소스·산출물 값이다([`docs/prd/devspec/infra.md`](docs/prd/devspec/infra.md) §연동 라이브러리 배포). 구현 기술스택 확정 후 채운다.
+
+| 변수 | 값 | 용도 |
+| ---- | -- | ---- |
+| `<LIB_SRC_DIR>` | TBD | 연동 라이브러리 소스 경로 |
+| `<LIB_BIN>` | TBD | 배포 산출물(라이브러리 파일)명 |
+
 ## 관리 도구 식별자
 
 | 변수                  | 값                          | 용도                                                                                                                                                     |
