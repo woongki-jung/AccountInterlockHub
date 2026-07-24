@@ -19,8 +19,10 @@ import { InterlockService } from './interlock.service';
  *
  * 요청 제한(FN-014, EntryRateLimitStore·Middleware)은 본 모듈이 GET /api/consent/:accessAddressId
  * (PROC-201)·POST /api/interlock/approve(PROC-202) 양쪽에 선적용한다(`#214`(P5) 로 구 POST /interlock/entry
- * 단일 진입점에서 재배치 — 경로는 ConsentController 가 다른 모듈(ConsentModule)에 있어도 Nest 미들웨어는
- * 애플리케이션 전역 라우팅 기준으로 매칭되므로 문제없다, AdminIpMiddleware 와 동일 패턴).
+ * 단일 진입점에서 재배치 — ConsentController 가 다른 모듈(ConsentModule)에 있어도 forRoutes 경로 매칭으로
+ * 두 경로 모두에 부착된다). 단, NestJS 는 forRoutes 경로마다 미들웨어를 Express app.use(path, ...) 로
+ * 마운트하므로 미들웨어 내부에서 req.path 는 마운트 상대경로로 재작성된다 — 스코프 판별은 원본 경로
+ * req.originalUrl 로 해야 한다(오류 #464, EntryRateLimitMiddleware 참조).
  *
  * AuditService(@Global AuditModule)·DataSource(전역 TypeOrmModule)는 주입으로 쓴다.
  */

@@ -1,81 +1,116 @@
 /*
- * SCR-006 동의 결과 — 헤더 없는 단일 중앙 카드(design-system.md §레이아웃 사용자 셸).
- * 색·간격·타이포·라운딩은 tokens.css 참조(하드코딩 금지). 구조 치수만 px 로 둔다.
+ * SCR-006 동의 결과 — 헤더 없는 단일 중앙 카드(design-system.md §사용자 표면 확장 §레이아웃 사용자 셸,
+ * Card(user)). 색·간격·타이포·라운딩·모션은 tokens.css 의 -u- 접두 토큰을 참조한다(하드코딩 금지).
+ * 구조 치수(브레이크포인트 무관 고정값)만 px 로 둔다. 브레이크포인트는 min-width:640px 로 통일한다
+ * (이월-4 — Phase 1 토큰·ConsentPage.module.css 는 이미 min-width 기준이라, 구 SCR-006 의
+ * max-width:640px 데스크톱퍼스트 관례와 혼용하면 뷰포트 정확히 640px 에서 값이 어긋났다. 본 화면은
+ * Phase 3 에서 전면 재작성 대상이라 이 시점에 통일한다).
  */
 
-/* 페이지 — 중앙 카드, 상하 여백 48px, 모바일 좌우 거터 16px. */
+/* 페이지 — 중앙 카드, 배경 color-u-canvas. 상하 여백은 space-u-shell-y(토큰 자체가 640px 반응형). */
 .page {
   min-height: 100vh;
   display: flex;
   align-items: flex-start;
   justify-content: center;
-  padding: var(--space-12) var(--space-4);
+  background: var(--color-u-canvas);
+  padding: var(--space-u-shell-y) var(--space-4);
 }
 
-/* 결과 카드 — 최대 폭 480px(사용자 셸). 결과 안내는 중앙 정렬. */
-.card {
-  width: 100%;
-  max-width: var(--user-card-max-width);
-  padding: var(--space-8) var(--space-6);
-  text-align: center;
+@media (min-width: 640px) {
+  .page {
+    padding: var(--space-u-shell-y) var(--space-6);
+  }
 }
 
 /*
- * 결과 상태 아이콘(장식용) — 배경은 중립 표면 토큰으로 통일하고, 색 의미는 Badge·문구가 담당한다
- * (상태를 색만으로 전달하지 않음, §의미 전달). 원형 지름은 구조 치수라 px 로 둔다.
+ * Card(user) — 최대 폭 480px·radius-u-card·shadow-u-card·배경 color-bg·외곽선 없음. 상단 4px
+ * color-primary 액센트 라인(::before, overflow:hidden 으로 카드 라운딩에 맞춰 클리핑). 내부 요소는
+ * 전부 중앙 정렬 + 요소 간 space-u-stack(§레이아웃 구성) — flex column+gap 으로 균일 적용(아이콘·배지는
+ * 콘텐츠 크기로 중앙 정렬 유지, 제목·문구·배너는 .stretch 로 카드 폭 전체를 채워 텍스트가 자연히
+ * 줄바꿈되게 한다). 카드 등장은 motion-u-base·ease-u-decelerate(불투명도 0→1 + Y 8px,
+ * ConsentPage.module.css .card 와 동일 패턴) — mount 시 1회만 나타나므로 CSS animation 이 자연히 1회
+ * 재생된다. 결과 상태 아이콘은 이 위에 얹혀 motion-u-slow 로 별도 강조 등장한다(ResultIcon.module.css,
+ * §레이아웃 구성 "결과 상태 아이콘은 ... 1회 등장, 나머지 요소는 motion-u-base").
  */
-.icon {
-  width: 64px;
-  height: 64px;
-  margin: 0 auto var(--space-4);
+.card {
+  position: relative;
+  overflow: hidden;
+  width: 100%;
+  max-width: var(--user-card-max-width);
   display: flex;
+  flex-direction: column;
   align-items: center;
-  justify-content: center;
-  font-size: var(--text-display-size);
-  line-height: 1;
-  border-radius: 50%;
-  background: var(--color-bg-subtle);
-  border: 1px solid var(--color-border);
+  gap: var(--space-u-stack);
+  background: var(--color-bg);
+  border: none;
+  border-radius: var(--radius-u-card);
+  box-shadow: var(--shadow-u-card);
+  padding: var(--space-u-card);
+  text-align: center;
+  animation: resultCardEnter var(--motion-u-base) var(--ease-u-decelerate) both;
 }
 
-/* 결과 Badge 행. */
-.badgeRow {
-  margin-bottom: var(--space-3);
+.card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: var(--color-primary);
+}
+
+@keyframes resultCardEnter {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* 카드 폭 전체를 채우는 텍스트·배너 요소(아이콘·배지는 콘텐츠 크기로 중앙 정렬 유지, 기본값 그대로). */
+.title,
+.message,
+.banner,
+.foot {
+  align-self: stretch;
 }
 
 .title {
-  font-size: var(--text-h1-size);
-  line-height: var(--text-h1-line);
+  font-size: var(--text-u-title-size);
+  line-height: var(--text-u-title-line);
   font-weight: var(--font-weight-bold);
   color: var(--color-text);
-  margin: 0 0 var(--space-3);
-}
-
-.message {
-  font-size: var(--text-body-size);
-  line-height: var(--text-body-line);
-  color: var(--color-text-muted);
   margin: 0;
 }
 
-/* 전달 실패 안내 Banner 영역 — 제목·설명 아래 간격. 배너 본문은 좌측 정렬. */
+.message {
+  font-size: var(--text-u-lead-size);
+  line-height: var(--text-u-lead-line);
+  font-weight: var(--font-weight-regular);
+  color: var(--color-u-text-muted);
+  margin: 0;
+}
+
+/* 안내 Banner(danger·role=alert, 링크 오류 전용) — Banner(user) 자체 규격대로 좌측 정렬 본문. */
 .banner {
-  margin: var(--space-4) 0 0;
   text-align: left;
 }
 
-/* 마무리 보조 문구(text-caption). */
+/* 안내 마무리 문구(text-u-caption). Fallback 은 미렌더(§조건부 표시). */
 .foot {
-  margin: var(--space-4) 0 0;
-  font-size: var(--text-caption-size);
-  line-height: var(--text-caption-line);
-  color: var(--color-text-muted);
+  margin: 0;
+  font-size: var(--text-u-caption-size);
+  line-height: var(--text-u-caption-line);
+  color: var(--color-u-text-muted);
 }
 
-/* 모바일: 카드 좌우 여백 16px 로 전체 폭(design-system §반응형 사용자 카드). */
-@media (max-width: 640px) {
+@media (prefers-reduced-motion: reduce) {
   .card {
-    padding-left: var(--space-4);
-    padding-right: var(--space-4);
+    animation-duration: 0.01ms !important;
   }
 }

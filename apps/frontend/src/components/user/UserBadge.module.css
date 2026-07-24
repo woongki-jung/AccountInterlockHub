@@ -1,0 +1,43 @@
+/*
+ * Badge(user) — design-system.md §컴포넌트 사용자 변형. radius-u-pill·높이 28px·좌우 여백 12px·
+ * 텍스트 12px/700(전용 타이포 토큰 없음 — Button(user) 의 15px/600 과 같은 전례로 크기는 리터럴,
+ * 굵기만 --font-weight-bold 참조). 배경 -bg·텍스트 -fg·1px -border 3종 쌍(완료=success·거부=info·
+ * 링크오류=danger·Fallback=neutral).
+ */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  height: 28px;
+  padding: 0 12px;
+  border-radius: var(--radius-u-pill);
+  font-size: 12px;
+  font-weight: var(--font-weight-bold);
+  border: 1px solid transparent;
+  white-space: nowrap;
+}
+
+.success {
+  background: var(--color-u-success-bg);
+  color: var(--color-u-success-fg);
+  border-color: var(--color-u-success-border);
+}
+
+.info {
+  background: var(--color-u-info-bg);
+  color: var(--color-u-info-fg);
+  border-color: var(--color-u-info-border);
+}
+
+.danger {
+  background: var(--color-u-danger-bg);
+  color: var(--color-u-danger-fg);
+  border-color: var(--color-u-danger-border);
+}
+
+.neutral {
+  background: var(--color-u-neutral-bg);
+  color: var(--color-u-neutral-fg);
+  border-color: var(--color-u-neutral-border);
+}

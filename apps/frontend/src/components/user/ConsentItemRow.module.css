@@ -1,0 +1,156 @@
+/*
+ * ConsentItem(user) — design-system.md §컴포넌트 사용자 변형.
+ * 행 여백 12px 14px·radius-u-control, hover=color-u-row-hover, 체크 시 color-u-row-selected+1px primary.
+ * 필수/선택 태그는 라벨 우측 간격 8px, 필수=700/color-text·선택=400/color-u-text-muted(별표·색 단독 금지).
+ */
+.row {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-2);
+  padding: 12px 14px;
+  border-radius: var(--radius-u-control);
+  border: 1px solid transparent;
+  transition:
+    background-color var(--motion-u-fast) var(--ease-u-standard),
+    border-color var(--motion-u-fast) var(--ease-u-standard);
+}
+
+.row:hover:not(.rowSelected) {
+  background: var(--color-u-row-hover);
+}
+
+.rowSelected {
+  background: var(--color-u-row-selected);
+  border-color: var(--color-primary);
+}
+
+/*
+ * 히트 영역(label, 클릭 시 체크 토글) — align-self:stretch 로 부모 .row 의 렌더 높이를 그대로 채운다
+ * (Phase 3 이월-2). 이전에는 min-height:44px 고정이라 [상세] 버튼이 있는 행에서 라벨 하단 일부가
+ * label·버튼 어느 히트 영역에도 속하지 않는 사각지대였다 — align-self:stretch 는 그 사각지대를
+ * 없애 "히트 영역=항목 행 전체"를 문자 그대로(우연한 일치가 아니라 레이아웃 불변식으로) 충족시킨다.
+ * 렌더 높이(box-sizing:border-box, index.css 전역): [상세] 없는 행 = 라벨 44px(min-height) + 행 패딩
+ * 12px×2 + 투명 보더 1px×2 = 70px. [상세] 있는 행 = ghost-link 버튼 44px(min-height)+margin-top 2px
+ * =46px(라벨 44px 보다 커 행 높이를 결정) + 행 패딩 24px + 보더 2px = 72px(목업은 [상세] 없는 70px
+ * 기준 — 구 주석의 "68px" 은 투명 보더 1px×2 를 빠뜨린 값이었다). 어느 쪽이든 48px 이상이라
+ * design-system Checkbox(user) "히트 영역=항목 행 전체(최소 48px)"와 §사용자 화면 접근성 보강의 일반
+ * 기준 44x44px 를 모두 충족한다. 시각 변화 없음(label 배경은 여전히 투명, .row 자체의 hover·선택
+ * 배경만 보인다 — [상세] 있는 행에서 라벨 박스가 44→46px 로 늘어나는 차이도 육안으로는 무의미하다).
+ */
+.main {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-u-stack);
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 44px;
+  align-self: stretch;
+  cursor: pointer;
+}
+
+.row:has(.checkboxInput:disabled) .main {
+  cursor: not-allowed;
+}
+
+.checkboxWrap {
+  position: relative;
+  flex: none;
+  width: 20px;
+  height: 20px;
+  margin-top: 2px;
+}
+
+.checkboxInput {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 20px;
+  height: 20px;
+  margin: 0;
+  border-radius: var(--radius-sm);
+  border: 2px solid var(--color-u-border);
+  background: var(--color-bg);
+  cursor: pointer;
+  transition:
+    background-color var(--motion-u-fast) var(--ease-u-standard),
+    border-color var(--motion-u-fast) var(--ease-u-standard);
+}
+
+.checkboxInput:checked {
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+}
+
+.checkboxInput:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.checkGlyph {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 12px;
+  height: 10px;
+  transform: translate(-50%, -50%);
+  color: var(--color-text-inverse);
+  pointer-events: none;
+}
+
+.copy {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.topRow {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.itemLabel {
+  flex: 1 1 auto;
+  min-width: 0;
+  font-size: var(--text-u-item-size);
+  line-height: var(--text-u-item-line);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text);
+}
+
+.reqTag {
+  flex: none;
+  font-size: var(--text-u-caption-size);
+  line-height: var(--text-u-caption-line);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text);
+}
+
+.optTag {
+  flex: none;
+  font-size: var(--text-u-caption-size);
+  line-height: var(--text-u-caption-line);
+  font-weight: var(--font-weight-regular);
+  color: var(--color-u-text-muted);
+}
+
+.desc {
+  display: block;
+  font-size: var(--text-u-caption-size);
+  line-height: var(--text-u-caption-line);
+  color: var(--color-u-text-muted);
+}
+
+.detailButton {
+  flex: none;
+  margin-top: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .row,
+  .checkboxInput {
+    transition-duration: 0.01ms !important;
+  }
+}
