@@ -16,7 +16,8 @@ AccountInterlockHub의 인프라·배포 고정값이다. spec·build·qa가 단
 ## 환경 구분
 
 1. **운영(prod)** — Azure App Service + Azure의 PostgreSQL 서비스(Azure Database for PostgreSQL).
-2. **개발·로컬(dev/local)** — 별도로 구축한 PostgreSQL 서버를 사용한다(Azure 미사용). 애플리케이션은 로컬에서 기동한다.
+2. **테스트(test)** — 구성 항목 미정([`../../../CLAUDE.env.md`](../../../CLAUDE.env.md) §경로·제품 명칭 변수).
+3. **개발·로컬(dev/local)** — 별도로 구축한 PostgreSQL 서버를 사용한다(Azure 미사용). 애플리케이션은 로컬에서 기동한다.
 
 - 환경별 접속 정보(연결 문자열 등 비밀 값)는 커밋하지 않으며, 비밀 관리 방식은 build 단계에서 확정한다.
 

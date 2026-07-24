@@ -31,17 +31,29 @@
 
 이 서비스의 연동 구성은 **배포 시점 상수**이며 본 절이 단일 출처다([`docs/prd/PRD.md`](docs/prd/PRD.md) §시스템 제약사항). 값은 배포 시 애플리케이션 설정으로 주입되고, 변경은 재배포로만 반영된다([`docs/prd/devspec/infra.md`](docs/prd/devspec/infra.md) §연동 구성 상수 주입). 연동은 **하나의 발송처 ↔ 하나의 수신처 1:1 고정**이므로 각 값은 하나씩만 존재한다.
 
-| 변수 | 값 | 설명 |
-| ---- | -- | ---- |
-| `<INTERLOCK_ENTRY_PATH>` | TBD | 사용자 진입 경로. 발송처가 이 경로에 `encX`·`encY`를 붙여 사용자를 유도한다 |
-| `<HUB_BASE_URL_PROD>` | TBD | 운영 환경 허브 기준 URL. 연동 라이브러리의 요청 URL 생성 입력 |
-| `<HUB_BASE_URL_DEV>` | TBD | 개발·로컬 환경 허브 기준 URL |
-| `<RECEIVER_DELIVERY_URL>` | TBD | 수신처(서비스 B) 전달 주소. 승인·복호화 완료 시 전달 데이터(X)를 보내는 대상 |
-| `<CONSENT_ITEMS>` | TBD | 사용자에게 노출할 동의 항목 목록(항목명·필수 여부·설명) |
-| `<CONSENT_NOTICE>` | TBD | 동의 대상 설명 문구(사용자 화면 상단 안내). 미설정 시 미표시 |
-| `<RETENTION_MONTHS>` | `3` | 연동 추적 레코드 보관 기간(개월). 결과 확인 완료 기준 |
+### 허브 애플리케이션 주입 값
 
-> 발송처키는 **비밀 값**이므로 본 파일에 두지 않는다([`document-master-guide.md`](ai/strategies/document-master-guide.md) §경로·이름 표기 — 비밀 값 제외). 위치 확정은 담당자 대기 항목이다([`docs/prd/PRD.md`](docs/prd/PRD.md) §미결·확인 필요).
+배포 시 허브 애플리케이션 설정으로 주입되는 값이다.
+
+| 변수 | 값 | 확정 시점 | 설명 |
+| ---- | -- | ------ | ---- |
+| `<INTERLOCK_ENTRY_PATH>` | TBD | spec 진입 전 | 사용자 진입 경로. 발송처가 이 경로에 `encX`·`encY`를 붙여 사용자를 유도한다 |
+| `<RECEIVER_DELIVERY_URL>` | TBD | build 착수 전 (수신처 협의) | 수신처(서비스 B) 전달 주소. 승인·복호화 완료 시 전달 데이터(X)를 보내는 대상 |
+| `<CONSENT_ITEMS>` | TBD | **spec 진입 전** | 사용자에게 노출할 동의 항목 목록. 항목마다 항목명·필수 여부·설명을 갖는 **여러 건**이라 값의 주입 형식(구조화 문자열·별도 설정 파일 등)을 함께 정한다. 화면 사양의 직접 입력이다 |
+| `<CONSENT_NOTICE>` | TBD | **spec 진입 전** | 동의 대상 설명 문구(사용자 화면 상단 안내). 미설정 시 미표시. 화면 사양의 직접 입력이다 |
+| `<RETENTION_MONTHS>` | `3` | 확정 | 추적 레코드 보관 기간(개월). 결과 확인 완료 기준 |
+| `<RETENTION_MAX_MONTHS>` | `6` | 담당자 확인 대기 | 추적 레코드 생성 기준 절대 보관 상한(개월). 결과 확인이 오지 않은 레코드도 이 시점에 삭제된다 |
+
+### 발송처 호출 입력 값
+
+허브에 주입되는 값이 아니라, 발송처가 **연동 라이브러리를 호출할 때 인자로 넘기는** 값이다([`docs/prd/devspec/external-apis.md`](docs/prd/devspec/external-apis.md) §연동 라이브러리). 발송처가 자기 환경에 맞는 값을 고르므로 소유 주체가 위 표와 다르다.
+
+| 변수 | 값 | 확정 시점 | 설명 |
+| ---- | -- | ------ | ---- |
+| `<HUB_BASE_URL_PROD>` | TBD | 배포 준비 시 | 운영 환경 허브 기준 URL |
+| `<HUB_BASE_URL_DEV>` | TBD | build 착수 전 | 개발·로컬 환경 허브 기준 URL |
+
+> 발송처키는 **비밀 값**이므로 본 파일에 두지 않는다([`document-master-guide.md`](ai/strategies/document-master-guide.md) §경로·이름 표기 — 비밀 값 제외). 위치 확정은 담당자 대기 항목이다([`docs/prd/PRD.md`](docs/prd/PRD.md) §미결·확인 필요). 서버 대면 API 의 인증 자격을 두기로 하면 그 값도 같은 이유로 본 파일 대상이 아니다.
 
 ## 연동 라이브러리 식별자
 
