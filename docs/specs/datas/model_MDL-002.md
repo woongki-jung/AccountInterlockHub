@@ -33,7 +33,7 @@
 | consentedAt | datetime | Y | 승인 확정 시각 | - | - | 동의 일시. 보존 기간 기산점이며 생성 시각과 같다 |
 | consentVersion | string(64) | Y | - | 소문자 16진수 64자 — `^[0-9a-f]{64}$` | - | 동의 항목 버전 식별자([`data_ENT-002.md`](data_ENT-002.md) §버전 식별자 산출 규칙) |
 | consentSnapshot | object | Y | - | `notice`(문자열, 빈 값 허용) · `items`(항목 배열, 항목 코드 오름차순) | - | 그 시점 노출 내용의 스냅샷 |
-| consentSnapshot.notice | string | Y | 빈 문자열 | 허용 형태는 상수표가 정본 | - | 그 시점 동의 안내 문구 원문 |
+| consentSnapshot.notice | string | Y | 빈 문자열 | **가공·검증하지 않는다** — 화면이 노출한 원문을 그대로 보존한다(`DATA-003-05`). 개행 정규화는 해시 입력 전용이라 스냅샷에는 적용하지 않는다([`data_ENT-002.md`](data_ENT-002.md) §버전 식별자 산출 규칙). 허용 형태 규정의 정본은 [`MDL-022`](model_MDL-019-022.md) `consentNotice` 다(EXC-DATA-08) | - | 그 시점 동의 안내 문구 원문 |
 | consentSnapshot.items | ConsentItem[] | Y | - | 각 항목은 [`MDL-008`](model_MDL-007-010.md) 의 항목 구조와 같다 | - | 그 시점 동의 항목 정의 |
 | agreedItemCodes | string[] | Y | - | 각 코드가 `consentSnapshot.items` 의 항목 코드에 존재해야 한다 | - | 사용자가 실제로 동의한 항목 코드. 선택 항목의 동의 여부도 여기서 드러난다 |
 
