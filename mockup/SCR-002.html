@@ -67,7 +67,12 @@
   .consent-item .ci-body{flex:1;}
   .consent-item .ci-name{font-weight:var(--font-weight-semibold);display:flex;align-items:center;flex-wrap:wrap;gap:6px;}
   .consent-item .ci-desc{font-size:var(--font-size-sm);color:var(--color-text-muted);margin-top:2px;}
-  .consent-list.locked{opacity:.6;pointer-events:none;}
+  /* 잠금(제출 중) — design-system-components.md §ConsentList·ConsentItem: opacity 금지, 비활성 토큰 쌍(4.82:1 실측)으로 표현 */
+  .consent-list.locked{pointer-events:none;}
+  .consent-list.locked .consent-item{background:var(--color-disabled-bg);}
+  .consent-list.locked .ci-name,
+  .consent-list.locked .ci-desc{color:var(--color-disabled-fg);}
+  .consent-list.locked input[type=checkbox]{accent-color:var(--color-disabled-fg);}
 
   .badge{display:inline-flex;align-items:center;gap:4px;font-size:var(--font-size-xs);border-radius:var(--radius-pill);padding:2px var(--space-xs);font-weight:var(--font-weight-semibold);}
   .badge-required{background:var(--color-primary-weak);color:var(--color-primary-strong);}
@@ -211,6 +216,7 @@
     }
 
     list.classList.toggle('locked', s.locked);
+    list.setAttribute('aria-busy', s.locked ? 'true' : 'false');
     checkbox.disabled = s.locked;
 
     if (s.secLoading) {

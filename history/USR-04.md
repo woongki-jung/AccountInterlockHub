@@ -4,6 +4,7 @@
 
 | 일시 (KST) | 단계 | 산출물·결과 | 관련 일감 | 상태 |
 |---|---|---|---|---|
+| 2026-07-25 18:39 | spec ⓒ | (공통 반영) 사양 확정분 목업 동기화 — `mockup/SCR-002.html` ConsentList 잠금(제출 중) 시각 처리를 `opacity:.6` → 비활성 토큰 쌍(`--color-disabled-bg`/`--color-disabled-fg`, 4.82:1 재사용) + `aria-busy="true"` 로 교체(확정 사양 반영). Redmine `#477` 첨부 최신화 — common.md | `accountinterlockhub#477` | ℹ️ |
 | 2026-07-25 18:16 | spec ⓒ | (공통 반영) 목업 리뷰 발견 사항 반영(회귀 3회차) — 인라인 알림 위치를 **화면 사양의 알림 영역 한 곳**으로 통일(오류 유형별 이동 금지 · "카드 상단" 서술 폐기)·ConsentList **잠금(제출 중) 시각 처리 확정**(비활성 토큰 쌍 재사용·대비비 4.82:1·`opacity` 금지)·InlineAlert 사용 화면 목록에 SCR-003 추가. **M-1(`DECRYPT_FAILED` 레코드 확정 경로 복원) 미반영 — 구현 불가 판단으로 차단 보고** — common.md | `accountinterlockhub#477`·`#474` | ℹ️ |
 | 2026-07-25 18:01 | spec | `mockup/SCR-002.html` 신규 — **동의·승인 화면 목업**. NoticeBlock(안내 문구 상수, 값 없을 때 영역 미렌더 변형 포함)·ConsentList(1건도 목록 렌더, `필수` 배지)·승인 버튼 `aria-disabled` 토글(체크박스 실시간 반영)·거부 버튼 아래 "되돌릴 수 없음" 고정 문구. 6개 상태(초기미동의·동의완료·안내문구없음·필수미충족오류·거부처리중·처리오류) | `accountinterlockhub#477`·`#469` | 🚧 |
 | 2026-07-25 17:01 | spec ⓒ | (공통 반영) 교차검증 1회차 지적 보완(회귀 1회차 — 🟠 2·🟡 7 전건 해소) — `SCR-002` 상태 전이의 `PROC-104` 단계명을 확정명 **복호화 판정(재복호화)** 로 정정 — common.md | `accountinterlockhub#474` | ℹ️ |

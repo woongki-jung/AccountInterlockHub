@@ -44,6 +44,8 @@
   .state-btn.active{background:#F5A623;color:#20242C;border-color:#F5A623;font-weight:700;}
   .mockup-note{color:#9AA4B2;font-size:11.5px;margin-top:6px;}
   .mockup-check{display:inline-flex;align-items:center;gap:6px;color:#D8DDE5;font-size:12.5px;}
+  .mockup-check.disabled{opacity:.55;}
+  .mockup-check input:disabled{cursor:not-allowed;}
   #reason-row[hidden]{display:none;}
 
   /* ================= 제품 UI (design-system.md 토큰) ================= */
@@ -114,10 +116,10 @@
       <button type="button" class="state-btn" data-reason="ops002">내부 처리 오류</button>
     </div>
     <div class="mockup-states">
-      <label class="mockup-check"><input type="checkbox" id="reannounce-toggle"> 확정 결과 재안내로 보기("이미 처리된 요청입니다" 배지)</label>
+      <label class="mockup-check" id="reannounce-label"><input type="checkbox" id="reannounce-toggle"> 확정 결과 재안내로 보기("이미 처리된 요청입니다" 배지)</label>
     </div>
     <p class="mockup-note">사양: screen_SCR-004.md §결과 4경로 · §확정 결과 재안내. 다섯 번째 경로는 만들지 않습니다(BIZ-001-02). 이 화면에는 버튼이 없습니다 — 여정의 끝입니다.</p>
-    <p class="mockup-note" id="path3-reannounce-warning" style="color:#F5A623;font-weight:600;" hidden>⚠️ 사양 보완 후보 — PROC-105·PROC-102·PROC-103 을 추적하면 경로 ③(DECRYPT_FAILED)은 추적 레코드가 만들어지기 전에 항상 확정되어, 이 조합(경로 ③ + 재안내)이 실제로는 발생하지 않을 가능성이 있습니다. mockup/INDEX.md §사양 보완 후보 1 참고.</p>
+    <p class="mockup-note" id="reannounce-note" hidden>경로 ③(링크·복호화 오류)은 확정 결과 재안내 대상이 아닙니다 — 추적 키를 확보하기 전에 항상 실패가 확정돼 레코드가 만들어지지 않습니다(<code>EXC-BIZ-14</code>, screen_SCR-004.md §확정 결과 재안내: 배지가 붙는 경로는 ①·②·④뿐). 위 재안내 체크박스가 비활성화됩니다.</p>
   </div>
 </div>
 
@@ -181,16 +183,26 @@
   var badgeEl = document.getElementById('reannounce-badge');
   var reasonRow = document.getElementById('reason-row');
   var reannounceToggle = document.getElementById('reannounce-toggle');
+  var reannounceLabel = document.getElementById('reannounce-label');
+  var reannounceNote = document.getElementById('reannounce-note');
 
   function render(){
     var meta, desc;
-    if (state.path === '3') {
+    var isPath3 = state.path === '3';
+    if (isPath3) {
       meta = PATH3;
       desc = REASONS[state.reason];
     } else {
       meta = PATHS[state.path];
       desc = meta.desc;
     }
+
+    // 경로 ③ 은 확정 결과 재안내 대상이 아니다 — EXC-BIZ-14(추적 키를 확보하기 전에 항상 실패가 확정돼 레코드가 없다).
+    // screen_SCR-004.md §확정 결과 재안내: 배지가 붙는 경로는 ①·②·④뿐이다.
+    reannounceToggle.disabled = isPath3;
+    reannounceLabel.classList.toggle('disabled', isPath3);
+    reannounceNote.hidden = !isPath3;
+    if (isPath3) { reannounceToggle.checked = false; state.reannounce = false; }
 
     panel.className = 'result-panel ' + meta.cls;
     iconEl.innerHTML = meta.icon;
@@ -199,8 +211,7 @@
     nextEl.textContent = meta.next;
     badgeEl.hidden = !state.reannounce;
 
-    reasonRow.hidden = state.path !== '3';
-    document.getElementById('path3-reannounce-warning').hidden = !(state.path === '3' && state.reannounce);
+    reasonRow.hidden = !isPath3;
 
     document.querySelectorAll('[data-path]').forEach(function(b){
       b.classList.toggle('active', b.getAttribute('data-path') === state.path);
