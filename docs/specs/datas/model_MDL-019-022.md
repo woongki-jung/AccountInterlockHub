@@ -173,7 +173,7 @@
 | selfcheckPath | string | Y | - | 경로 형태 | **소스·정적 자산·프런트엔드 산출물·응답 어디에도 담지 않는다**(`SEC-003-01`·`SEC-003-02`) | `<SELFCHECK_PATH>` — 자가진단 비공개 경로. 운영 값은 배포 시 주입되는 비밀 값이다 |
 | receiverDeliveryUrl | string | Y | - | URL 형태 | - | `<RECEIVER_DELIVERY_URL>` — 수신처 전달 주소 |
 | consentItems | [`MDL-008`](model_MDL-007-010.md)`.items` | Y | - | 배열 구조와 필수 속성을 갖춘다 | - | `<CONSENT_ITEMS>` 파싱 대상 |
-| consentNotice | string | N | 빈 문자열 | 허용 형태는 상수표가 정본 | - | `<CONSENT_NOTICE>` |
+| consentNotice | string | N | 빈 문자열 | **기동 시 형식 검증 대상이 아니다** — 허용 형태(최대 400자 · 최대 3단락 · 평문)는 상수 **작성 지침**이며 정본은 상수표다. 부재·빈 값은 미충족이 아니라 **빈 문자열**로 다룬다 | - | `<CONSENT_NOTICE>` |
 | retentionMonths | number(정수) | Y | - | 양의 정수 | - | `<RETENTION_MONTHS>` — 결과 확인 완료 기산 |
 | retentionMaxMonths | number(정수) | Y | - | 양의 정수 | - | `<RETENTION_MAX_MONTHS>` — 생성 기산 절대 상한 |
 | consentProofRetentionMonths | number(정수) | Y | - | 양의 정수 | - | `<CONSENT_PROOF_RETENTION_MONTHS>` — 동의 증적 보존 |
@@ -182,6 +182,8 @@
 - **허브 기준 URL(`<HUB_BASE_URL_PROD>`·`<HUB_BASE_URL_DEV>`)은 이 모델에 담지 않는다** — 허브에 주입되는 값이 아니라 발송처가 라이브러리 호출 인자로 넘기는 값이라 소유 주체가 다르다(EXC-OPS-04·`SVC-018` F-007).
 - 하나라도 충족하지 않으면 **기동을 중단**하고 미충족 항목을 모두 모아 한 번에 알린다(`OPS-001-02` → 사유 코드 `EX-OPS-001`).
 - **잠정값 여부는 판별하지 않는다** — 잠정 상태의 운영 배포 방지는 배포 절차의 확인 항목이다(`OPS-001-03`).
+- **`consentNotice` 의 허용 형태를 기동 시 검증하지 않는 이유** — 화면이 안내 문구를 **평문으로만 출력**하고 서식·링크·HTML 을 해석하지 않으므로(`DATA-003-05` · [`../screens/design-system.md`](../screens/design-system.md) §안내 영역 레이아웃 전제 3) 태그가 담겨도 문자 그대로 보일 뿐이라 막을 실행·해석 위험이 없다. 안전은 렌더 규칙이 이미 보장한다.
+- 허용 형태를 벗어나는 문구가 필요해지면 **상수와 화면 사양을 함께 고친다**(`EXC-DATA-08` · 같은 문서 전제 5) — 통제 지점이 애플리케이션이 아니라 상수 작성·배포 절차라는 점에서 잠정값을 판별하지 않는 것(`OPS-001-03`·EXC-OPS-01)과 같다.
 - **`completionRedirectUrl` 은 존재와 형식만 확인한다**(`SVC-018` F-002) — 주소에 실제로 접속해 도달 가능 여부를 보지 않는다. 잠정값이 실 호스트로 연결되는 주소라 교체 누락은 애플리케이션이 아니라 배포 절차 확인이 막는다(`OPS-001-03`·EXC-OPS-01). 응답에 싣는 조건은 [`MDL-009`](model_MDL-007-010.md) 와 `BIZ-001-06` 이 갖는다.
 
 ### 엔터티 매핑

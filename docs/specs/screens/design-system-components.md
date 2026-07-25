@@ -9,7 +9,7 @@
 | 컴포넌트 | 쓰는 화면 | 한 줄 용도 |
 |---|---|---|
 | AppShell | 전체 | 페이지 바탕 + 중앙 카드 |
-| StageTitle | 전체 | 화면 제목(h1)과 보조 설명 |
+| StageTitle | 전체 | 화면 제목(h1)과 보조 설명. 크기 변형 2종 — ProgressPanel·ResultPanel 도 자기 제목을 따로 두지 않고 이것을 합성한다 |
 | TextField | SCR-001 | 한 줄 입력. 생년월일 변형을 갖는다 |
 | Button | SCR-001 · SCR-002 | 주 액션·보조 액션 |
 | NoticeBlock | SCR-002 | 동의 안내 문구(상수) 표시 |
@@ -29,7 +29,9 @@
 
 ## StageTitle
 
-- **구조**: 제목(`<h1>`·`--font-size-xl`·`--font-weight-bold`) + 선택적 보조 설명(`--font-size-sm`·`--color-text-muted`). 아래 여백 `--space-lg`.
+- **구조**: 제목(`<h1>`·`--font-weight-bold`) + 선택적 보조 설명(`--font-size-sm`·`--color-text-muted`). 아래 여백 `--space-lg`.
+- **크기 변형**: 기본 `--font-size-xl`(화면 제목) / **결과 변형** `--font-size-2xl`(SCR-004 의 결과 제목). **변형은 이 둘뿐이며 그 밖의 크기를 만들지 않는다** — 두 값의 용도는 [`design-system.md`](design-system.md) §타이포그래피가 정본이다("화면 제목"·"결과 제목"). 특히 `--font-size-lg`(용도: 강조 문단) 변형을 만들지 않는다.
+- **합성해 쓰는 자리**: 기본 변형은 SCR-001·SCR-002 의 제목 영역과 **ProgressPanel**(SCR-003), 결과 변형은 **ResultPanel**(SCR-004). 두 패널은 자기 제목 글꼴을 따로 규정하지 않고 이 컴포넌트를 합성한다 — 그 제목이 문서의 **유일한 `<h1>`** 이자 단계 전환 시 포커스를 받는 요소라, 계약이 두 곳으로 갈리면 안 된다.
 - **상태**: 없음(정적).
 - **접근성**: 문서에 `<h1>` 은 하나이며 **단계가 바뀌면 내용이 교체**된다. 교체 시 `tabindex="-1"` 인 이 제목으로 포커스를 옮기고 문서 제목(`document.title`)도 같은 문구로 맞춘다.
 
@@ -88,15 +90,15 @@
 ## ProgressPanel
 
 - **용도**: 승인 제출 후 결과가 확정되기까지의 대기 표시(SCR-003).
-- **구조**: Spinner(32px) + 제목(`--font-size-lg`) + 보조 문구(`--color-text-muted`). 세로 가운데 정렬, 위아래 여백 `--space-xl`.
+- **구조**: Spinner(32px) + **StageTitle(기본 변형)**. 제목과 보조 문구는 StageTitle 의 제목·보조 설명이며, 이 패널은 자기 글꼴 크기를 따로 규정하지 않는다([`screen_SCR-003.md`](screen_SCR-003.md) §레이아웃 구성 2·3 이 이미 그 구조다). 세로 가운데 정렬, 위아래 여백 `--space-xl`.
 - **제약**: 이 상태에는 **조작 요소를 두지 않는다** — 취소 버튼을 두면 이미 진행 중인 서버 처리와 화면이 어긋난다. 뒤로 가기·새로고침은 진입부터 다시 시작한다.
-- **접근성**: 영역에 `role="status"`·`aria-live="polite"`·`aria-busy="true"`. 전환 시 제목으로 포커스를 옮긴다.
+- **접근성**: 영역에 `role="status"`·`aria-live="polite"`·`aria-busy="true"`. 제목의 포커스 이동·문서 제목 일치 계약은 §StageTitle 을 그대로 따른다.
 - 대기 시간 상한은 정책 `BIZ-004-02` 가 정한 전달 재시도 총 소요 상한이 결정한다 — 화면은 **수치를 자체로 정의하지 않는다**.
 
 ## ResultPanel
 
 - **용도**: 결과 3경로 표시(SCR-004). 경로별 색·아이콘·제목은 [`design-system.md`](design-system.md) §결과 3경로의 시각 구분이 정본이다.
-- **구조**: 경로 아이콘(40px) → 제목(`<h1>`·`--font-size-2xl`) → 보조 표시 배지(재안내일 때만) → 설명 문단(`--color-text`) → 다음 안내 한 줄(`--color-text-muted`) → **복귀 안내 영역**(복귀 주소가 실려 왔을 때만). 패널 바탕은 경로별 약한 바탕, 왼쪽 강조선 4px.
+- **구조**: 경로 아이콘(40px) → **StageTitle(결과 변형)** 제목(`<h1>`·`--font-size-2xl`) → 보조 표시 배지(재안내일 때만) → 설명 문단(`--color-text`) → 다음 안내 한 줄(`--color-text-muted`) → **복귀 안내 영역**(복귀 주소가 실려 왔을 때만). 패널 바탕은 경로별 약한 바탕, 왼쪽 강조선 4px.
 - **복귀 안내 영역**: 고지 문구 한 줄(`--font-size-sm`·`--color-text-muted`) + 카운트다운 한 줄(같은 글자 스타일) + **수동 이동 링크**. 위 여백 `--space-md`. 표시 조건·문구·대기 시간·이동 방식의 정본은 [`screen_SCR-004.md`](screen_SCR-004.md) §복귀 이동이다.
 	- **수동 이동 링크**: 네이티브 `<a>` 하나. 글자 `--color-primary`·`--font-weight-semibold`·`--font-size-base`, **밑줄을 유지**한다(색만으로 구분하지 않는다). 최소 히트 영역 `--size-hit-min` 은 상하 여백으로 채운다. 포커스 표시는 [`design-system.md`](design-system.md) §접근성 기준의 포커스 링 규칙을 그대로 쓴다.
 	- **애니메이션을 두지 않는다** — 진행 링·진행 막대 없이 **텍스트만 갱신**한다. 그래서 감소 모션 설정에서 달라질 것이 없고 Spinner 의 회전 주기 규칙도 적용되지 않는다.

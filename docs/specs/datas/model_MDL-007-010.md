@@ -71,7 +71,7 @@
 | 속성명 | 데이터 타입 | 필수 | 기본값 | 유효성 규칙 | 마스킹 규칙 | 설명 |
 |--------|-----------|------|--------|-------------|-------------|------|
 | version | string(64) | Y | - | 소문자 16진수 64자 — `^[0-9a-f]{64}$` | - | 동의 항목 버전 식별자. 기동 시 산출한다([`data_ENT-002.md`](data_ENT-002.md) §버전 식별자 산출 규칙) |
-| notice | string | N | 빈 문자열 | 허용 형태(최대 길이·단락 수·평문 한정)는 [`../../../CLAUDE.env.md`](../../../CLAUDE.env.md) §동의 항목 값이 정본(EXC-DATA-08) | - | `<CONSENT_NOTICE>` 파싱 결과. 비면 안내 영역을 표시하지 않는다(EXC-BIZ-07) |
+| notice | string | N | 빈 문자열 | **기동 시 형식 검증 대상이 아니다** — 허용 형태·부재 처리 규정의 정본은 [`MDL-022`](model_MDL-019-022.md) `consentNotice` 다(EXC-DATA-08) | - | `<CONSENT_NOTICE>` 파싱 결과. 비면 안내 영역을 표시하지 않는다(EXC-BIZ-07) |
 | items | ConsentItem[] | Y | - | 1건 이상. 항목 코드 오름차순 | - | `<CONSENT_ITEMS>` 파싱 결과 |
 | items[].code | string | Y | - | 항목 안에서 유일 | - | 항목 코드 |
 | items[].label | string | Y | - | 빈 값 불가 | - | 화면에 그대로 노출하는 항목명 |
