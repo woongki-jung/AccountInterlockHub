@@ -77,7 +77,7 @@ export function isValidConsentNotice(value: string): boolean {
   if ([...value].length > MAX_CONSENT_NOTICE_LENGTH) return false;
 
   const paragraphs = value
-    .split(/\n[ \t]*\n/)
+    .split(/\r?\n[ \t]*\r?\n/)
     .map((paragraph) => paragraph.trim())
     .filter((paragraph) => paragraph.length > 0);
   if (paragraphs.length > MAX_CONSENT_NOTICE_PARAGRAPHS) return false;
