@@ -16,7 +16,8 @@ namespace AccountInterlockHub.SenderSdk.Harness
     /// 실행: AccountInterlockHub.SenderSdk.Harness.exe --vectors &lt;벡터 파일 경로&gt;
     /// 표준 출력 마지막 줄 — 요약 JSON 1줄: {"total":N,"passed":N,"failed":N,"failedCaseIds":[...]}
     /// 진단 문구는 모두 표준 오류로 낸다.
-    /// 종료 코드 — 0: 전건 일치 / 1: 하나 이상 불일치 / 2: 실행 자체가 실패(인자·파일·형식 오류).
+    /// 종료 코드 — 0: 전건 일치 / 1: 하나 이상 불일치 / 2: 실행 자체가 실패(인자·파일·형식 오류·케이스 0건).
+    /// 케이스 0건은 "전건 일치"(0)로 보지 않는다 — 규약 대조가 사실상 수행되지 않았기 때문이다.
     /// </summary>
     internal static class Program
     {
@@ -90,7 +91,11 @@ namespace AccountInterlockHub.SenderSdk.Harness
 
             if (vectors.Cases.Count == 0)
             {
-                Console.Error.WriteLine("경고: 벡터 파일에 케이스가 없습니다.");
+                // 케이스 0건은 단순 경고가 아니라 오류다 — 아래 for 루프가 0회 실행되어
+                // failed == 0 이 되므로, 이 검사가 없으면 "대조를 하나도 하지 않은 상태"가
+                // "전건 일치"(종료 코드 0)로 둔갑한다. 배포 전제(규약 대조 통과)가 사실은
+                // 수행되지 않은 채 충족된 것처럼 보이는 사고를 막는다.
+                Console.Error.WriteLine("오류: 벡터 파일에 케이스가 하나도 없어 규약 대조를 수행하지 않았습니다.");
             }
 
             int total = vectors.Cases.Count;
@@ -114,6 +119,12 @@ namespace AccountInterlockHub.SenderSdk.Harness
 
             // 요약 JSON 은 항상 표준 출력의 마지막 줄이어야 한다 — 위의 모든 진단은 표준 오류로만 냈다.
             Console.Out.WriteLine(BuildSummaryJson(total, passed, failed, failedCaseIds));
+
+            if (total == 0)
+            {
+                // failed == 0 이더라도 "전건 일치"가 아니다 — 대조 대상 자체가 없었다.
+                return ExitExecutionFailure;
+            }
 
             return failed == 0 ? ExitOk : ExitMismatch;
         }

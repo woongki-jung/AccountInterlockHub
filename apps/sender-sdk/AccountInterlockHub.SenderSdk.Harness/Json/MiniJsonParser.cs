@@ -13,15 +13,34 @@ namespace AccountInterlockHub.SenderSdk.Harness.Json
     /// 제약과는 별개다 — 다만 대상 런타임 밖의 외부 패키지 의존을 새로 만들지 않기 위해
     /// 프레임워크 내장 파서 대신 이 최소 구현을 골랐다(빌드 환경에 타게팅 팩이 없어
     /// System.Web.Extensions 같은 GAC 전용 어셈블리 참조 확보가 불확실하기도 하다).
+    ///
+    /// <see cref="Parse"/> 는 진입 시 입력의 개행을 LF 로 정규화한다(체크아웃 개행 규약과 무관하게
+    /// 결정적인 결과를 내기 위함 — 아래 <see cref="Parse"/> 주석 참고) · 중첩 깊이 상한을 둔다
+    /// (<see cref="MaxNestingDepth"/>).
     /// </summary>
     internal static class MiniJsonParser
     {
+        // 중첩 깊이 상한 — 손상되거나 악의적인 벡터 파일(예: "[" 수만 개 연속)이 재귀 호출로
+        // 스택을 소진하지 않도록 막는다. 벡터 파일의 실제 최대 중첩(루트→cases→case→input→payload→
+        // payload 내부 필드 몇 단)은 한 자릿수 후반 수준이므로 64 는 정상 벡터에 여유가 충분하다.
+        private const int MaxNestingDepth = 64;
+
         internal static JsonValue Parse(string text)
         {
             if (text == null) throw new ArgumentNullException("text");
 
+            // 개행 정규화 계약(P17 코드리뷰 S-1) — 이 파서가 만드는 JsonValue.RawText 는 원본
+            // 문자열의 부분 문자열 그대로다(예: VectorFile 이 input.payload 원문을 재직렬화 없이
+            // Encrypt 인자로 쓴다). 저장소에 .gitattributes 가 없고 이 PC 는 core.autocrlf = true 라
+            // 벡터 파일(protocol-test-vectors.json)이 여러 줄이면 체크아웃 OS 에 따라 파일의 개행이
+            // CRLF/LF 로 갈릴 수 있고, 그 차이가 RawText 의 바이트열을 바꿔 같은 벡터가 다른 encX 를
+            // 내게 된다. 파싱 전 모든 개행을 LF 하나로 정규화해 체크아웃 개행 규약과 무관하게 항상
+            // 같은 결과가 나오도록 고정한다 — 이 하네스가 만드는 모든 RawText·문자열 값에 적용되는
+            // 계약이다. (.gitattributes 도입은 P18 로 이월 — 이 정규화는 그와 무관하게 항상 유효하다.)
+            text = text.Replace("\r\n", "\n").Replace("\r", "\n");
+
             int pos = 0;
-            JsonValue result = ParseValue(text, ref pos);
+            JsonValue result = ParseValue(text, ref pos, 0);
             SkipWhitespace(text, ref pos);
             if (pos != text.Length)
             {
@@ -31,15 +50,15 @@ namespace AccountInterlockHub.SenderSdk.Harness.Json
             return result;
         }
 
-        private static JsonValue ParseValue(string text, ref int pos)
+        private static JsonValue ParseValue(string text, ref int pos, int depth)
         {
             SkipWhitespace(text, ref pos);
             if (pos >= text.Length)
                 throw new FormatException("예상치 못하게 입력이 끝났습니다.");
 
             char c = text[pos];
-            if (c == '{') return ParseObject(text, ref pos);
-            if (c == '[') return ParseArray(text, ref pos);
+            if (c == '{') return ParseObject(text, ref pos, depth);
+            if (c == '[') return ParseArray(text, ref pos, depth);
             if (c == '"') return ParseString(text, ref pos);
             if (c == 't' || c == 'f') return ParseBool(text, ref pos);
             if (c == 'n') return ParseNull(text, ref pos);
@@ -48,8 +67,10 @@ namespace AccountInterlockHub.SenderSdk.Harness.Json
             throw new FormatException("알 수 없는 JSON 토큰입니다(위치 " + pos.ToString(CultureInfo.InvariantCulture) + ").");
         }
 
-        private static JsonValue ParseObject(string text, ref int pos)
+        private static JsonValue ParseObject(string text, ref int pos, int depth)
         {
+            depth = CheckDepth(depth, pos);
+
             int start = pos;
             Expect(text, ref pos, '{');
             Dictionary<string, JsonValue> members = new Dictionary<string, JsonValue>(StringComparer.Ordinal);
@@ -67,7 +88,7 @@ namespace AccountInterlockHub.SenderSdk.Harness.Json
                     JsonValue keyToken = ParseString(text, ref pos);
                     SkipWhitespace(text, ref pos);
                     Expect(text, ref pos, ':');
-                    JsonValue value = ParseValue(text, ref pos);
+                    JsonValue value = ParseValue(text, ref pos, depth);
                     members[keyToken.StringValue] = value;
 
                     SkipWhitespace(text, ref pos);
@@ -94,8 +115,10 @@ namespace AccountInterlockHub.SenderSdk.Harness.Json
             return result;
         }
 
-        private static JsonValue ParseArray(string text, ref int pos)
+        private static JsonValue ParseArray(string text, ref int pos, int depth)
         {
+            depth = CheckDepth(depth, pos);
+
             int start = pos;
             Expect(text, ref pos, '[');
             List<JsonValue> items = new List<JsonValue>();
@@ -109,7 +132,7 @@ namespace AccountInterlockHub.SenderSdk.Harness.Json
             {
                 while (true)
                 {
-                    JsonValue value = ParseValue(text, ref pos);
+                    JsonValue value = ParseValue(text, ref pos, depth);
                     items.Add(value);
 
                     SkipWhitespace(text, ref pos);
@@ -134,6 +157,20 @@ namespace AccountInterlockHub.SenderSdk.Harness.Json
             result.ArrayValue = items;
             result.RawText = text.Substring(start, pos - start);
             return result;
+        }
+
+        // 객체·배열에 진입할 때마다(중첩 한 단마다) 호출한다 — 증가한 깊이를 돌려주거나,
+        // 상한을 넘으면 재귀를 더 내려가지 않고 바로 진단한다.
+        private static int CheckDepth(int depth, int pos)
+        {
+            depth++;
+            if (depth > MaxNestingDepth)
+            {
+                throw new FormatException(
+                    "JSON 중첩 깊이가 상한(" + MaxNestingDepth.ToString(CultureInfo.InvariantCulture) +
+                    ")을 초과했습니다(위치 " + pos.ToString(CultureInfo.InvariantCulture) + ").");
+            }
+            return depth;
         }
 
         private static JsonValue ParseString(string text, ref int pos)

@@ -19,7 +19,10 @@ namespace AccountInterlockHub.SenderSdk
         /// 값 없이 일반화한 문구로 내부에서 채운다(DATA-001-04 — 값 자체는 담지 않는다).
         /// </summary>
         /// <param name="reasonCode">정책 예외 코드 카탈로그의 EX 코드(예: "EX-AUTH-001").</param>
-        public InterlockProtocolException(string reasonCode)
+        // 발송처가 직접 생성하지 않는다 — 항상 라이브러리 내부에서 규약 위반을 감지한 지점이 던진다.
+        // EncryptedPair 생성자와 같은 기준이다: 확정 공개 API 시그니처 표(spec-functions-lib.md)에
+        // 생성자가 없으므로 internal 로 둔다(공개 표면은 ReasonCode 프로퍼티뿐).
+        internal InterlockProtocolException(string reasonCode)
             : this(reasonCode, DescribeReason(reasonCode))
         {
         }

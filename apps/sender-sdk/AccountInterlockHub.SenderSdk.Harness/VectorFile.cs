@@ -77,8 +77,18 @@ namespace AccountInterlockHub.SenderSdk.Harness
             c.BirthDate = GetString(input, "birthDate", true);
 
             JsonValue payload = GetField(input, "payload", true);
+            if (payload.Kind != JsonKind.Object)
+            {
+                // 벡터 규약(spec-functions-lib.md §규약 테스트 벡터)의 payload 는 항상 JSON 객체다.
+                // 여기서 걸러 두지 않으면 아래 RawText 를 그대로 Encrypt 에 넘기게 되고, 그 실패는
+                // "이 벡터 파일이 규약 형식과 다르다"가 아니라 RunCase 안의 "실행 실패"로만 보여
+                // 벡터 파일 저작 오류와 라이브러리의 정상적인 규약 위반 판정이 뒤섞인다.
+                throw new FormatException(
+                    "cases[" + index.ToString(CultureInfo.InvariantCulture) + "].input.payload 는 JSON 객체여야 합니다.");
+            }
             // 원문 그대로 Encrypt 에 넘긴다 — 파싱 결과를 재직렬화하면 바이트열이 달라져
-            // 벡터가 고정한 기대 암호값(encX)과 어긋난다.
+            // 벡터가 고정한 기대 암호값(encX)과 어긋난다. (MiniJsonParser.Parse 진입부가 이미
+            // CRLF 를 LF 로 정규화했으므로 이 RawText 는 체크아웃 개행 규약과 무관하게 결정적이다.)
             c.PayloadJson = payload.RawText;
 
             JsonValue expected = GetField(caseValue, "expected", true);

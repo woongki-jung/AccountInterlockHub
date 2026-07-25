@@ -31,8 +31,13 @@ namespace AccountInterlockHub.SenderSdk
         // 정책 SEC-001 §규약 확정값 — 연동 요청 URL 전체 길이 상한(문자 수).
         private const int RequestUrlMaxLength = 2000;
 
+        // 주의: "^...$" 를 쓰지 않는다 — .NET 정규식의 "$" 는 "문자열 끝" 뿐 아니라
+        // "끝의 개행(\n) 바로 앞"에도 일치한다(예: "123456\n" 이 "^[0-9]{6}$" 를 통과한다).
+        // 허브 FN-005(JS "/^\d{6}$/", 개행 앞에 일치하지 않는다)와 판정이 갈리면 라이브러리가 통과시킨
+        // 값을 허브가 영원히 재현하지 못한다(원인 불명의 EX-AUTH-002). "\A"·"\z"(소문자)는 문자열의
+        // 처음·끝에만 일치해 이 함정이 없다 — "\Z"(대문자)는 "$" 와 같은 함정을 그대로 가지므로 쓰지 않는다.
         private static readonly Regex BirthDatePattern =
-            new Regex("^[0-9]{6}$", RegexOptions.Compiled | RegexOptions.CultureInvariant);
+            new Regex(@"\A[0-9]{6}\z", RegexOptions.Compiled | RegexOptions.CultureInvariant);
 
         /// <summary>
         /// 전달 데이터 X 를 암호화해 <c>encX</c>·<c>encY</c> 쌍을 만든다(LIB-01 · PROC-401 · SVC-006).
