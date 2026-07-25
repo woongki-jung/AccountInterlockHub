@@ -1,6 +1,8 @@
 import { DynamicModule, Module } from '@nestjs/common';
 import { InterlockConfigModule } from './config/interlock-config.module';
 import { ConsentConfig, InterlockConfig } from './config/interlock-config.types';
+import { DatabaseModule } from './database/database.module';
+import { RecordsModule } from './records/records.module';
 
 export interface AppBootstrapConfig {
   config: InterlockConfig;
@@ -17,7 +19,11 @@ export class AppModule {
   static register(bootstrapConfig: AppBootstrapConfig): DynamicModule {
     return {
       module: AppModule,
-      imports: [InterlockConfigModule.forRoot(bootstrapConfig.config, bootstrapConfig.consent)],
+      imports: [
+        InterlockConfigModule.forRoot(bootstrapConfig.config, bootstrapConfig.consent),
+        DatabaseModule,
+        RecordsModule,
+      ],
     };
   }
 }
