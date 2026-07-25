@@ -3,7 +3,6 @@
 // 그 배선이 그대로 가져다 쓸 단위 함수(서비스 메서드) 집합만 제공한다.
 export * from './query-executor';
 export * from './records.errors';
-export * from './pg-error.util';
 export * from './metric-date';
 export * from './metric-event.types';
 export * from './metric-counter.service';

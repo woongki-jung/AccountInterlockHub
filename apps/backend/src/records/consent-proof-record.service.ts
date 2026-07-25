@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { ConsentConfig } from '../config/interlock-config.types';
+import { sortConsentItemsByCode } from '../config/interlock-config.validators';
 import { CONSENT_PROOF_TABLE, ConsentProofModel, ConsentProofRow, ConsentSnapshot, toConsentProofModel } from '../entities';
 import { RecordWriteError } from './records.errors';
 import { QueryExecutor } from './query-executor';
@@ -44,16 +45,19 @@ export class ConsentProofRecordService {
     }
 
     // 3. 스냅샷 구성 — POL DATA-003-02·DATA-003-05(화면이 실제로 노출한 내용과 같은 구성 모델에서 나온다)
+    // 정렬은 정본 함수(config/interlock-config.validators.ts sortConsentItemsByCode — 코드 유닛
+    // <, > 비교)를 그대로 재사용한다. `.localeCompare()` 는 ICU 콜레이션이라 코드 유닛 비교와
+    // 결과가 다를 수 있고(예: "ITEM_2" vs "ITEM10"), 인자 없는 호출은 런타임 기본 로케일에
+    // 의존해 배포 환경마다 값이 달라질 수 있어 증적의 재현성 요건(개인정보 보호법 제17조 입증
+    // 수단)과 맞지 않는다 — 여기서 별도 비교자를 새로 만들지 않는다.
     const snapshot: ConsentSnapshot = {
       notice: consent.notice,
-      items: [...consent.items]
-        .sort((a, b) => a.code.localeCompare(b.code))
-        .map((item) => ({
-          code: item.code,
-          label: item.label,
-          required: item.required,
-          description: item.description,
-        })),
+      items: sortConsentItemsByCode(consent.items).map((item) => ({
+        code: item.code,
+        label: item.label,
+        required: item.required,
+        description: item.description,
+      })),
     };
 
     // 4. 증적 1건 기록 — 실패 시 EX-BIZ-003(승인 확정 트랜잭션과 함께 되돌린다, BIZ-003-04)

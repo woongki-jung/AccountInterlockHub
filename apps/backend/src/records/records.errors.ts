@@ -32,6 +32,14 @@ export type RecordWriteErrorReason =
  * 전부 같다(각 함수의 §에러 처리 표 참조) — 하나의 클래스로 통일하고 `reason` 으로 발생 지점만
  * 구분한다. 트랜잭션에 참여 중이면 호출측(DatabaseService.withTransaction)이 이 예외를 받아
  * 롤백한다.
+ *
+ * **사용자 노출 문구를 이 클래스가 들지 않는다** — `apps/backend/src/common/errors/ex-catalog.ts`
+ * (FN-014)의 `EX_CODE_CATALOG['EX-BIZ-003'].message` 가 그 문구의 단일 출처이며, 전역 예외 필터
+ * (`GlobalExceptionFilter`)는 예외의 `exCode` 만 읽어 그 카탈로그로 메시지를 다시 계산한다(
+ * `common/errors/http-mapped.error.ts` — `exCode` 를 가진 예외는 이미 덕 타이핑으로 인식된다).
+ * `Error.message` 는 `reason`(내부 진단 코드)을 그대로 담아 로그·스택 추적에서 어느 분기가
+ * 실패했는지 식별하는 용도로만 쓴다 — 사용자에게 그대로 노출되지 않는다(DATA-001-04 준수 —
+ * `reason` 값 자체가 원문·바인딩 파라미터를 담지 않으므로 노출 대상이 아니다).
  */
 export class RecordWriteError extends Error {
   readonly exCode = 'EX-BIZ-003' as const;
@@ -41,7 +49,7 @@ export class RecordWriteError extends Error {
     readonly reason: RecordWriteErrorReason,
     cause?: unknown,
   ) {
-    super('처리 중 문제가 발생했습니다. 잠시 후 다시 시도해 주세요.', cause !== undefined ? { cause } : undefined);
+    super(reason, cause !== undefined ? { cause } : undefined);
     this.name = 'RecordWriteError';
   }
 }
