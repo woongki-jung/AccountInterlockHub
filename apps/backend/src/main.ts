@@ -1,6 +1,7 @@
 import 'dotenv/config';
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
+import { cacheControlMiddleware, buildKnownRoutes, createRouteGuardMiddleware } from './common/http';
 import { loadInterlockConfig } from './config/interlock-config.loader';
 
 /**
@@ -22,6 +23,14 @@ async function bootstrap(): Promise<void> {
   }
 
   const app = await NestFactory.create(AppModule.register({ config, consent }));
+
+  // FN-014/015 횡단 계층(P05) — 반드시 이 순서로, Nest 라우팅이 붙기 전에 건다(app.use() 는
+  // Nest 라우팅·전역 예외 필터보다 먼저 실행되도록 문서화된 동작이다).
+  // 1) 캐시 금지 헤더를 모든 응답에 먼저 건다 — 순서를 바꾸면 뒤 응답이 헤더 없이 나갈 수 있다.
+  // 2) 알려진 경로(§인터페이스 카탈로그)의 메서드 불일치를 405(본문 없음)로 끝낸다. 그 밖은
+  //    next() 로 흘려 Nest 라우팅·전역 예외 필터(GlobalExceptionFilter)의 일반 404로 넘긴다.
+  app.use(cacheControlMiddleware);
+  app.use(createRouteGuardMiddleware(buildKnownRoutes(config.interlockEntryPath)));
 
   const port = Number(process.env.PORT) || 3000;
   await app.listen(port);
