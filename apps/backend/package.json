@@ -1,0 +1,31 @@
+{
+  "name": "@accountinterlockhub/backend",
+  "version": "0.1.0",
+  "private": true,
+  "description": "AccountInterlockHub 백엔드 — NestJS API. 기동 시 연동 구성 상수를 검증한다(PROC-901).",
+  "scripts": {
+    "build": "nest build",
+    "start": "nest start",
+    "start:dev": "nest start --watch",
+    "start:prod": "node dist/main",
+    "migration:run": "node -e \"console.log('[migration:run] 마이그레이션 정의 없음 — P02(DB 스키마·마이그레이션) 착수 전까지는 유효화되지 않는다.')\""
+  },
+  "dependencies": {
+    "@nestjs/common": "^11.0.1",
+    "@nestjs/core": "^11.0.1",
+    "@nestjs/platform-express": "^11.0.1",
+    "dotenv": "^17.2.0",
+    "reflect-metadata": "^0.2.2",
+    "rxjs": "^7.8.1"
+  },
+  "devDependencies": {
+    "@nestjs/cli": "^11.0.0",
+    "@nestjs/schematics": "^11.0.0",
+    "@types/express": "^5.0.0",
+    "@types/node": "^24.0.0",
+    "source-map-support": "^0.5.21",
+    "ts-node": "^10.9.2",
+    "tsconfig-paths": "^4.2.0",
+    "typescript": "^5.7.3"
+  }
+}
