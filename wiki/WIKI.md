@@ -1,6 +1,6 @@
 # 용어사전 (WIKI)
 
-AccountInterlockHub 산출 문서에 쓰이는 전문용어를 비개발자 기준으로 풀어 쓴다(정책 [`document-master-guide.md`](../ai/strategies/document-master-guide.md) §독자·표현). 문서에서 아래 용어를 처음 쓸 때 본 파일을 링크한다.
+AccountInterlockHub 산출 문서에 쓰이는 전문용어를 비개발자 기준으로 풀어 쓴다(정책 [`document-master-guide.md`](../ai/strategies/document-master-guide.md) §독자·표현). 전문용어를 쓰는 문서는 **서두에서 본 파일을 한 번 링크**한다(용어마다 링크를 반복하면 본문 가독성이 떨어진다).
 
 ## 연동 참여자
 

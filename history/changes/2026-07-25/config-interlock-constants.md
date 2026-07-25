@@ -18,3 +18,12 @@
 	- 각주 — 발송처키 위치의 "담당자 대기" 표기를 제거하고 상수화 대상 제외를 확정 서술로 바꿨다. 서버 대면 API 에 인증을 두지 않기로 확정돼 인증 자격 값 서술도 함께 정리했다.
 - **왜**: 담당자가 잔여 결정(동의 항목·안내 문구·기본안 11건·추적 키 정책)을 회신해 `TBD` 로 남길 이유가 사라졌다. 값이 확정되지 않은 셋(`<SELFCHECK_PATH>`·`<RECEIVER_DELIVERY_URL>`·허브 기준 URL)은 확정 시점을 표에 명시해 남겼다.
 - **영향**: 제품 산출물 [`docs/prd/PRD.md`](../../../docs/prd/PRD.md)·[`ia/IA.md`](../../../docs/prd/ia/IA.md)·`devspec/` 3종이 같은 회신으로 함께 개정됐다(제품 이력은 [`history/common.md`](../../common.md)). 용어사전 [`wiki/WIKI.md`](../../../wiki/WIKI.md) 를 신설해 문서들이 참조한다.
+
+## 2회차 평가 반영 (같은 날)
+
+- **무엇**: `prd-reviewer` 2회차 지적에 따라 [`CLAUDE.env.md`](../../../CLAUDE.env.md) 를 세 곳 더 고쳤다.
+	- `<LIB_SRC_DIR>` 를 `libs/AccountInterlockHub.SenderSdk/` → **`apps/sender-sdk/`** 로 정정. 저장소 구조 정본([`doc-structure.md`](../../../ai/strategies/doc-structure.md))이 "모든 코드는 `apps/` 하위"라고 규정하므로 루트에 `libs/` 를 새로 만드는 값은 구조 정본과 충돌했다(build 착수 근거가 두 갈래가 됨).
+	- `<CONSENT_NOTICE>` 에 **확정 시점**(배포 전 · 개인정보 고지 항목 검토)을 부여하고, §동의 항목 값에 **허용 형태**(최대 400자·3단락·평문)를 규정했다. 화면 사양이 레이아웃을 정하려면 값의 상한이 필요하다.
+	- `<WORK_ROOT>` 가 이전 프로젝트의 macOS 경로(`/Volumes/D/Work/ai-workgroup`)로 남아 있어 이 PC 실제 경로(`D:/Work/AccountInterlockHub`)로 갱신했다. `<QA_TOOLS_HOME>`·QA 스크립트 루트가 이 값을 조합해 쓰므로 방치하면 잘못된 경로를 만든다(부트스트랩 잔재 — [`project-bootstrap.md`](../../../ai/strategies/project-bootstrap.md) §2 CLAUDE.env.md 갱신).
+- **왜**: 2회차 평가가 `<LIB_SRC_DIR>` 충돌을 directing 완료를 막는 차단 사유로 판정했고, 나머지 둘은 값의 사용처가 불완전해 spec·qa 가 소비할 수 없는 상태였다.
+- **영향**: `docs/prd/devspec/infra.md` §연동 라이브러리 배포는 소스 위치를 본 파일 참조로 두므로 문구 변경이 없다.

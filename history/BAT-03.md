@@ -4,6 +4,7 @@
 
 | 일시 (KST) | 단계 | 산출물·결과 | 관련 일감 | 상태 |
 |---|---|---|---|---|
+| 2026-07-25 10:05 | directing ⓒ | (공통 반영) 리셋 방향 담당자 확정분 반영 — 연동이력 저장 기능 **폐지** — `BAT-04` 로 통합, `ia-code` 미사용 등재. 구 사양·구현 삭제 — common.md | `accountinterlockhub#468`·`#467` | ℹ️ |
 | 2026-07-18 23:16 | qa ⓒ | (공통 반영) `#416` Wave 3(최종) SCEN_001~006 E2E 여정 재검증 6/6 Pass(🟢3·🔵3, 연동이력 생성·완료기록·보관삭제 경유) — common.md | `accountinterlockhub#416` | ℹ️ |
 | 2026-07-12 22:00 | qa | BAT-03_001~010 검증 → 10/10 Pass. 이력생성 PROC-403·완료기록·추적키 무변형·회원키 무저장 | `accountinterlockhub#236` | ✅ |
 | 2026-07-12 13:15 | build | `callback.service.ts` 완료 기록(내부 PROC-403 H2) 재키잉 완결(P9, build #224 — API-03 상세는 API-03.md 참조) — 연동이력(ENT-007) 완료 기록 UPDATE 를 P1 신 스키마에 완전 정합화: `WHERE request_key=$2`(P8 shim 이 남긴, 이미 폐기된 컬럼)→`WHERE id=:target.id AND callback_received=false`(surrogate PK 대상·동시성 가드, RETURNING id)로 재작성. FN-019(pendingOnly=true)가 반환한 미수신 최신 1건에 callback_received=true·callback_received_at=now 기록, 처리상태(ENT-004)는 어떤 SQL 도 건드리지 않음(BIZ-004-11). 재통지·동시 콜백은 갱신 없이 멱등 성공(EXC-BIZ-10, CALLBACK_IDEMPOTENT), 스코프 내 이력 자체 없음만 404(CALLBACK_TARGET_MISS). `npm run build` 0 에러·앱 boot 확인. 리뷰·기능검증 별도 doer 대기 | `accountinterlockhub#233`·`#224` | ✅ |

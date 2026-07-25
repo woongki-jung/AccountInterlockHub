@@ -4,6 +4,7 @@
 
 | 일시 (KST) | 단계 | 산출물·결과 | 관련 일감 | 상태 |
 |---|---|---|---|---|
+| 2026-07-25 10:05 | directing ⓒ | (공통 반영) 리셋 방향 담당자 확정분 반영 — **관리자 기능 제거 확정** — 기능 폐지·`ia-code` 미사용 등재(관리자 인증·IP 제한 제거). 구 사양·구현·목업 삭제 — common.md | `accountinterlockhub#468`·`#467` | ℹ️ |
 | 2026-07-18 23:16 | qa ⓒ | (공통 반영) `#416` Wave 3(최종) SCEN_001~006 E2E 여정 재검증 6/6 Pass(🟢3·🔵3, SCEN_005 세션만료 로그인 경유) — common.md | `accountinterlockhub#416` | ℹ️ |
 | 2026-07-18 21:29 | qa | ADM-03_016 검증(qa#416 Wave 0/5, 사용자 페이지 디자인 개선 `c7b0773` 공유자산 회귀) → **1/1 Pass**(🟢 실 환경). SCR-001 로그인(헤더 없는 중앙 카드) 렌더가 전역 토큰 신설 전과 계산 스타일 완전 동일(git worktree main `0179ef2` 기준선 A/B 대조), `-u-canvas`·`-u-card`·`-u-border` 등 사용자 표면 토큰 미침투 확인. 마스킹·만료배너·존재비노출·`role=alert` 접근성 재확인. 증빙 `works/accountinterlockhub-416/evidence/ADM-03_016/` | `accountinterlockhub#463` | ✅ |
 | 2026-07-12 22:00 | qa | ADM-03_001~016 검증 → 16/16 Pass. 로그인·5회잠금·IP게이트·유휴30분·SCR-001 UI(마스킹·만료배너) | `accountinterlockhub#236` | ✅ |

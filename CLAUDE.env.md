@@ -10,7 +10,7 @@
 
 | 변수            | 값                              | 설명                              |
 | ------------- | ------------------------------ | ------------------------------- |
-| `<WORK_ROOT>` | `/Volumes/D/Work/ai-workgroup` | 제품 소스·자동화 작업 저장소 루트 (설치 루트와 별개) |
+| `<WORK_ROOT>` | `D:/Work/AccountInterlockHub` | 제품 소스·자동화 작업 저장소 루트 (설치 루트와 별개). ⚠️ PC 로컬 경로 — PC 가 바뀌면 본 값만 갱신 |
 - **인프라 구성 정보** (directing 확정 — 상세 [`docs/prd/devspec/infra.md`](docs/prd/devspec/infra.md))
 	- 개발: 로컬 개발환경
 		- 별도 구축 PostgreSQL 서버 사용(Azure 미사용). 애플리케이션(NestJS+React) 로컬 기동. 구체 접속값은 build 시점 확정.
@@ -41,7 +41,7 @@
 | `<SELFCHECK_PATH>` | TBD | build 착수 전 | 연동 규약 자가진단 API 경로([`docs/prd/devspec/external-apis.md`](docs/prd/devspec/external-apis.md) §연동 규약 자가진단 API). 추측하기 어려운 **비공개 경로**로 둔다 |
 | `<RECEIVER_DELIVERY_URL>` | TBD | build 착수 전 (수신처 협의) | 수신처(서비스 B) 전달 주소. 승인·복호화 완료 시 전달 데이터(X)를 보내는 대상 |
 | `<CONSENT_ITEMS>` | §동의 항목 값 | 확정 | 사용자에게 노출할 동의 항목 목록. 값과 주입 형식은 아래 §동의 항목 값이 정본 |
-| `<CONSENT_NOTICE>` | §동의 항목 값 (**잠정**) | 실문구 확정 시 값 교체 | 동의 화면 상단 안내 문구. 미설정 시 미표시 |
+| `<CONSENT_NOTICE>` | §동의 항목 값 (**잠정**) | 배포 전 (개인정보 고지 항목 검토) | 동의 화면 상단 안내 문구. 미설정 시 미표시. 확정 전까지 잠정 문구로 운영하지 않는다 |
 | `<RETENTION_MONTHS>` | `3` | 확정 | 추적 레코드 보관 기간(개월). 결과 확인 완료 기산 |
 | `<RETENTION_MAX_MONTHS>` | `6` | 확정 | 추적 레코드 생성 기산 절대 보관 상한(개월). 결과 확인이 오지 않은 레코드도 이 시점에 삭제된다 |
 | `<CONSENT_PROOF_RETENTION_MONTHS>` | `60` (**잠정**) | 배포 전 (법령·계약 확인) | 동의 증적 보존 기간(개월). 동의 일시 기산이며 추적 레코드보다 길다 |
@@ -66,6 +66,11 @@
 아래 항목에 동의하시면 서비스 연동이 진행됩니다. 동의하지 않으시면 연동이 취소됩니다.
 ```
 
+허용 형태 — 화면 사양이 이 범위를 전제로 레이아웃을 정한다.
+
+- **최대 400자**, **최대 3단락**(단락 구분은 빈 줄). 그 이상이 필요하면 화면 사양을 함께 고쳐야 한다.
+- 서식·링크·HTML 태그를 담지 않는다(평문만). 값이 비면 안내 영역을 렌더하지 않는다.
+
 > 동의 항목·안내 문구를 바꾸면 **동의 항목 버전 식별자도 함께 바뀐다** — 동의 증적이 그 시점의 항목 내용을 참조한다([`docs/prd/devspec/database.md`](docs/prd/devspec/database.md) §동의 증적).
 
 ### 발송처 호출 입력 값
@@ -85,7 +90,7 @@
 
 | 변수 | 값 | 용도 |
 | ---- | -- | ---- |
-| `<LIB_SRC_DIR>` | `libs/AccountInterlockHub.SenderSdk/` | 연동 라이브러리 소스 경로(저장소 루트 기준) |
+| `<LIB_SRC_DIR>` | `apps/sender-sdk/` | 연동 라이브러리 소스 경로(저장소 루트 기준). 모든 코드는 `apps/` 하위에 둔다([`doc-structure.md`](ai/strategies/doc-structure.md)) |
 | `<LIB_BIN>` | `AccountInterlockHub.SenderSdk.dll` | 배포 산출물(라이브러리 파일)명 |
 | `<LIB_TARGET_FRAMEWORK>` | `.NET Framework 4.8` | 대상 런타임. 발송처 C# 프로젝트가 참조하는 기준 |
 

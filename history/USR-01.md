@@ -1,9 +1,10 @@
-# IA: USR-01 — 이용 동의
+# IA: USR-01 — 연동 링크 진입
 
 > 본 IA 노드와 연관된 작업의 시계열 이력(최신순). 정책: ai/strategies/ia-history.md
 
 | 일시 (KST) | 단계 | 산출물·결과 | 관련 일감 | 상태 |
 |---|---|---|---|---|
+| 2026-07-25 10:05 | directing ⓒ | (공통 반영) 리셋 방향 담당자 확정분 반영 — 담당 범위를 **연동 링크 진입**으로 축소(본인확인 → `USR-03`, 동의·승인 → `USR-04` 분리 — 코드 재사용 아님). 구 사양 `docs/specs/`·구현 `apps/`·목업 `mockup/` 삭제 → **재작성 대상**(이력은 git `main` `0d83d60` 보존) — common.md | `accountinterlockhub#468`·`#467` | ℹ️ |
 | 2026-07-20 08:03 | build | `#412` 오류 #465 회귀 수정 — `components/user/BirthDateField.module.css` 포커스 경계 규칙 `.input:focus`→`.input:focus:not(.inputError)`(1줄 + 근거 주석). 에러 시 입력이 `input inputError` 두 클래스를 함께 받는데(BirthDateField.tsx) 기존 `.input:focus`(특이도 0,2,0)가 `.inputError`(0,1,0)를 눌러, 복호화 실패(EX-SEC-006) 자동 포커스(SCR-005 §구현 가이드 AUTH-004-02)에서 error+focus 상시 공존 시 danger 경계(#DC2626)가 primary(#2563EB)에 가려지던 회귀 시정 — `:not(.inputError)` 로 포커스 규칙이 에러 상태에선 미적용(소스순서 무관)되어 danger 경계가 우선(design-system.md §컴포넌트 `TextField(user/birthdate)` error=`color-u-danger-border` 정합). 캡션·aria·배경·모션·disabled·전역 `:focus-visible` 링 무변경. `npm run build`(tsc -b && vite build) 성공(99모듈)·dist CSS 에 `._input…:focus:not(._inputError…)` 반영 확인. **3책임 통과**(리뷰 PASS·기능검증 🟢 — USR-01_013 재현 Pass: 복호화실패+포커스 동시상태 border-color=danger rgb(220,38,38)/#DC2626 확인, 400 EX-SEC-006·캡션 정본·aria-invalid·role=alert·값유지+포커스+전체선택·배경 무착색·레코드 delta 0·정정 재제출 200 COMPLETED 무회귀; 28/28). 단계 종료 후 main 미병합 — 담당자 배포판정·qa 축약 재검증 대기 | `accountinterlockhub#465`·`#412` | ✅ |
 | 2026-07-18 23:16 | qa ⓒ | (공통 반영) `#416` Wave 3(최종) SCEN_001~006 E2E 여정 재검증 6/6 Pass(🟢3·🔵3) — common.md | `accountinterlockhub#416` | ℹ️ |
 | 2026-07-18 22:15 | qa | `#416` Wave 1 — USR-01 전건 19 TC(Phase 1~19, `c7b0773`) 실행 → **16 Pass(14 🟢+2 🔵 mock B의존)/3 🔴 Fail/0 🟠 Block**(19=수행 전건). SCR-005 고정 문구 6종·SCR-006 결과 4유형×5요소 전량 정본 1:1 일치, 시각 폴리시(레이아웃·색·타이포·모션·히트영역 44x44px·포커스링) 실측 일치(#408 사양 대비). Block 예정 6항목(BLK-06·07·08·12·19·Q3)은 전부 기본안 기준 실행·판정 완료(자동 Block 0건). **결함 2건 신규 발견**: ① 요청 제한(FN-014) consent/approve 스코프 미독립 — 감사 target 오분류 + 버킷 공유 실증(오류 `#464`, USR-01_003·012 Fail). ② 생년월일 필드 복호화실패+포커스 동시상태에서 경계색이 danger 대신 primary 로 렌더(CSS 특이도 충돌, 오류 `#465`, USR-01_013 Fail). 검증 일감 `#417~435` 상태 동기화(해결 16·진행 3, GET 실측 확인). 증빙 스크린샷 13건 첨부. 잔여=담당자 배포판정(오류 `#464`·`#465` 처리 후 재검증 권고), Fallback 문구 정본 확정(`#430` 참조) | `accountinterlockhub#416`(검증 `#417~435`, 오류 `#464`·`#465`) | ❌ |

@@ -4,6 +4,7 @@
 
 | 일시 (KST) | 단계 | 산출물·결과 | 관련 일감 | 상태 |
 |---|---|---|---|---|
+| 2026-07-25 10:05 | directing ⓒ | (공통 반영) 리셋 방향 담당자 확정분 반영 — 처리상태 확인 API 유지 — **결과 확인 정의 확정**(발송처가 본 API 로 결과를 받아 간 시점 = 보관 기산점)·결과 구분 응답 포함·**인증 미도입 확정**(무인증 조회가 보관 기산을 개시시키는 리스크 수용). 구 사양·구현 삭제 → 재작성 대상 — common.md | `accountinterlockhub#468`·`#467` | ℹ️ |
 | 2026-07-18 23:16 | qa ⓒ | (공통 반영) `#416` Wave 3(최종) SCEN_001~006 E2E 여정 재검증 6/6 Pass(🟢3·🔵3, SCEN_001·004·006 처리상태 조회 경유) — common.md | `accountinterlockhub#416` | ℹ️ |
 | 2026-07-12 23:55 | build | #237 처리상태 응답 trackingKey 원문 에코 확정(FN-010 정본·spec 자기모순 해소) + #240 주입 TC 정책 정합 — 사양 `process_PROC-301.md`(B6 응답 원문 에코·EX-SEC-004 주입행 바인딩 단독 방어 정정)·`service_SVC-006.md`·`spec-services.md`(MDL-302)·TC `tc_API-01`(_001·_007 원문 에코, _008 주입→404 EX-DATA-003). **코드 무변경**(status.service.ts 이미 원문 에코 `row.tracking_key`·바인딩 준수, qa 실측 정합) | `accountinterlockhub#237`·`#240`·`#236` | ✅ |
 | 2026-07-12 22:00 | qa | API-01_001~010 검증 → 8 Pass·2 Fail(007 응답 trackingKey 마스킹 spec자기모순·008 주입TC). HMAC 인증·멱등 결과확인 실증. 오류 #237/240 | `accountinterlockhub#236` | 🚧 |

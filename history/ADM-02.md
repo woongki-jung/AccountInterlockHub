@@ -4,6 +4,7 @@
 
 | 일시 (KST) | 단계 | 산출물·결과 | 관련 일감 | 상태 |
 |---|---|---|---|---|
+| 2026-07-25 10:05 | directing ⓒ | (공통 반영) 리셋 방향 담당자 확정분 반영 — **관리자 기능 제거 확정** — 기능 폐지·`ia-code` 미사용 등재. 구성 등록·관리는 상수 재정의로 대체. 구 사양·구현·목업 삭제 — common.md | `accountinterlockhub#468`·`#467` | ℹ️ |
 | 2026-07-18 23:16 | qa ⓒ | (공통 반영) `#416` Wave 3(최종) SCEN_001~006 E2E 여정 재검증 6/6 Pass(🟢3·🔵3, SCEN_005 목록·상세 경유) — common.md | `accountinterlockhub#416` | ℹ️ |
 | 2026-07-18 21:29 | qa | ADM-02_002·ADM-02_010·ADM-02_016 검증(qa#416 Wave 0/5, 사용자 페이지 디자인 개선 `c7b0773` 공유자산 회귀) → **3/3 Pass**(🟢 실 환경). SCR-004 Card·SCR-002 목록·삭제확인 Modal(`ConfigsPage.tsx:306`·`ConfigDetailPage.tsx:302`)·약관열람 Modal(`ConfigDetailPage.tsx:326`) 전부 `chrome` 미전달 시 렌더가 변경 전과 계산 스타일 완전 동일(git worktree main `0179ef2` 기준선 A/B 대조), DOM 에 `*User` 클래스 0건. 소프트 삭제 DB round-trip(deleted_at·자식 CASCADE 미발생·CONFIG_DELETE 감사) 확인. 증빙 `works/accountinterlockhub-416/evidence/{ADM-02_002,ADM-02_010,ADM-02_016}/` | `accountinterlockhub#460`·`#461`·`#462` | ✅ |
 | 2026-07-12 22:00 | qa | ADM-02_001~016 검증 → 16/16 Pass. 조회·목록·활성/삭제 API + SCR-002 UI + 유휴만료 401 실측 | `accountinterlockhub#236` | ✅ |
