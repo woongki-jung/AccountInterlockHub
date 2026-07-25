@@ -24,6 +24,8 @@
     --motion-duration-fast:120ms; --motion-duration-base:200ms; --motion-easing:cubic-bezier(.2,0,.38,1);
   }
   *{box-sizing:border-box;}
+  /* hidden 속성이 저자 display 선언(.alert 등)에 밀리지 않게 한다 — 조건부 표시 사양대로 숨는다 */
+  [hidden]{display:none !important;}
   html,body{margin:0;padding:0;}
   body{font-family:var(--font-family-base);background:var(--color-bg);color:var(--color-text);line-height:var(--line-height-base);-webkit-font-smoothing:antialiased;}
   svg{display:block;}
@@ -58,7 +60,7 @@
   .progress-panel h1{font-size:var(--font-size-xl);font-weight:var(--font-weight-bold);margin:0;color:var(--color-text);}
   .progress-panel p.sub{color:var(--color-text-muted);font-size:var(--font-size-sm);margin:0;max-width:32ch;}
 
-  .alert{display:flex;gap:var(--space-xs);align-items:flex-start;background:var(--color-danger-weak);border-left:3px solid var(--color-danger);border-radius:var(--radius-md);padding:var(--space-sm) var(--space-md);color:var(--color-danger-strong);font-size:var(--font-size-sm);margin-top:var(--space-sm);width:100%;text-align:left;}
+  .alert{display:flex;gap:var(--space-xs);align-items:flex-start;background:var(--color-danger-weak);border-left:3px solid var(--color-danger);border-radius:var(--radius-md);padding:var(--space-sm) var(--space-md);color:var(--color-danger-strong);font-size:var(--font-size-sm);width:100%;text-align:left;}
   .alert svg{flex:none;width:18px;height:18px;margin-top:1px;color:var(--color-danger);}
 
   @keyframes spin{to{transform:rotate(360deg);}}

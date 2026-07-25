@@ -27,7 +27,7 @@
 
 ### 레이아웃 구성
 
-카드 안을 ResultPanel 하나로 채운다. 앞 단계의 폼·목록·안내는 남기지 않는다.
+카드 안을 ResultPanel 하나로 채운다. 앞 단계의 폼·목록·안내는 남기지 않는다. 아래 순서와 문구만 이 문서가 정하고, **요소 사이 간격은 [`design-system-components.md`](design-system-components.md) §ResultPanel 이 정본**이다(값을 여기에 옮겨 적지 않는다).
 
 1. **결과 아이콘** — 경로별 아이콘(40px), 경로 강조색.
 2. **제목 영역** — StageTitle(결과 변형). 경로별 제목(`--font-size-2xl`).

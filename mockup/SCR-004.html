@@ -24,6 +24,8 @@
     --motion-duration-fast:120ms; --motion-duration-base:200ms; --motion-easing:cubic-bezier(.2,0,.38,1);
   }
   *{box-sizing:border-box;}
+  /* hidden 속성이 저자 display 선언(.badge 등)에 밀리지 않게 한다 — 조건부 표시 사양대로 숨는다 */
+  [hidden]{display:none !important;}
   html,body{margin:0;padding:0;}
   body{font-family:var(--font-family-base);background:var(--color-bg);color:var(--color-text);line-height:var(--line-height-base);-webkit-font-smoothing:antialiased;}
   svg{display:block;}
@@ -47,7 +49,6 @@
   .mockup-check{display:inline-flex;align-items:center;gap:6px;color:#D8DDE5;font-size:12.5px;}
   .mockup-check.disabled{opacity:.55;}
   .mockup-check input:disabled{cursor:not-allowed;}
-  #reason-row[hidden]{display:none;}
 
   /* ================= 제품 UI (design-system.md 토큰) ================= */
   .page{padding:var(--space-xl) var(--space-md);display:flex;justify-content:center;}
