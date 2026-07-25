@@ -9,10 +9,10 @@
      없으면 Redmine MCP 는 서버 기본(admin) 키로 폴백한다(D:\redmine\.env). 봇은 admin 으로 동작한다.
   2. ai-pm 전용 MCP 큐레이션 — ~/.claude.json 에서 Redmine MCP 만 추린 설정으로 --strict-mcp-config 기동해
      인증 필요한 claude.ai 커넥터·Playwright MCP 가 detached 세션 startup 을 막는 것을 회피한다.
-  3. 경량 워치독(별도 PowerShell 프로세스)을 띄운다 — 세션 프로세스 생존과 '폴링 하트비트'(_session/last-poll)
-     신선도를 감시한다. 세션이 살아 있는데 하트비트가 임계 이상 정체하면(자가 웨이크 폴링 정지) .restart 를
-     설정하고 세션을 강제 종료해 재기동을 유도한다(ai/strategies/ai-pm.md §운영 연속성 ③). 세션 프로세스
-     사망은 아래 세션 루프가 자연히 재기동한다.
+  3. 경량 워치독(별도 PowerShell 프로세스)을 띄운다 — 세션이 스스로 선언한 활동 상태(_session/activity)를
+     감시한다. idle(유휴)·awaiting(담당자 응답대기)이면 세션을 회수해 래퍼가 워처 대기로 복귀하게 하고,
+     working(작업중)이면 경과 시간과 무관하게 개입하지 않는다(작업 중 세션 오살 금지 —
+     ai/strategies/ai-pm.md §운영 연속성 ③). 세션 프로세스 사망은 아래 세션 루프가 자연히 재기동한다.
   4. `claude --dangerously-skip-permissions 'ai-pm 세션 시작'` 를 루프로 실행한다. 매 종료 후
      ai/bots/ai-pm/_session/ 의 플래그를 확인: .restart → 즉시 재기동 / .stop → 종료 / (없음) → 재기동 여부 확인.
   세부 동작은 ai/strategies/ai-pm.md 참조. 단일 세션 — 둘 이상 띄우지 않는다.
@@ -39,8 +39,7 @@ $restartFlag = Join-Path $sessionDir '.restart'
 $stopFlag    = Join-Path $sessionDir '.stop'
 $watchdogPs1 = Join-Path $sessionDir 'watchdog.ps1'
 $watchdogLog = Join-Path $sessionDir 'watchdog.log'
-$lastProcessedFile = Join-Path $sessionDir 'last-processed' # 세션이 트리아지한 최신 Redmine 변경 좌표(값)
-$lastPollFile      = Join-Path $sessionDir 'last-poll'      # 폴링 하트비트(세션이 매 틱 touch, mtime 감시)
+$activityFile      = Join-Path $sessionDir 'activity'       # 활동 상태 플래그(1행: working|awaiting|idle) — 워치독 판정의 단일 근거
 
 New-Item -ItemType Directory -Force -Path $sessionDir | Out-Null
 Remove-Item -Path $restartFlag, $stopFlag -Force -ErrorAction SilentlyContinue
@@ -64,6 +63,10 @@ if ($botConfig -and $botConfig.redmine_projects) { $watchProjects = @($botConfig
 $wsTrackerId    = if ($botConfig -and $botConfig.worksession_tracker_id) { [int]$botConfig.worksession_tracker_id } else { 7 }
 $watchIntervalSec   = if ($botConfig -and $botConfig.watch_interval_sec) { [int]$botConfig.watch_interval_sec } else { 60 }
 $postRunCooldownSec = if ($botConfig -and $botConfig.post_run_cooldown_sec) { [int]$botConfig.post_run_cooldown_sec } else { 15 }
+# 워치독 판정 설정 — activity_reap_grace_sec: 유휴·응답대기 선언 후 회수까지의 유예,
+# work_warn_sec: working 선언이 이 시간 넘게 갱신되지 않으면 경고만 남긴다(회수하지 않는다).
+$activityReapGraceSec = if ($botConfig -and $botConfig.activity_reap_grace_sec) { [int]$botConfig.activity_reap_grace_sec } else { 60 }
+$workWarnSec          = if ($botConfig -and $botConfig.work_warn_sec) { [int]$botConfig.work_warn_sec } else { 2700 }
 $stateFile = Join-Path $sessionDir 'state.json'   # 워터마크 + in-flight 레지스트리(세션 경계를 넘는 유일한 상태)
 if ($env:COMPUTERNAME -ne $execMachine) {
   throw "[ai-pm-session] 실행 장비 불일치 — 지정: $execMachine / 현재: $env:COMPUTERNAME. ai-pm 은 지정 실행 장비에서만 기동한다."
@@ -110,22 +113,26 @@ if (Test-Path $mcpCurateJs) {
   Write-Host "[ai-pm-session] mcp-curate.js 없음 — MCP 없이 기동(--strict-mcp-config)" -ForegroundColor Yellow
 }
 
-# --- 워치독 기동 — 세션 프로세스 생존 + 폴링 하트비트 정체 감시. 이미 떠 있으면 중복 기동하지 않는다. ---
+# --- 워치독 기동 — 세션이 선언한 활동 상태(_session/activity) 감시. 이미 떠 있으면 중복 기동하지 않는다.
+#     주의: 이미 가동 중인 워치독은 옛 본문으로 계속 돌므로, 본 heredoc 을 고친 뒤에는 기존 워치독
+#     프로세스를 종료해야 새 판정 로직이 적용된다(§운영 연속성 ③ — 개정 반영). ---
 $watchdogSource = @'
 param(
   [Parameter(Mandatory=$true)][string]$StopFlag,
-  [Parameter(Mandatory=$true)][string]$RestartFlag,
   [Parameter(Mandatory=$true)][string]$WatchdogLog,
-  [Parameter(Mandatory=$true)][string]$LastPollFile,
+  [Parameter(Mandatory=$true)][string]$ActivityFile,
   [Parameter(Mandatory=$true)][string]$WrapperTag,
-  [string]$StateFile = '',
-  [int]$StallThresholdSec = 600,
-  [int]$StallCooldownSec = 600
+  [int]$ReapGraceSec = 60,
+  [int]$WorkWarnSec = 2700
 )
-# ai-pm 폴링 세션 워치독 — ai-pm-session.ps1 이 생성·기동한다. 직접 수정하지 말 것
-# (본문 정본은 ai-pm-session.ps1 의 $watchdogSource heredoc). 역할: 세션이 살아 있는데
-# 폴링 하트비트(last-poll)가 임계 이상 정체하면(자가 웨이크 정지) 세션을 강제 재기동해
-# 백로그를 드레인시킨다 — ai/strategies/ai-pm.md §운영 연속성 ③ 하드 백스톱.
+# ai-pm 세션 워치독 — ai-pm-session.ps1 이 생성·기동한다. 직접 수정하지 말 것
+# (본문 정본은 ai-pm-session.ps1 의 $watchdogSource heredoc).
+#
+# 역할: 세션이 스스로 선언한 활동 상태(_session/activity)를 읽어, 세션에 할 일이 없는 상태
+# (idle=유휴 / awaiting=담당자 응답대기)일 때만 프로세스를 회수한다. 헤드리스 claude 는 스스로
+# 프로세스를 끝내지 못하므로, 이 회수가 래퍼를 워처(1계층) 대기로 돌려보내는 유일한 수단이다.
+# working(작업중) 선언 세션은 경과 시간과 무관하게 절대 죽이지 않는다 — 작업 중 오살 금지가
+# 이 워치독의 최우선 제약이다(ai/strategies/ai-pm.md §운영 연속성 ③).
 $ErrorActionPreference = 'SilentlyContinue'
 
 function Write-WdLog([string]$msg) {
@@ -142,74 +149,84 @@ function Get-SessionPids {
   }
   return $pids
 }
-function Get-PollAgeSec {
-  # 폴링 하트비트 신선도(초). 파일 없으면 $null(아직 첫 폴링 전 — 판정 보류).
+function Get-Activity {
+  # _session/activity 판독 — 1행 = 상태 토큰(working|awaiting|idle), 2행 = 자유 메모(로그용).
+  # 신선도는 파일 mtime 으로 본다. 파일 부재·판독 실패·토큰 불명이면 State='' 를 반환하며,
+  # 그 경우 호출측은 개입하지 않는다(판정 보류 — 작업 보존 우선).
+  $res = @{ State = ''; AgeSec = 0.0; Note = '' }
   try {
-    if (Test-Path $LastPollFile) {
-      $mt = (Get-Item $LastPollFile -ErrorAction SilentlyContinue).LastWriteTime
-      if ($mt) { return ((Get-Date) - $mt).TotalSeconds }
+    if (Test-Path $ActivityFile) {
+      $item = Get-Item $ActivityFile -ErrorAction SilentlyContinue
+      if ($item -and $item.LastWriteTime) { $res.AgeSec = ((Get-Date) - $item.LastWriteTime).TotalSeconds }
+      $lines = @(Get-Content $ActivityFile -Encoding UTF8 -ErrorAction SilentlyContinue)
+      # 선행 BOM·공백을 제거하고 판독한다 — 이 파일은 세션(LLM)이 PowerShell 아닌 도구로도 쓰므로
+      # BOM 유무가 일정하지 않다. BOM 이 남으면 ^ 앵커가 빗나가 '상태 미선언' 으로 오판한다.
+      if ($lines.Count -ge 1) {
+        $first = (($lines[0] + '') -replace '^[\uFEFF\s]+', '').Trim()
+        if ($first -match '^(working|awaiting|idle)\b') { $res.State = $Matches[1].ToLowerInvariant() }
+      }
+      if ($lines.Count -ge 2) { $res.Note = ($lines[1] + '').Trim() }
     }
   } catch {}
-  return $null
-}
-function Get-InflightCountWd {
-  # state.json 의 in-flight 건수. 못 읽으면 0(유휴 회수 쪽 안전 — 무한 재기동 방지).
-  try {
-    if ($StateFile -and (Test-Path $StateFile)) {
-      $s = Get-Content $StateFile -Raw -Encoding UTF8 | ConvertFrom-Json
-      if ($s -and $s.inflight) { return @($s.inflight).Count }
-    }
-  } catch {}
-  return 0
+  return $res
 }
 
-Write-WdLog "start (pid: $PID, stall>=${StallThresholdSec}s, heartbeat: $LastPollFile)"
-$stallCooldownUntil = $null
-$stallCount = 0
-$stallWindowStart = $null
+Write-WdLog "start (pid: $PID, activity: $ActivityFile, reap-grace=${ReapGraceSec}s, work-warn=${WorkWarnSec}s)"
+$reapCooldownUntil = $null
+$lastWarnAt = $null
 while ($true) {
   if (Test-Path $StopFlag) { Write-WdLog '.stop flag 감지 — 워치독 종료'; break }
 
   try {
     $now = Get-Date
     $sessionPids = Get-SessionPids
-    if ($stallCooldownUntil -and $now -lt $stallCooldownUntil) {
-      # 쿨다운 중 — 직전 재기동의 드레인 대기, 판정 보류
+    if ($reapCooldownUntil -and $now -lt $reapCooldownUntil) {
+      # 직전 회수 쿨다운 — 래퍼가 워처로 복귀해 다음 세션을 띄우는 사이의 판정 보류
     } elseif ($sessionPids -and $sessionPids.Count -gt 0) {
-      # 세션 생존 — 폴링 하트비트 정체 감지
-      $age = Get-PollAgeSec
-      if (($null -ne $age) -and ($age -ge $StallThresholdSec)) {
-        $inflight = Get-InflightCountWd
-        if ($inflight -le 0) {
-          # in-flight 0 = 작업 사이클을 마치고 유휴로 들어간 세션(2계층 세션 수명 — 정상 회수 대상).
-          # 헤드리스 claude 는 스스로 프로세스를 끝내지 못하므로 워치독이 회수한다. .restart 를 걸지
-          # 않아 래퍼가 워처 대기(토큰 0)로 복귀하게 하고, 백오프 카운트에도 넣지 않는다(정상 회수 ≠ 결함).
-          foreach ($sp in $sessionPids) { Stop-Process -Id $sp -Force -ErrorAction SilentlyContinue; Write-WdLog "유휴 세션 회수 PID $sp (in-flight 0, 완료 사이클 — 워처 복귀, 재기동 아님, poll-age=${age}s)" }
-          $stallCooldownUntil = $now.AddSeconds($StallCooldownSec)
-        } else {
-          # in-flight > 0 인데 하트비트 정체 = 작업 중 세션이 멈춤(진짜 hang) — 재기동해 재개시킨다.
-          if (-not $stallWindowStart -or (($now - $stallWindowStart).TotalHours -ge 1)) { $stallWindowStart = $now; $stallCount = 0 }
-          if ($stallCount -ge 3) {
-            Write-WdLog "폴링 정체 지속(in-flight $inflight) — 1시간 내 3회 재기동 초과. 자동 재기동 중단, 담당자 확인 필요 (poll-age=${age}s)"
-          } else {
-            Write-WdLog "폴링 정체 감지 (in-flight $inflight, 하트비트 ${age}s >= ${StallThresholdSec}s) — .restart + 세션 강제 재기동"
-            try { New-Item -ItemType File -Path $RestartFlag -Force | Out-Null } catch {}
-            foreach ($sp in $sessionPids) { Stop-Process -Id $sp -Force -ErrorAction SilentlyContinue; Write-WdLog "  세션 PID $sp 종료(재기동 유도)" }
-            $stallCount++
-            $stallCooldownUntil = $now.AddSeconds($StallCooldownSec)
-          }
+      $act = Get-Activity
+      $age = [int]$act.AgeSec
+      $noteSuffix = if ($act.Note) { " · $($act.Note)" } else { '' }
+
+      if ($act.State -eq 'idle' -or $act.State -eq 'awaiting') {
+        # 세션이 '할 일 없음'을 선언했다 — 회수해 래퍼를 워처(토큰 0) 대기로 돌려보낸다.
+        # .restart 를 걸지 않는다: 재기동이 아니라 정상 회수이며, 다음 지시는 워처가 감지해 새 세션을 띄운다.
+        if ($act.AgeSec -ge $ReapGraceSec) {
+          $label = if ($act.State -eq 'idle') { '유휴' } else { '응답대기' }
+          foreach ($sp in $sessionPids) { Stop-Process -Id $sp -Force -ErrorAction SilentlyContinue }
+          Write-WdLog "$label 세션 회수 — PID $($sessionPids -join ',') (activity=$($act.State), ${age}s 경과) → 래퍼 워처 대기 복귀(재기동 아님)$noteSuffix"
+          $reapCooldownUntil = $now.AddSeconds(30)
+        }
+      } elseif ($act.State -eq 'working') {
+        # 작업중 — 절대 개입하지 않는다(경과 시간 무관). 비정상적으로 오래 갱신이 없으면 경고만 남긴다.
+        if ($act.AgeSec -ge $WorkWarnSec -and (-not $lastWarnAt -or ($now - $lastWarnAt).TotalSeconds -ge 600)) {
+          Write-WdLog "경고: activity=working 이 ${age}s 갱신 없음(임계 ${WorkWarnSec}s) — 회수하지 않음(작업 중 오살 금지). hang 이 의심되면 담당자가 직접 확인·회수한다$noteSuffix"
+          $lastWarnAt = $now
+        }
+      } else {
+        # 상태 미선언(파일 부재·판독 실패·토큰 불명) — 개입하지 않고 경고만 남긴다. 래퍼가 세션 기동
+        # 직전 working 을 기록하므로 정상 운영에서는 발생하지 않는다(발생 시 파일 유실·수동 삭제).
+        if (-not $lastWarnAt -or ($now - $lastWarnAt).TotalSeconds -ge 600) {
+          Write-WdLog "경고: 활동 상태 미선언 — $ActivityFile 판독 불가/토큰 불명. 회수하지 않음(판정 보류)"
+          $lastWarnAt = $now
         }
       }
     }
-  } catch { Write-WdLog "stall-check 예외: $($_.Exception.Message)" }
+  } catch { Write-WdLog "activity-check 예외: $($_.Exception.Message)" }
 
   Start-Sleep -Seconds 5
 }
 '@
 Set-Content -Path $watchdogPs1 -Value $watchdogSource -Encoding UTF8
 
-# 세션에 폴링 하트비트 baseline 부여 — 첫 폴링 전 워치독 오탐 방지(기동 직후 grace).
-Set-Content -Path $lastPollFile -Value ((Get-Date).ToString('o')) -Encoding UTF8 -ErrorAction SilentlyContinue
+# --- 활동 상태 기록 헬퍼 — 래퍼가 세션 기동 직전 baseline 을 선언한다. 이후 갱신은 세션(LLM)의 책임
+#     (ai/strategies/ai-pm.md §세션 상태 — 활동 상태). 1행=상태 토큰, 2행=메모(워치독 로그에 표시). ---
+function Set-Activity {
+  param([Parameter(Mandatory=$true)][string]$State, [string]$Note = '')
+  try { Set-Content -Path $activityFile -Value @($State, $Note) -Encoding UTF8 -ErrorAction SilentlyContinue } catch {}
+}
+
+# 세션이 첫 턴에서 스스로 선언하기 전 구간을 working 으로 덮어, 워치독이 '상태 미선언' 으로 보지 않게 한다.
+Set-Activity -State 'working' -Note '래퍼 기동 baseline'
 
 $wdExisting = Get-WatchdogProcess
 if ($wdExisting) {
@@ -219,14 +236,14 @@ if ($wdExisting) {
     '-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-WindowStyle', 'Hidden',
     '-File', "`"$watchdogPs1`"",
     '-StopFlag', "`"$stopFlag`"",
-    '-RestartFlag', "`"$restartFlag`"",
     '-WatchdogLog', "`"$watchdogLog`"",
-    '-LastPollFile', "`"$lastPollFile`"",
-    '-StateFile', "`"$stateFile`"",
+    '-ActivityFile', "`"$activityFile`"",
+    '-ReapGraceSec', $activityReapGraceSec,
+    '-WorkWarnSec', $workWarnSec,
     '-WrapperTag', $wrapperTag
   )
   $wdProc = Start-Process -FilePath 'powershell.exe' -ArgumentList $wdArgs -WindowStyle Hidden -PassThru
-  Write-Host "[ai-pm-session] 워치독 기동 (PID $($wdProc.Id)) — 세션 생존·폴링 하트비트 5초 간격 감시" -ForegroundColor DarkGray
+  Write-Host "[ai-pm-session] 워치독 기동 (PID $($wdProc.Id)) — 활동 상태 5초 간격 감시 (유휴·응답대기만 회수, 작업중 불개입)" -ForegroundColor DarkGray
 }
 
 # --- 워처(1계층) — Redmine 을 코드로 폴링해 '처리할 작업이 있는가'만 판정한다.
@@ -335,8 +352,8 @@ try {
       }
       Write-Host ""
       Write-Host "[ai-pm-session] 처리 대상 감지 → 세션 기동: $reason" -ForegroundColor Green
-      # 기동 직전 하트비트 baseline — 첫 턴이 길어도 워치독이 오탐하지 않도록.
-      Set-Content -Path $lastPollFile -Value ((Get-Date).ToString('o')) -Encoding UTF8 -ErrorAction SilentlyContinue
+      # 기동 직전 활동 상태 baseline — 첫 턴이 길어도 워치독이 회수 판정하지 않도록 working 으로 둔다.
+      Set-Activity -State 'working' -Note "워처 감지 기동: $reason"
     }
     $wmBefore = if ($watchEnabled) { Get-Watermark } else { 0 }
 
@@ -378,8 +395,8 @@ try {
       Remove-Item $restartFlag -Force -ErrorAction SilentlyContinue
       Write-Host "[ai-pm-session] .restart flag 감지 — 2초 후 재기동..." -ForegroundColor Yellow
       $activeModel = $primaryModel   # 재기동 시 1차 모델부터 다시 시도
-      # 재기동 하트비트 baseline 갱신(새 세션 grace)
-      Set-Content -Path $lastPollFile -Value ((Get-Date).ToString('o')) -Encoding UTF8 -ErrorAction SilentlyContinue
+      # 재기동 활동 상태 baseline 갱신(새 세션 grace)
+      Set-Activity -State 'working' -Note '.restart 재기동 baseline'
       Start-Sleep -Seconds 2
       continue
     }
