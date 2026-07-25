@@ -5,7 +5,7 @@ AccountInterlockHub 의 코드 구현 단위 프로세스의 단일 출처다. �
 본 문서는 **설계 원칙·코드 체계·단계 라벨 체계·프로세스 목록·의존관계**를 담는다. 개별 프로세스 정의는 `process_<PROC 코드>.md` 가, 상위 사양과의 매핑은 아래 두 문서가 갖는다.
 
 - [`spec-process-mapping.md`](spec-process-mapping.md) — SVC·SCR·FN·ENT·MDL ↔ PROC 매핑과 **단계명 매핑 색인**
-- [`spec-process-policy-map.md`](spec-process-policy-map.md) — 정책 규칙 86건 ↔ 적용 PROC·단계 라벨(분량이 커서 별도 분기)
+- [`spec-process-policy-map.md`](spec-process-policy-map.md) — 정책 규칙 87건 ↔ 적용 PROC·단계 라벨(분량이 커서 별도 분기)
 
 ## 프로세스 설계 원칙 및 기본 방향
 

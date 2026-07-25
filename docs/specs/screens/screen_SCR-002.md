@@ -71,7 +71,7 @@
 | SubmittingReject | 거부 클릭 후 응답 대기 | PROC-103 거부 처리 진입 직후 | 버튼에 Spinner·목록 잠금. 단계 유지 |
 | Blocked | 400 `EX-BIZ-001` | PROC-103 승인 요청 재검증 | InlineAlert "필수 동의 항목에 모두 동의해 주세요." + 첫 미충족 항목으로 포커스. 단계 유지 |
 | Retryable | 500 `EX-BIZ-003` | PROC-302 동의 증적 기록 | InlineAlert + 버튼 재활성. 결과 미확정이라 그대로 다시 제출할 수 있다 |
-| BackToIdentity | 400 `EX-AUTH-001`·`EX-AUTH-002` | PROC-104 입력 검증(형식) · 복호화 판정 1·2단계(불일치) | 카드 내용을 SCR-001 로 교체(재입력 안내) |
+| BackToIdentity | 400 `EX-AUTH-001`·`EX-AUTH-002` | PROC-104 입력 검증(형식) · PROC-104 복호화 판정(재복호화) — 판정 1·2단계 실패 | 카드 내용을 SCR-001 로 교체(재입력 안내) |
 | Result | 200 결과 응답 · 502 `EX-BIZ-002` · 400 `EX-SEC-001`·`EX-SEC-002` | PROC-105 결과 경로 선택 | 카드 내용을 SCR-004 로 교체 |
 
 ### 입력 폼 정의

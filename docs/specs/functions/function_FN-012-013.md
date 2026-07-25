@@ -170,7 +170,7 @@ function FN-013 (
 | 계기 | 호출 지점 | `kind` | 근거 |
 |---|---|---|---|
 | 추적 레코드 최초 생성 | FN-008 단계 5 | `REQUEST` | `BIZ-005-02` ① |
-| 진입 단계 구조 위반으로 종료 | PROC-101 | `UNIDENTIFIED_FAILURE` | `BIZ-005-02` ② |
+| 진입 단계 구조 위반으로 종료 | PROC-101 · PROC-102(`EX-SEC-001` 경로) | `UNIDENTIFIED_FAILURE` | `BIZ-005-02` ② |
 | 복호화 판정 3·4단계 실패로 종료 | PROC-102 · PROC-104 | `UNIDENTIFIED_FAILURE` | `BIZ-005-02` ② (추적 키 미확보) |
 | 결과 구분 확정 | FN-009 단계 3 | `RESULT` | `BIZ-005-04` |
 | 재진입 · 본인확인 재시도 · 확정 결과 재안내 | — | 호출하지 않는다 | `BIZ-005-03` |
