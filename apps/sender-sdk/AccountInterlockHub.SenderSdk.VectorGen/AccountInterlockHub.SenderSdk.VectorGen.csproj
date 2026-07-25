@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Visual Studio 프로젝트 참조·열람용으로 두는 구성 파일이다(이 저장소 PC 에는 .NET Framework
+  타게팅 팩이 없어 이 파일로는 빌드하지 못한다). 실제 빌드·실행은 상위 폴더의
+  generate-vectors.ps1(csc.exe 직접 호출)이 수행한다.
+
+  이 프로젝트는 배포 패키지(LIB-03)에 동봉되는 산출물이 아니다 — 허브 운영자가 규약 테스트
+  벡터(protocol-test-vectors.json, LIB-04)를 생성·재생성할 때만 쓰는 저장소 내부 개발 도구다.
+-->
+<Project ToolsVersion="15.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <ProjectGuid>{C40E6F6B-6C1A-4C9A-9A7F-2A5C9E0F4B3A}</ProjectGuid>
+    <OutputType>Exe</OutputType>
+    <RootNamespace>AccountInterlockHub.SenderSdk.VectorGen</RootNamespace>
+    <AssemblyName>AccountInterlockHub.SenderSdk.VectorGen</AssemblyName>
+    <TargetFrameworkVersion>v4.8</TargetFrameworkVersion>
+    <FileAlignment>512</FileAlignment>
+    <Deterministic>true</Deterministic>
+    <!-- csc.exe 직접 빌드(generate-vectors.ps1)와 언어 수준을 맞춘다. -->
+    <LangVersion>5</LangVersion>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>full</DebugType>
+    <Optimize>false</Optimize>
+    <OutputPath>bin\Debug\</OutputPath>
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <DebugType>pdbonly</DebugType>
+    <Optimize>true</Optimize>
+    <OutputPath>bin\Release\</OutputPath>
+    <DefineConstants>TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="System" />
+    <Reference Include="System.Core" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="Program.cs" />
+    <Compile Include="Properties\AssemblyInfo.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\AccountInterlockHub.SenderSdk\AccountInterlockHub.SenderSdk.csproj">
+      <Project>{E101AB21-7E90-4C5E-98ED-ACB8DDAC2832}</Project>
+      <Name>AccountInterlockHub.SenderSdk</Name>
+    </ProjectReference>
+  </ItemGroup>
+  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+</Project>
