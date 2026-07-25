@@ -1,0 +1,6 @@
+# build.ps1(csc.exe 직접 호출) 산출물 — commit 하지 않는다. 재현은 build.ps1 실행으로 충분하다.
+bin/
+obj/
+*.dll
+*.exe
+*.pdb

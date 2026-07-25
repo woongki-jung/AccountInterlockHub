@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  발송처(서비스 A) Visual Studio 프로젝트 참조·프로젝트 열람용으로 함께 두는 구성 파일이다.
+  이 저장소 PC 에는 .NET Framework 타게팅 팩이 없어 이 파일로는 빌드하지 못한다 —
+  실제 빌드는 같은 폴더의 build.ps1(csc.exe 직접 호출)이 수행한다.
+-->
+<Project ToolsVersion="15.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <ProjectGuid>{E101AB21-7E90-4C5E-98ED-ACB8DDAC2832}</ProjectGuid>
+    <OutputType>Library</OutputType>
+    <RootNamespace>AccountInterlockHub.SenderSdk</RootNamespace>
+    <AssemblyName>AccountInterlockHub.SenderSdk</AssemblyName>
+    <TargetFrameworkVersion>v4.8</TargetFrameworkVersion>
+    <FileAlignment>512</FileAlignment>
+    <Deterministic>true</Deterministic>
+    <!-- csc.exe 직접 빌드(build.ps1)와 언어 수준을 맞춘다 — 문자열 보간·nameof 등 C# 5 이후
+         문법을 쓰면 이 저장소 PC 의 빌드 경로에서 컴파일이 깨진다. -->
+    <LangVersion>5</LangVersion>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>full</DebugType>
+    <Optimize>false</Optimize>
+    <OutputPath>bin\Debug\</OutputPath>
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <DebugType>pdbonly</DebugType>
+    <Optimize>true</Optimize>
+    <OutputPath>bin\Release\</OutputPath>
+    <DefineConstants>TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="System" />
+    <Reference Include="System.Core" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="EncryptedPair.cs" />
+    <Compile Include="InterlockProtocolException.cs" />
+    <Compile Include="InterlockRequestBuilder.cs" />
+    <Compile Include="Internal\Base64UrlEncoder.cs" />
+    <Compile Include="Internal\KeyNormalizer.cs" />
+    <Compile Include="Properties\AssemblyInfo.cs" />
+  </ItemGroup>
+  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+</Project>
