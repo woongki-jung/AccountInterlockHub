@@ -36,13 +36,16 @@ export interface InterlockConfig {
   completionRedirectUrl: string;
 }
 
-/** PROC-901 B3 형식 검증에서 검사하는 env 키 이름. 미충족 보고에는 이 이름만 남기고 값은 남기지 않는다(FN-015 취지). */
+/**
+ * PROC-901 B3 형식 검증에서 검사하는 env 키 이름 — MDL-022 필수 상수 8종과 정확히 일치한다.
+ * `CONSENT_NOTICE` 는 선택 상수이며 기동 시 형식 검증 대상이 아니므로 이 목록에 없다(MDL-022 · EXC-DATA-08).
+ * 미충족 보고에는 이 이름만 남기고 값은 남기지 않는다(FN-015 취지).
+ */
 export type MissingConstantKey =
   | 'INTERLOCK_ENTRY_PATH'
   | 'SELFCHECK_PATH'
   | 'RECEIVER_DELIVERY_URL'
   | 'CONSENT_ITEMS'
-  | 'CONSENT_NOTICE'
   | 'RETENTION_MONTHS'
   | 'RETENTION_MAX_MONTHS'
   | 'CONSENT_PROOF_RETENTION_MONTHS'

@@ -4,7 +4,6 @@ import {
   isNonEmptyString,
   isPathFormat,
   isUrlFormat,
-  isValidConsentNotice,
   parseConsentItems,
   parsePositiveInteger,
   sortConsentItemsByCode,
@@ -42,11 +41,10 @@ export function loadInterlockConfig(env: NodeJS.ProcessEnv): LoadInterlockConfig
     missing.push('CONSENT_ITEMS');
   }
 
-  // <CONSENT_NOTICE> 는 선택 상수다(기본값 빈 문자열) — 값이 있을 때만 허용 형태를 검사한다.
+  // <CONSENT_NOTICE> 는 선택 상수이며 기동 시 형식 검증 대상이 아니다(MDL-022 · EXC-DATA-08) —
+  // 허용 형태(최대 400자·최대 3단락·평문)는 상수 작성 지침일 뿐 애플리케이션이 판정하지 않는다.
+  // 부재·빈 값은 미충족이 아니라 빈 문자열로 다룬다(EXC-BIZ-07) — missing 에 담지 않는다.
   const consentNotice = env.CONSENT_NOTICE ?? '';
-  if (consentNotice.length > 0 && !isValidConsentNotice(consentNotice)) {
-    missing.push('CONSENT_NOTICE');
-  }
 
   const retentionMonths = parsePositiveInteger(env.RETENTION_MONTHS);
   if (retentionMonths === null) missing.push('RETENTION_MONTHS');
@@ -66,7 +64,8 @@ export function loadInterlockConfig(env: NodeJS.ProcessEnv): LoadInterlockConfig
     return { missing };
   }
 
-  // 이 지점부터는 위 아홉 상수가 전부 존재·형식을 충족한 상태다 — 아래 비-null 단언(!)은 그 사실에 근거한다.
+  // 이 지점부터는 위 여덟 상수(MDL-022 필수 상수 전량 — CONSENT_NOTICE 제외)가 전부 존재·형식을
+  // 충족한 상태다 — 아래 비-null 단언(!)은 그 사실에 근거한다.
   let version: string;
   try {
     version = computeConsentVersion(parsedConsentItems!, consentNotice);

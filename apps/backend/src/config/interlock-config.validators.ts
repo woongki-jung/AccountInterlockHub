@@ -64,31 +64,7 @@ export function parseConsentItems(raw: string): ConsentItemConfig[] | null {
   return items;
 }
 
-const HTML_TAG_PATTERN = /<\/?[a-zA-Z!][^<>]*>/;
-const LINK_PATTERN = /https?:\/\/|www\./i;
-const MAX_CONSENT_NOTICE_LENGTH = 400;
-const MAX_CONSENT_NOTICE_PARAGRAPHS = 3;
-
-/**
- * `<CONSENT_NOTICE>` 허용 형태 — 최대 400자·최대 3단락(빈 줄 구분)·평문(서식·링크·HTML 태그 금지).
- * 빈 문자열은 이 함수의 호출 대상이 아니다(호출측이 빈 값은 검사 없이 통과시킨다 — 값이 비면 안내 영역 미표시).
- */
-export function isValidConsentNotice(value: string): boolean {
-  if ([...value].length > MAX_CONSENT_NOTICE_LENGTH) return false;
-
-  const paragraphs = value
-    .split(/\r?\n[ \t]*\r?\n/)
-    .map((paragraph) => paragraph.trim())
-    .filter((paragraph) => paragraph.length > 0);
-  if (paragraphs.length > MAX_CONSENT_NOTICE_PARAGRAPHS) return false;
-
-  if (HTML_TAG_PATTERN.test(value)) return false;
-  if (LINK_PATTERN.test(value)) return false;
-
-  return true;
-}
-
-/** 항목 코드 오름차순 정렬(MDL-008 · data_ENT-002.md §버전 식별자 산출 규칙 2). */
+/** 항목 코드 오름차순 정렬(MDL-008 · data_ENT-002.md §버전 식별자 산출 규칙 3). */
 export function sortConsentItemsByCode<T extends { code: string }>(items: T[]): T[] {
   return [...items].sort((a, b) => (a.code < b.code ? -1 : a.code > b.code ? 1 : 0));
 }
