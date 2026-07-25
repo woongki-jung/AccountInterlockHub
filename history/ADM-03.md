@@ -4,6 +4,9 @@
 
 | 일시 (KST) | 단계 | 산출물·결과 | 관련 일감 | 상태 |
 |---|---|---|---|---|
+| 2026-07-25 10:05 | directing ⓒ | (공통 반영) 리셋 방향 담당자 확정분 반영 — **관리자 기능 제거 확정** — 기능 폐지·`ia-code` 미사용 등재(관리자 인증·IP 제한 제거). 구 사양·구현·목업 삭제 — common.md | `accountinterlockhub#468`·`#467` | ℹ️ |
+| 2026-07-18 23:16 | qa ⓒ | (공통 반영) `#416` Wave 3(최종) SCEN_001~006 E2E 여정 재검증 6/6 Pass(🟢3·🔵3, SCEN_005 세션만료 로그인 경유) — common.md | `accountinterlockhub#416` | ℹ️ |
+| 2026-07-18 21:29 | qa | ADM-03_016 검증(qa#416 Wave 0/5, 사용자 페이지 디자인 개선 `c7b0773` 공유자산 회귀) → **1/1 Pass**(🟢 실 환경). SCR-001 로그인(헤더 없는 중앙 카드) 렌더가 전역 토큰 신설 전과 계산 스타일 완전 동일(git worktree main `0179ef2` 기준선 A/B 대조), `-u-canvas`·`-u-card`·`-u-border` 등 사용자 표면 토큰 미침투 확인. 마스킹·만료배너·존재비노출·`role=alert` 접근성 재확인. 증빙 `works/accountinterlockhub-416/evidence/ADM-03_016/` | `accountinterlockhub#463` | ✅ |
 | 2026-07-12 22:00 | qa | ADM-03_001~016 검증 → 16/16 Pass. 로그인·5회잠금·IP게이트·유휴30분·SCR-001 UI(마스킹·만료배너) | `accountinterlockhub#236` | ✅ |
 | 2026-07-12 14:45 | build | P11 런타임 게이트 회귀 수정 — production(NODE_ENV=production)·TLS 종단 프록시(Azure App Service) 뒤에서 cookie.secure=true 인데 express-session 이 요청을 secure 로 인식 못해 Set-Cookie 전량 미발급(로그인 200 이나 세션 미확립 → 후속 401) 결함 해소. `admin/auth/session.support.ts` buildSessionOptions 에 `proxy: isTrustProxyEnabled(TRUST_PROXY)` 추가(Option B 채택) — express-session 의 issecure() 가 X-Forwarded-Proto 를 세션 쿠키 판정에만 한정해 신뢰, Express 전역 `app.set('trust proxy')`·req.ip 는 무변경이라 오류 #213(source-ip.util XFF 출발지 격리) 무회귀. `.env.example` TRUST_PROXY 주석에 production 필수 사유 추가. `nest build` 0 에러, dev/production(TRUST_PROXY=1+SESSION_SECRET) 양쪽 부팅 확인(기능검증은 tester 소관) | `accountinterlockhub#235` | ✅ |
 | 2026-07-11 23:30 | spec | `tc_ADM-03.md` 검토·유지 — #214 무영향(IP 게이트·로그인·세션·계정 잠금). PROC-103/104·BR-105/106·EX-SEC-001·AUTH-001~004·16 TC 불변 확인 | `accountinterlockhub#222`·`#214` | 🚧 |
