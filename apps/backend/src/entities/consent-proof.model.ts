@@ -1,13 +1,14 @@
 import { ConsentProofRow, ConsentSnapshot } from './consent-proof.entity';
 
-/** MDL-002 동의 증적 — 응용 계층 도메인 모델(model_MDL-002.md §속성 정의). 생성 후 불변, 갱신 경로가 없다. */
+/** MDL-002 동의 증적 — 응용 계층 도메인 모델(model_MDL-002.md §속성 정의). 생성 후 불변, 갱신 경로가 없다.
+ *  전 속성 readonly(model_MDL-002.md §구현 가이드 "읽기 전용 구조로 둔다"). */
 export interface ConsentProofModel {
-  consentProofId: string;
-  trackingKey: string;
-  consentedAt: Date;
-  consentVersion: string;
-  consentSnapshot: ConsentSnapshot;
-  agreedItemCodes: string[];
+  readonly consentProofId: string;
+  readonly trackingKey: string;
+  readonly consentedAt: Date;
+  readonly consentVersion: string;
+  readonly consentSnapshot: ConsentSnapshot;
+  readonly agreedItemCodes: readonly string[];
 }
 
 /** ENT→도메인(model_MDL-002.md §엔터티 매핑) — 전 필드 직접 매핑. */
