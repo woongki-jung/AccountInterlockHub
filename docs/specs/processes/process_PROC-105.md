@@ -41,7 +41,7 @@
 
 | 호출 지점 | 입력 출처(`source`) | 전달 값 |
 |---|---|---|
-| PROC-101 `B6` | `ENTRY_FAILURE` | 진입 단계 실패 사유(`EX-SEC-001`·`EX-SEC-004`) |
+| PROC-101 `B6` | `ENTRY_FAILURE` | 진입 단계 실패 사유(`EX-SEC-001`·`EX-SEC-004`·`EX-OPS-002`) |
 | PROC-102 `B7` | `RECORD` | 확정된 [`MDL-001`](../datas/model_MDL-001.md) + `isReAnnouncement = true` |
 | PROC-102 `B4b` · PROC-103 `B2` | `REASON_CODE` | `EX-SEC-002` 등 실패 사유 |
 | PROC-103 `B4` | `RECORD` | 확정된 `MDL-001` + `isReAnnouncement = true` |
@@ -103,7 +103,7 @@ F1. 결과 상태 수신
 F2. 경로별 패널 렌더 (SCR-004)
 
   경로 → 아이콘·색·제목·설명·다음 안내는 SCR-004 §결과 4경로가 정본이다
-  if (resultPath == 3)   설명 문구를 reasonCode 로 고른다 (제목·아이콘·색은 셋 다 같다)
+  if (resultPath == 3)   설명 문구를 reasonCode 로 고른다 (제목·아이콘·색은 사유와 무관하게 같다)
   if (isReAnnouncement)  배지 `재안내` + 덧붙이는 문장 (제목 바로 아래)
   캐시·전역 상태 갱신: 없다
   표시 금지: 추적 키 · 사유 코드 원문 · 처리 일시 · 재시도 횟수 · 내부 단계
@@ -195,7 +195,7 @@ B3. 결과 안내 구성 — POL BIZ-002-04 ③ · SEC-002-05 (mask)
 | BR-008 | `B2` 결과 구분 값 | `SUCCESS`→① / `USER_DENIED`→② / `DECRYPT_FAILED`·진입 단계 실패→③ / `DELIVERY_FAILED`→④ | 네 경로 중 하나 |
 | BR-009 | `B3` 확정 결과 재안내 | 같은 경로 + 보조 표시. 계수·갱신 없음 | 경로 재표시 |
 | BR-002 | 호출측(PROC-102·103)의 3분기 판정 결과 | `FIXED` 이면 BR-009 로 · 아니면 정상 흐름 | 재안내 또는 진행 |
-| `EX-SEC-001`·`EX-SEC-004` | PROC-101 진입 단계 실패에서 넘어옴 | 추적 레코드 없이 경로 ③ | 경로 ③ |
+| `EX-SEC-001`·`EX-SEC-004`·`EX-OPS-002` | PROC-101 진입 단계 실패에서 넘어옴(`EX-OPS-002` = 분류되지 않는 내부 실패) | 추적 레코드 없이 경로 ③ | 경로 ③ |
 | `EX-SEC-002` | PROC-102·PROC-104 판정 3·4단계 실패에서 넘어옴 | `DECRYPT_FAILED` 로 경로 ③ | 경로 ③ |
 | `EX-BIZ-002` | PROC-104 전달 실패에서 넘어옴 | `DELIVERY_FAILED` 로 경로 ④ | 502 + 경로 ④ |
 
