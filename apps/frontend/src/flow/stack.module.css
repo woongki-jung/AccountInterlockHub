@@ -1,0 +1,17 @@
+/*
+ * 화면 안 블록 간격 유틸 — design-system.md §레이아웃 "카드 내부 순서"
+ * (제목 → 보조 설명 → 본문 영역 → 액션 영역)의 블록 간 간격을 --space-lg
+ * 로, 알림 영역처럼 본문에 붙는 보조 요소는 --space-md 로 둔다.
+ *
+ * ⚠️ 이 파일은 P14 가 시범으로 구성한 화면 조립(IdentityScreen·
+ * ConsentScreen) 의 레이아웃 유틸이다 — SCR-001·SCR-002 의 최종 조립은
+ * P15 소관이며 이 파일도 함께 다듬어질 수 있다.
+ */
+
+.body {
+  margin-top: var(--space-md);
+}
+
+.actions {
+  margin-top: var(--space-lg);
+}

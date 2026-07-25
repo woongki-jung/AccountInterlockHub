@@ -1,0 +1,63 @@
+/* Button — design-system-components.md §Button */
+
+.btn {
+  box-sizing: border-box;
+  width: 100%;
+  height: var(--size-control-height);
+  padding: 0 var(--space-md);
+  border-radius: var(--radius-md);
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-semibold);
+  font-family: inherit;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-xs);
+  border: 1px solid transparent;
+  transition:
+    background-color var(--motion-duration-fast) var(--motion-easing),
+    border-color var(--motion-duration-fast) var(--motion-easing);
+}
+
+.primary {
+  background-color: var(--color-primary);
+  color: #ffffff;
+}
+
+.primary:hover {
+  background-color: var(--color-primary-strong);
+}
+
+.primary:active {
+  background-color: var(--color-primary-strong);
+}
+
+.secondary {
+  background-color: var(--color-surface);
+  color: var(--color-primary);
+  border-color: var(--color-border);
+}
+
+/* 비활성(필수 미충족) — aria-disabled 로만 표시한다. 네이티브 disabled
+   를 쓰지 않아 포커스·클릭을 계속 받는다(design-system-components.md
+   §Button "접근성"). */
+.btn[aria-disabled='true'] {
+  background-color: var(--color-disabled-bg);
+  color: var(--color-disabled-fg);
+  border-color: transparent;
+}
+
+.btn[aria-disabled='true']:hover {
+  background-color: var(--color-disabled-bg);
+}
+
+/* 처리 중 — 실제 disabled(중복 제출 차단). SCR-001 확인 버튼 하나에만 쓰인다. */
+.btn:disabled {
+  cursor: default;
+  opacity: 1;
+}
+
+.spinnerSlot {
+  display: inline-flex;
+}

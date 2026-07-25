@@ -1,0 +1,46 @@
+/* AppShell — design-system.md §레이아웃 · design-system-components.md §AppShell */
+
+.page {
+  min-height: 100vh;
+  background-color: var(--color-bg);
+  padding: var(--space-lg) var(--space-md);
+  /* 세로 중앙 정렬을 쓰지 않는다 — 내용 높이가 단계마다 달라 흔들린다.
+     내용은 위에서부터 쌓는다(design-system.md §레이아웃 1). */
+  display: flex;
+  justify-content: center;
+}
+
+.card {
+  width: 100%;
+  max-width: var(--size-content-max);
+  background-color: var(--color-surface);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-card);
+  padding: var(--space-md);
+  height: fit-content;
+}
+
+/* 기본(0~479px) — 카드 안쪽 여백 --space-md, 상하 여백 --space-lg(위 .page 기본값) */
+
+/* --bp-sm: 480px 이상 — 카드 최대 폭 440px, 안쪽 여백 --space-lg, 좌우 여백 --space-lg */
+@media (min-width: 480px) {
+  .page {
+    padding: var(--space-lg);
+  }
+
+  .card {
+    max-width: 440px;
+    padding: var(--space-lg);
+  }
+}
+
+/* --bp-md: 768px 이상 — 카드 최대 폭 --size-content-max(480px), 상하 여백 --space-2xl */
+@media (min-width: 768px) {
+  .page {
+    padding: var(--space-2xl) var(--space-lg);
+  }
+
+  .card {
+    max-width: var(--size-content-max);
+  }
+}

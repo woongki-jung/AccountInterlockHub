@@ -1,0 +1,24 @@
+/* StageTitle — design-system-components.md §StageTitle */
+
+.wrap {
+  margin-bottom: var(--space-lg);
+}
+
+.title {
+  font-size: var(--font-size-xl);
+  font-weight: var(--font-weight-bold);
+  line-height: var(--line-height-tight);
+  color: var(--color-text);
+}
+
+.title:focus {
+  /* h1 은 시각적 포커스 링을 두지 않는다 — 프로그램적 포커스 이동일
+     뿐이며 사용자가 클릭·탭으로 도달하는 대상이 아니다. */
+  outline: none;
+}
+
+.subtitle {
+  margin-top: var(--space-xs);
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+}

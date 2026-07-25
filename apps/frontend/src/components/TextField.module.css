@@ -1,0 +1,58 @@
+/* TextField — design-system-components.md §TextField */
+
+.field {
+  display: flex;
+  flex-direction: column;
+}
+
+.label {
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text);
+  margin-bottom: var(--space-xs);
+}
+
+.input {
+  height: var(--size-control-height);
+  padding: 0 var(--space-md);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background-color: var(--color-surface);
+  color: var(--color-text);
+  font-size: var(--font-size-base);
+  font-family: inherit;
+  width: 100%;
+}
+
+.input::placeholder {
+  color: var(--color-text-muted);
+}
+
+.input[aria-invalid='true'] {
+  border-color: var(--color-danger);
+}
+
+.input:read-only {
+  background-color: var(--color-bg);
+  color: var(--color-text-muted);
+}
+
+/* 생년월일 변형 — design-system.md §타이포그래피 "생년월일 입력은
+   --font-size-lg·자간 0.15em·고정폭 숫자". */
+.birthDate {
+  font-size: var(--font-size-lg);
+  letter-spacing: 0.15em;
+  font-variant-numeric: tabular-nums;
+}
+
+.hint {
+  margin-top: var(--space-xs);
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+}
+
+.error {
+  margin-top: var(--space-xs);
+  font-size: var(--font-size-sm);
+  color: var(--color-danger);
+}

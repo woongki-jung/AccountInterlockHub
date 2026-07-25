@@ -1,0 +1,35 @@
+/* ProgressPanel — design-system-components.md §ProgressPanel */
+
+.panel {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: var(--space-xl) 0;
+}
+
+.panel:focus {
+  outline: none;
+}
+
+.spinnerSlot {
+  color: var(--color-primary);
+  margin-bottom: var(--space-md);
+}
+
+.title {
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text);
+}
+
+.subtitle {
+  margin-top: var(--space-xs);
+  color: var(--color-text-muted);
+}
+
+.alert {
+  margin-top: var(--space-lg);
+  width: 100%;
+  text-align: left;
+}
