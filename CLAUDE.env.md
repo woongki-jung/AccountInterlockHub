@@ -37,12 +37,36 @@
 
 | 변수 | 값 | 확정 시점 | 설명 |
 | ---- | -- | ------ | ---- |
-| `<INTERLOCK_ENTRY_PATH>` | TBD | spec 진입 전 | 사용자 진입 경로. 발송처가 이 경로에 `encX`·`encY`를 붙여 사용자를 유도한다 |
+| `<INTERLOCK_ENTRY_PATH>` | `/interlock/entry` | 확정 | 사용자 진입 경로. 발송처가 이 경로에 `encX`·`encY`를 붙여 사용자를 유도한다. 연동이 1:1 고정이라 발송처 식별 구간을 두지 않는다 |
+| `<SELFCHECK_PATH>` | TBD | build 착수 전 | 연동 규약 자가진단 API 경로([`docs/prd/devspec/external-apis.md`](docs/prd/devspec/external-apis.md) §연동 규약 자가진단 API). 추측하기 어려운 **비공개 경로**로 둔다 |
 | `<RECEIVER_DELIVERY_URL>` | TBD | build 착수 전 (수신처 협의) | 수신처(서비스 B) 전달 주소. 승인·복호화 완료 시 전달 데이터(X)를 보내는 대상 |
-| `<CONSENT_ITEMS>` | TBD | **spec 진입 전** | 사용자에게 노출할 동의 항목 목록. 항목마다 항목명·필수 여부·설명을 갖는 **여러 건**이라 값의 주입 형식(구조화 문자열·별도 설정 파일 등)을 함께 정한다. 화면 사양의 직접 입력이다 |
-| `<CONSENT_NOTICE>` | TBD | **spec 진입 전** | 동의 대상 설명 문구(사용자 화면 상단 안내). 미설정 시 미표시. 화면 사양의 직접 입력이다 |
-| `<RETENTION_MONTHS>` | `3` | 확정 | 추적 레코드 보관 기간(개월). 결과 확인 완료 기준 |
-| `<RETENTION_MAX_MONTHS>` | `6` | 담당자 확인 대기 | 추적 레코드 생성 기준 절대 보관 상한(개월). 결과 확인이 오지 않은 레코드도 이 시점에 삭제된다 |
+| `<CONSENT_ITEMS>` | §동의 항목 값 | 확정 | 사용자에게 노출할 동의 항목 목록. 값과 주입 형식은 아래 §동의 항목 값이 정본 |
+| `<CONSENT_NOTICE>` | §동의 항목 값 (**잠정**) | 실문구 확정 시 값 교체 | 동의 화면 상단 안내 문구. 미설정 시 미표시 |
+| `<RETENTION_MONTHS>` | `3` | 확정 | 추적 레코드 보관 기간(개월). 결과 확인 완료 기산 |
+| `<RETENTION_MAX_MONTHS>` | `6` | 확정 | 추적 레코드 생성 기산 절대 보관 상한(개월). 결과 확인이 오지 않은 레코드도 이 시점에 삭제된다 |
+| `<CONSENT_PROOF_RETENTION_MONTHS>` | `60` (**잠정**) | 배포 전 (법령·계약 확인) | 동의 증적 보존 기간(개월). 동의 일시 기산이며 추적 레코드보다 길다 |
+
+### 동의 항목 값
+
+동의 항목은 항목마다 여러 속성을 갖는 목록이라 위 표의 한 칸에 담을 수 없어 여기서 정의한다. 주입 형식은 **JSON 배열 문자열**이며, 애플리케이션이 기동 시 파싱·형식 검증한다([`docs/prd/devspec/infra.md`](docs/prd/devspec/infra.md) §연동 구성 상수 주입).
+
+`<CONSENT_ITEMS>` — 현재 1건이다.
+
+| 항목 코드 | 항목명 | 필수 | 설명 |
+| ---- | ---- | -- | ---- |
+| `THIRD_PARTY_PROVISION` | 개인정보 제3자 제공 동의 | 필수 | 발송처가 보유한 회원 식별 정보를 수신처(서비스 B)에 제공하는 것에 대한 동의 |
+
+```json
+[{"code":"THIRD_PARTY_PROVISION","label":"개인정보 제3자 제공 동의","required":true,"description":"발송처가 보유한 회원 식별 정보를 수신처에 제공하는 데 동의합니다."}]
+```
+
+`<CONSENT_NOTICE>` — **잠정 문구**다. 실제 문구가 확정되면 이 값만 교체한다(화면 사양은 상수를 참조하므로 사양 개정이 필요하지 않다).
+
+```
+아래 항목에 동의하시면 서비스 연동이 진행됩니다. 동의하지 않으시면 연동이 취소됩니다.
+```
+
+> 동의 항목·안내 문구를 바꾸면 **동의 항목 버전 식별자도 함께 바뀐다** — 동의 증적이 그 시점의 항목 내용을 참조한다([`docs/prd/devspec/database.md`](docs/prd/devspec/database.md) §동의 증적).
 
 ### 발송처 호출 입력 값
 
@@ -53,16 +77,17 @@
 | `<HUB_BASE_URL_PROD>` | TBD | 배포 준비 시 | 운영 환경 허브 기준 URL |
 | `<HUB_BASE_URL_DEV>` | TBD | build 착수 전 | 개발·로컬 환경 허브 기준 URL |
 
-> 발송처키는 **비밀 값**이므로 본 파일에 두지 않는다([`document-master-guide.md`](ai/strategies/document-master-guide.md) §경로·이름 표기 — 비밀 값 제외). 위치 확정은 담당자 대기 항목이다([`docs/prd/PRD.md`](docs/prd/PRD.md) §미결·확인 필요). 서버 대면 API 의 인증 자격을 두기로 하면 그 값도 같은 이유로 본 파일 대상이 아니다.
+> 발송처키는 **비밀 값**이므로 본 파일에 두지 않으며 상수화 대상이 아니다([`document-master-guide.md`](ai/strategies/document-master-guide.md) §경로·이름 표기 — 비밀 값 제외). 발송처키의 생성·보관은 발송처 소관이고, 허브는 복호화에 발송처키를 쓰지 않으므로 보관할 필요도 없다([`docs/prd/devspec/external-apis.md`](docs/prd/devspec/external-apis.md) §암호화 연동 규약). 서버 대면 API 에는 인증을 두지 않으므로 인증 자격 값도 없다.
 
 ## 연동 라이브러리 식별자
 
-발송처에 제공하는 암호화·요청 URL 생성 라이브러리의 소스·산출물 값이다([`docs/prd/devspec/infra.md`](docs/prd/devspec/infra.md) §연동 라이브러리 배포). 구현 기술스택 확정 후 채운다.
+발송처에 제공하는 암호화·요청 URL 생성 라이브러리의 소스·산출물 값이다([`docs/prd/devspec/infra.md`](docs/prd/devspec/infra.md) §연동 라이브러리 배포).
 
 | 변수 | 값 | 용도 |
 | ---- | -- | ---- |
-| `<LIB_SRC_DIR>` | TBD | 연동 라이브러리 소스 경로 |
-| `<LIB_BIN>` | TBD | 배포 산출물(라이브러리 파일)명 |
+| `<LIB_SRC_DIR>` | `libs/AccountInterlockHub.SenderSdk/` | 연동 라이브러리 소스 경로(저장소 루트 기준) |
+| `<LIB_BIN>` | `AccountInterlockHub.SenderSdk.dll` | 배포 산출물(라이브러리 파일)명 |
+| `<LIB_TARGET_FRAMEWORK>` | `.NET Framework 4.8` | 대상 런타임. 발송처 C# 프로젝트가 참조하는 기준 |
 
 ## 관리 도구 식별자
 
