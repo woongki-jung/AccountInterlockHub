@@ -27,3 +27,13 @@
 	- `<WORK_ROOT>` 가 이전 프로젝트의 macOS 경로(`/Volumes/D/Work/ai-workgroup`)로 남아 있어 이 PC 실제 경로(`D:/Work/AccountInterlockHub`)로 갱신했다. `<QA_TOOLS_HOME>`·QA 스크립트 루트가 이 값을 조합해 쓰므로 방치하면 잘못된 경로를 만든다(부트스트랩 잔재 — [`project-bootstrap.md`](../../../ai/strategies/project-bootstrap.md) §2 CLAUDE.env.md 갱신).
 - **왜**: 2회차 평가가 `<LIB_SRC_DIR>` 충돌을 directing 완료를 막는 차단 사유로 판정했고, 나머지 둘은 값의 사용처가 불완전해 spec·qa 가 소비할 수 없는 상태였다.
 - **영향**: `docs/prd/devspec/infra.md` §연동 라이브러리 배포는 소스 위치를 본 파일 참조로 두므로 문구 변경이 없다.
+
+## 잔여 `TBD` 잠정값 일괄 설정 (같은 날 · 담당자 지시)
+
+- **무엇**: [`CLAUDE.env.md`](../../../CLAUDE.env.md) 에 남아 있던 `TBD` **4건을 실제 값과 같은 형식의 잠정값으로 교체**하고, `(**잠정**)` 표기 규약을 §연동 구성 상수 머리말에 신설했다.
+	- `<RECEIVER_DELIVERY_URL>` → `https://service-b.example.com/api/interlock/receive`. 문서용 예약 도메인(`example.com`)을 써서 **교체를 잊고 배포해도 외부 호스트로 데이터가 나가지 않고 전달만 실패**하게 했다.
+	- `<HUB_BASE_URL_PROD>` → `https://accountinterlockhub.azurewebsites.net`(배포 형태가 Azure App Service 단일 인스턴스라 그 기본 도메인 형태) · `<HUB_BASE_URL_DEV>` → `http://localhost:3000`.
+	- `<SELFCHECK_PATH>` → `/api/_selfcheck/8f3d2b6a94c1`. 본 파일이 git 관리라 **적힌 값은 비공개가 아니므로**, 확정 시점을 "build 착수 전"에서 **"배포 시점(운영 값 재지정)"** 으로 바꾸고 그 조건을 상수표·[`external-apis.md`](../../../docs/prd/devspec/external-apis.md) §7 에 명시했다.
+	- 기존 잠정값 2건(`<CONSENT_NOTICE>`·`<CONSENT_PROOF_RETENTION_MONTHS>` 60개월)은 값 그대로 두고 표기만 규약에 맞췄다.
+- **왜**: 담당자가 **"값 확정 대기항목들을 현시점에서 우선 적절한 임의 값으로 설정한 후 작업내용을 main 에 병합"** 하라고 지시했다(`#467` journal 3157). 미확정 값이 spec·build 착수를 막지 않게 하되, 잠정값이 그대로 운영에 나가지 않도록 **"잠정값 상태로 운영 배포하지 않는다"**·**"확정 시 상수 값만 교체(사양·코드 개정 불요)"** 를 원칙으로 함께 규정했다.
+- **영향**: 제품 산출물 [`docs/prd/PRD.md`](../../../docs/prd/PRD.md) §성과 지표(목표치 잠정 설정)·§미결·확인 필요, [`infra.md`](../../../docs/prd/devspec/infra.md) §연동 구성 상수 주입(잠정값 교체를 배포 절차 확인 항목으로 규정), `external-apis.md` §7 이 함께 개정됐다(제품 이력은 [`history/common.md`](../../common.md)). 활성 문서의 `TBD` 잔여는 0건이다.

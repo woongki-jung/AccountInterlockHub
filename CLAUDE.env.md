@@ -31,6 +31,8 @@
 
 이 서비스의 연동 구성은 **배포 시점 상수**이며 본 절이 단일 출처다([`docs/prd/PRD.md`](docs/prd/PRD.md) §시스템 제약사항). 값은 배포 시 애플리케이션 설정으로 주입되고, 변경은 재배포로만 반영된다([`docs/prd/devspec/infra.md`](docs/prd/devspec/infra.md) §연동 구성 상수 주입). 연동은 **하나의 발송처 ↔ 하나의 수신처 1:1 고정**이므로 각 값은 하나씩만 존재한다.
 
+> **잠정값 표기** — 값 칸의 `(**잠정**)` 은 확정 전 임시로 채운 값이라는 뜻이다. 형식·자리수를 실제 값과 같은 모양으로 두므로 사양·구현이 이 값을 전제로 진행할 수 있고, 확정 시점에는 **본 표의 값만 교체**하면 반영된다(사양·코드 개정 불요). **잠정값 상태로 운영 배포하지 않는다.** 미확정 항목을 우선 잠정값으로 채우는 것은 담당자 지시다(`accountinterlockhub#467` journal 3157).
+
 ### 허브 애플리케이션 주입 값
 
 배포 시 허브 애플리케이션 설정으로 주입되는 값이다.
@@ -38,10 +40,10 @@
 | 변수 | 값 | 확정 시점 | 설명 |
 | ---- | -- | ------ | ---- |
 | `<INTERLOCK_ENTRY_PATH>` | `/interlock/entry` | 확정 | 사용자 진입 경로. 발송처가 이 경로에 `encX`·`encY`를 붙여 사용자를 유도한다. 연동이 1:1 고정이라 발송처 식별 구간을 두지 않는다 |
-| `<SELFCHECK_PATH>` | TBD | build 착수 전 | 연동 규약 자가진단 API 경로([`docs/prd/devspec/external-apis.md`](docs/prd/devspec/external-apis.md) §연동 규약 자가진단 API). 추측하기 어려운 **비공개 경로**로 둔다 |
-| `<RECEIVER_DELIVERY_URL>` | TBD | build 착수 전 (수신처 협의) | 수신처(서비스 B) 전달 주소. 승인·복호화 완료 시 전달 데이터(X)를 보내는 대상 |
+| `<SELFCHECK_PATH>` | `/api/_selfcheck/8f3d2b6a94c1` (**잠정**) | 배포 시점 (운영 값 재지정) | 연동 규약 자가진단 API 경로([`docs/prd/devspec/external-apis.md`](docs/prd/devspec/external-apis.md) §연동 규약 자가진단 API). 추측하기 어려운 **비공개 경로**로 둔다. ⚠️ 본 파일은 git 관리이므로 여기 적힌 값은 저장소 접근자에게 공개된 것과 같다 — **운영 값은 배포 시점에 새로 지정**한다(경로 비공개가 유일한 완화 장치다) |
+| `<RECEIVER_DELIVERY_URL>` | `https://service-b.example.com/api/interlock/receive` (**잠정**) | build 착수 전 (수신처 협의) | 수신처(서비스 B) 전달 주소. 승인·복호화 완료 시 전달 데이터(X)를 보내는 대상. 잠정값의 도메인은 문서용 예약 도메인(`example.com`)이라 실 호스트로 연결되지 않는다 — 교체를 잊고 배포해도 외부로 데이터가 나가지 않고 전달이 실패한다 |
 | `<CONSENT_ITEMS>` | §동의 항목 값 | 확정 | 사용자에게 노출할 동의 항목 목록. 값과 주입 형식은 아래 §동의 항목 값이 정본 |
-| `<CONSENT_NOTICE>` | §동의 항목 값 (**잠정**) | 배포 전 · 검토 주체 = 담당자(필요 시 법무) | 동의 화면 상단 안내 문구. 미설정 시 미표시. 확정 전까지 잠정 문구로 운영하지 않는다 |
+| `<CONSENT_NOTICE>` | §동의 항목 값 (**잠정**) | 배포 전 · 검토 주체 = 담당자(필요 시 법무) | 동의 화면 상단 안내 문구. 미설정 시 미표시. 잠정 문구 상태로 운영 배포하지 않는다 |
 | `<RETENTION_MONTHS>` | `3` | 확정 | 추적 레코드 보관 기간(개월). 결과 확인 완료 기산 |
 | `<RETENTION_MAX_MONTHS>` | `6` | 확정 | 추적 레코드 생성 기산 절대 보관 상한(개월). 결과 확인이 오지 않은 레코드도 이 시점에 삭제된다 |
 | `<CONSENT_PROOF_RETENTION_MONTHS>` | `60` (**잠정**) | 배포 전 (법령·계약 확인) | 동의 증적 보존 기간(개월). 동의 일시 기산이며 추적 레코드보다 길다 |
@@ -79,8 +81,8 @@
 
 | 변수 | 값 | 확정 시점 | 설명 |
 | ---- | -- | ------ | ---- |
-| `<HUB_BASE_URL_PROD>` | TBD | 배포 준비 시 | 운영 환경 허브 기준 URL |
-| `<HUB_BASE_URL_DEV>` | TBD | build 착수 전 | 개발·로컬 환경 허브 기준 URL |
+| `<HUB_BASE_URL_PROD>` | `https://accountinterlockhub.azurewebsites.net` (**잠정**) | 배포 준비 시 (App Service 명 확정) | 운영 환경 허브 기준 URL. 배포 형태가 Azure App Service 단일 인스턴스이므로 그 기본 도메인 형태로 둔다([`docs/prd/devspec/infra.md`](docs/prd/devspec/infra.md) §환경 구분) |
+| `<HUB_BASE_URL_DEV>` | `http://localhost:3000` (**잠정**) | build 착수 전 (기동 포트 확정) | 개발·로컬 환경 허브 기준 URL. 애플리케이션 하나가 API 와 정적 화면을 함께 서빙하므로 포트도 하나다 |
 
 > 발송처키는 **비밀 값**이므로 본 파일에 두지 않으며 상수화 대상이 아니다([`document-master-guide.md`](ai/strategies/document-master-guide.md) §경로·이름 표기 — 비밀 값 제외). 발송처키의 생성·보관은 발송처 소관이고, 허브는 복호화에 발송처키를 쓰지 않으므로 보관할 필요도 없다([`docs/prd/devspec/external-apis.md`](docs/prd/devspec/external-apis.md) §암호화 연동 규약). 서버 대면 API 에는 인증을 두지 않으므로 인증 자격 값도 없다.
 
