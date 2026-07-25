@@ -5,7 +5,7 @@
 ## 개요
 
 - **모델 목적**: 일자 단위 카운터를 응용 계층에서 다루는 도메인 모델이다. 추적 레코드가 삭제된 뒤에도 사용량·성공률을 낼 수 있게 하는 유일한 근거이며, 개인정보·추적 키를 담지 않는다.
-- **관련 서비스**: `SVC-016`(집계 주체) · `SVC-001`·`SVC-002`·`SVC-003`·`SVC-004`(계수 계기) · `SVC-014`(같은 처리 경계)
+- **관련 서비스**: `SVC-016`(집계 주체) · `SVC-001`·`SVC-002`·`SVC-004`(계수 계기) · `SVC-014`(같은 처리 경계)
 
 ---
 
@@ -30,10 +30,10 @@
 | metricDate | string(date) | Y | - | `YYYY-MM-DD` 형식. 경계 기준 시간대는 `Asia/Seoul` 고정 | - | 집계 일자 |
 | requestCount | number(정수) | Y | 0 | 0 이상 | - | 요청 수. 계수 시점은 둘뿐이다(`BIZ-005-02`) |
 | successCount | number(정수) | Y | 0 | 0 이상 | - | 결과 구분 `SUCCESS` 확정 건수 |
-| userDeniedCount | number(정수) | Y | 0 | 0 이상 | - | 결과 구분 `USER_DENIED` 확정 건수 |
 | decryptFailedCount | number(정수) | Y | 0 | 0 이상 | - | 결과 구분 `DECRYPT_FAILED` 확정 건수 |
 | deliveryFailedCount | number(정수) | Y | 0 | 0 이상 | - | 결과 구분 `DELIVERY_FAILED` 확정 건수 |
 
+- **거부 카운터 속성을 두지 않는다**(`BIZ-005-01`) — `USER_DENIED` 가 값 체계에 없다(`BIZ-001-01`). 미동의 이탈은 **요청 수에만 남고** 어느 결과 구분 속성에도 계수되지 않으므로 결과 구분 3종의 합은 `requestCount` 보다 작을 수 있다(`BIZ-005-04`).
 - **파생 비율 속성을 두지 않는다**(`BIZ-005-01`) — 성공률은 읽는 시점에 계산한다. 정의가 담당자 이월 상태이므로 값을 고정하는 속성을 만들지 않는다(`BIZ-005-06`).
 - **추적 키·개인정보 속성이 없다**(`DATA-002-03`) — 그래서 이 모델은 삭제 대상이 아니다.
 - 카운터 합계에 등식 규칙을 두지 않는다 — 미확정 연동과 일자 경계를 걸친 연동 때문에 행 단위 등식이 성립하지 않는다([`data_ENT-003.md`](data_ENT-003.md) §행 단위 합계에 제약을 두지 않는 이유).
@@ -45,11 +45,10 @@
 | metricDate | ENT-003 | metric_date | 도메인→ENT / ENT→도메인 | 계기 시각을 `Asia/Seoul` 로 변환한 날짜 |
 | requestCount | ENT-003 | request_count | 도메인→ENT / ENT→도메인 | 직접 매핑. 갱신은 +1 증가만 |
 | successCount | ENT-003 | success_count | 도메인→ENT / ENT→도메인 | 직접 매핑. 갱신은 +1 증가만 |
-| userDeniedCount | ENT-003 | user_denied_count | 도메인→ENT / ENT→도메인 | 직접 매핑. 갱신은 +1 증가만 |
 | decryptFailedCount | ENT-003 | decrypt_failed_count | 도메인→ENT / ENT→도메인 | 직접 매핑. 갱신은 +1 증가만 |
 | deliveryFailedCount | ENT-003 | delivery_failed_count | 도메인→ENT / ENT→도메인 | 직접 매핑. 갱신은 +1 증가만 |
 
-- 결과 구분 값에서 갱신할 속성을 고르는 대응은 한 곳에만 둔다 — `SUCCESS`→`successCount` · `USER_DENIED`→`userDeniedCount` · `DECRYPT_FAILED`→`decryptFailedCount` · `DELIVERY_FAILED`→`deliveryFailedCount`.
+- 결과 구분 값에서 갱신할 속성을 고르는 대응은 한 곳에만 둔다 — `SUCCESS`→`successCount` · `DECRYPT_FAILED`→`decryptFailedCount` · `DELIVERY_FAILED`→`deliveryFailedCount`. **결과가 확정되지 않은 종료에는 대응 속성이 없다**(`BIZ-005-04`).
 
 ### 사용처
 
@@ -59,7 +58,6 @@
 | SVC-002 | 본인확인 | 도메인 | PROC-303 | 레코드 최초 생성 시 요청 수 +1 |
 | SVC-001 | 연동 링크 진입 | 도메인 | PROC-303 | 추적 키 미확보 실패 시 요청 수 +1, `DECRYPT_FAILED` +1 |
 | SVC-004 | 연동 실행 | 도메인 | PROC-303 | 결과 확정 시 해당 카운터 +1 |
-| SVC-003 | 동의·승인 | 도메인 | PROC-303 | 거부 확정 시 `USER_DENIED` +1 |
 | SVC-014 | 연동 추적 기록 | 도메인 | PROC-303 | 레코드 생성·결과 확정과 같은 처리 경계에서 갱신 |
 
 ### 구현 가이드

@@ -61,7 +61,7 @@ AccountInterlockHub 가 준수하는 정책의 단일 출처다. 방향 근거�
 | DATA-002 | 보관·삭제 | DATA | 높음 | `BAT-02`·`BAT-04`·`BAT-05`·`BAT-06` | 5 | [`policy_DATA.md`](policy_DATA.md) |
 | DATA-003 | 개인정보 제3자 제공 동의·동의 증적 | DATA | 높음 | `USR-04`·`BAT-05` | 5 | [`policy_DATA.md`](policy_DATA.md) |
 | DATA-004 | 연동 추적 키 취급 | DATA | 보통 | 공통 | 3 | [`policy_DATA.md`](policy_DATA.md) |
-| BIZ-001 | 결과 구분 값 체계 | BIZ | 높음 | 공통 | 5 | [`policy_BIZ.md`](policy_BIZ.md) |
+| BIZ-001 | 결과 구분 값 체계 | BIZ | 높음 | 공통 | 6 | [`policy_BIZ.md`](policy_BIZ.md) |
 | BIZ-002 | 추적 레코드 생성 시점·중복 수신 | BIZ | 높음 | `BAT-04`·`USR-03`·`USR-05`·`API-01`·`API-02`·`API-03` | 6 | [`policy_BIZ.md`](policy_BIZ.md) |
 | BIZ-003 | 동의·승인 게이팅 | BIZ | 높음 | `USR-04` | 4 | [`policy_BIZ.md`](policy_BIZ.md) |
 | BIZ-004 | 수신처 전달·재시도 | BIZ | 높음 | `USR-02` | 5 | [`policy_BIZ.md`](policy_BIZ.md) |
@@ -73,7 +73,7 @@ AccountInterlockHub 가 준수하는 정책의 단일 출처다. 방향 근거�
 | OPS-002 | 접근 통제 없음(수용 리스크) | OPS | 높음 | 공통 | 5 | [`policy_OPS.md`](policy_OPS.md) |
 | OPS-003 | 기록·관측 범위 | OPS | 보통 | 공통 | 5 | [`policy_OPS.md`](policy_OPS.md) |
 
-정책 17건 · 규칙 87건.
+정책 17건 · 규칙 88건.
 
 ## 예외(EX) 코드 카탈로그
 
@@ -125,6 +125,7 @@ AccountInterlockHub 가 준수하는 정책의 단일 출처다. 방향 근거�
 
 ## 잠정값·미결 항목의 취급
 
-- **잠정값** — `<RECEIVER_DELIVERY_URL>`·`<HUB_BASE_URL_PROD>`·`<HUB_BASE_URL_DEV>`·`<SELFCHECK_PATH>`·`<CONSENT_NOTICE>`·`<CONSENT_PROOF_RETENTION_MONTHS>` 와 성과 지표 목표치는 잠정값이다. 정책은 이 값들을 참조만 하며 수치를 본문에 복제하지 않는다. 잠정 상태의 운영 배포 금지는 `OPS-001-03` 이 규칙으로 갖는다.
-- **담당자 확인 대기(기본안 적용)** — 수신처 전달 실패 후의 재시도 경로(`BIZ-004`)와 자가진단 API 의 운영 환경 노출(`SEC-003`)은 [`../../prd/PRD.md`](../../prd/PRD.md) §미결·확인 필요의 **기본안대로** 사양화했다. 다르게 정해지면 해당 규칙만 개정한다.
+- **잠정값** — `<RECEIVER_DELIVERY_URL>`·`<HUB_BASE_URL_PROD>`·`<HUB_BASE_URL_DEV>`·`<SELFCHECK_PATH>`·`<CONSENT_NOTICE>`·`<CONSENT_PROOF_RETENTION_MONTHS>`·`<COMPLETION_REDIRECT_URL>` 와 성과 지표 목표치는 잠정값이다. 정책은 이 값들을 참조만 하며 수치를 본문에 복제하지 않는다. 잠정 상태의 운영 배포 금지는 `OPS-001-03` 이 규칙으로 갖는다(`<COMPLETION_REDIRECT_URL>` 은 값뿐 아니라 **출처 자체가 미확정**이다 — `BIZ-001-06` 구현 가이드).
+- **담당자 확인 대기(기본안 적용) — 2건** — 수신처 전달 실패 후의 재시도 경로(`BIZ-004` · [`../../prd/PRD.md`](../../prd/PRD.md) §미결·확인 필요 ⑧)와 자가진단 API 의 운영 환경 노출(`SEC-003` · 같은 절 ⑨)은 **기본안대로** 사양화했다(`EXC-BIZ-08` · `EXC-SEC-08`). 다르게 정해지면 해당 규칙만 개정한다.
+- **담당자 확정(종결) — 1건** — 복귀 이동의 적용 경로([`../../prd/PRD.md`](../../prd/PRD.md) §미결·확인 필요 ⑩)는 **연동 완료 결과만 이동**으로 확정 종결됐다. `BIZ-001-06` 이 대상을 **경로 ① 하나**로 한정하며 근거는 `EXC-BIZ-15` 다. 같은 지시로 **사용자 거부가 결과 경로에서 폐지**돼 결과 구분은 **3종**(`BIZ-001-01`), 사용자 결과 화면은 **3경로**(`BIZ-001-02`), 미동의 이탈은 **결과 미확정**(`BIZ-003-03`)이 됐다.
 - **범위 밖** — 링크 만료(TTL)·1회성 사용·발송처 서명 검증·요청 제한·Delphi 지원은 이번 범위가 아니므로 정책을 두지 않는다. 그 부재로 남는 리스크는 `OPS-002` 가 수용 리스크로 기록한다.

@@ -93,6 +93,6 @@
 
 ## 잠정값·범위 밖의 취급
 
-- **잠정값** — `<RECEIVER_DELIVERY_URL>`·`<HUB_BASE_URL_PROD>`·`<HUB_BASE_URL_DEV>`·`<SELFCHECK_PATH>`·`<CONSENT_NOTICE>`·`<CONSENT_PROOF_RETENTION_MONTHS>` 는 **상수 주입으로만 참조**하고 값을 본문에 복제하지 않는다. 잠정 상태의 운영 배포 금지는 `OPS-001-03` 이 갖는다.
+- **잠정값** — `<RECEIVER_DELIVERY_URL>`·`<HUB_BASE_URL_PROD>`·`<HUB_BASE_URL_DEV>`·`<SELFCHECK_PATH>`·`<CONSENT_NOTICE>`·`<CONSENT_PROOF_RETENTION_MONTHS>`·`<COMPLETION_REDIRECT_URL>` 는 **상수 주입으로만 참조**하고 값을 본문에 복제하지 않는다. 잠정 상태의 운영 배포 금지는 `OPS-001-03` 이 갖는다.
 - **성과 지표 목표치**는 상수가 아니므로 수치를 옮겨 적지 않고 [`../../prd/PRD.md`](../../prd/PRD.md) §성과 지표를 참조한다.
 - **범위 밖** — 링크 만료(TTL)·1회성 사용·발송처 서명 검증·요청 제한에 대응하는 파라미터·헤더·응답 필드를 어떤 접점에도 두지 않는다(`OPS-002-05`).

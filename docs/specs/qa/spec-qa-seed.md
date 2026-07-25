@@ -16,6 +16,7 @@
 | `ENV-LIB` | 연동 라이브러리 | 라이브러리 빌드 산출물 + **C# 콘솔 호출 하네스**(라이브러리 산출물과 함께 만드는 이번 범위의 산출물) | **표준 출력 요약 JSON + 종료 코드** |
 | `ENV-DB` | PostgreSQL 16 | ① 스키마 마이그레이션 ② 시드 투입 ③ TC 실행 ④ 검증 쿼리 ⑤ 초기화 | 검증 쿼리 결과 |
 | `MOCK-RCV` | 모의 수신처 | HTTP 서버 1개를 띄우고 `<RECEIVER_DELIVERY_URL>` 을 그 주소로 주입 | 수신 요청 로그(본문 바이트·시각·횟수) |
+| `MOCK-RESP` | 응답 변조 프록시 | 브라우저와 허브 사이에 프록시를 두고 **진입 초기 상태·접점 응답 본문을 조작**해 화면에 전달한다(서버 구현을 바꾸지 않는다) | 변조 전후 본문·화면 렌더 결과 |
 
 ### 데이터베이스 초기화·시드 절차
 
@@ -33,6 +34,7 @@
 | 사용자 | 모킹하지 않는다 | 브라우저 자동화가 실제 화면을 조작한다 |
 | 시각 | 부분 모킹 | 보관 경계·일자 경계 TC 는 **시드 데이터의 일시를 조정**해 만든다. 명령 진입점이 기준 일시 인자를 받지 않으므로 시스템 시각을 바꾸는 방식은 쓰지 않는다 |
 | 내부 실패 | fault 주입 | DB 연결 차단·특정 UPDATE/INSERT/UPSERT 실패·암호 기능 초기화 실패. 미구축 시 해당 TC 는 🟠 Block |
+| 서버 응답(화면 방어 검증용) | 응답 변조(`MOCK-RESP`) | 화면이 **서버가 낼 수 없는 값**을 받았을 때의 방어를 확인하려면 응답을 조작해야 한다 — 범위 밖 `resultPath`(`USR-05_005`), 절대 URL 미달·다른 스킴의 `returnUrl`(`USR-05_014`). 서버는 그런 값을 만들지 않으므로(기동 검증·`B3` 판정) 실제 흐름으로는 재현되지 않는다. 미구축 시 해당 TC 는 🟠 Block |
 
 **`MOCK-RCV` 응답 모드**(TC 전제에서 지정한다): ① 상태 코드 지정(199·200·299·300·4xx·5xx) ② 순차 응답(1회차 실패 → 2회차 성공) ③ 지연 응답(회당 대기 상한 초과) ④ 연결 거부 ⑤ 리다이렉트(3xx + 다른 호스트 `Location`) ⑥ 본문 변형(빈 값·비 JSON).
 
@@ -65,11 +67,10 @@
 
 | 항목 | 최소 수량 | 시드 수단 | 확인 방법 | 비고(검증 대상 TC) |
 |---|--:|---|---|---|
-| `SEED-TRK-OPEN` 결과 미확정 | 1 | SQL | `result_code IS NULL AND result_at IS NULL` 인 행이 대상 키로 1건 | `USR-03_010`·`API-01_002`·`API-03_004`·`BAT-04_002` |
-| `SEED-TRK-FIXED-SUCCESS` | 1 | SQL | `result_code = 'SUCCESS' AND result_at IS NOT NULL AND result_confirmed_at IS NULL` | `USR-03_011`·`API-01_001`·`API-03_001`·`BAT-04_003` |
-| `SEED-TRK-FIXED-DENIED` | 1 | SQL | `result_code = 'USER_DENIED'` | `USR-04_010`·`USR-05_006`·`API-01_013` |
-| `SEED-TRK-FIXED-DECRYPT` | 1 | SQL | `result_code = 'DECRYPT_FAILED'` | `API-01_013` (값 체계 검증 전용 — 재진입 흐름 미사용) |
-| `SEED-TRK-FIXED-DELIVERY` | 1 | SQL | `result_code = 'DELIVERY_FAILED'` | `USR-02_012`·`API-02_004`·`API-03_003` |
+| `SEED-TRK-OPEN` 결과 미확정 | 1 | SQL | `result_code IS NULL AND result_at IS NULL` 인 행이 대상 키로 1건 | `USR-03_010`·`API-01_002`·`API-02_004`·`API-03_004`·`BAT-04_002` |
+| `SEED-TRK-FIXED-SUCCESS` | 1 | SQL | `result_code = 'SUCCESS' AND result_at IS NOT NULL AND result_confirmed_at IS NULL` | `USR-03_011`·`USR-05_006`·`USR-05_013`·`API-01_001`·`API-01_013`·`API-02_004`·`API-03_001`·`BAT-04_003` |
+| `SEED-TRK-FIXED-DECRYPT` | 1 | SQL | `result_code = 'DECRYPT_FAILED'` | `API-01_013`·`API-02_004` (값 체계 검증 전용 — 재진입 흐름 미사용) |
+| `SEED-TRK-FIXED-DELIVERY` | 1 | SQL | `result_code = 'DELIVERY_FAILED'` | `USR-02_012`·`USR-03_011`·`USR-04_010`·`USR-05_006`·`USR-05_013`·`API-01_013`·`API-02_004`·`API-03_003` |
 | `SEED-TRK-CONFIRMED` 결과 확인 완료 | 1 | SQL | `result_confirmed_at IS NOT NULL AND callback_received_at IS NOT NULL` | `BAT-04_010` |
 | `SEED-TRK-CALLBACK` 콜백 수신 | 1 | SQL | `callback_received_at IS NOT NULL` | `API-02_001` |
 | `SEED-TRK-LEN` 키 길이 경계 | 2 | SQL | `char_length(tracking_key)` 가 각각 1·255 | `API-01_008` |
@@ -87,7 +88,7 @@
 |---|--:|---|---|---|---|
 | `SEED-CSP-OLD` 보존 경과 증적 | 1 | `tbl_consent_proof` | SQL | `consented_at` 이 실행 시각 − `<CONSENT_PROOF_RETENTION_MONTHS>` 보다 과거인 행 1건 | `BAT-02_001`·`_010`·`BAT-05_011` |
 | `SEED-CSP-BOUNDARY` 경계 3종 | 3 | `tbl_consent_proof` | SQL | 기준 일시의 1초 전 / 정확히 / 1초 후 | `BAT-02_007` |
-| `SEED-MET` 지표 집계 행 | 3일치 | `tbl_interlock_metric_daily` | SQL | 알려진 값으로 채워 두 성공률 계산 결과가 **서로 다른** 값이 나오는지 확인(거부가 섞인 일자 포함) | `BAT-06_011` |
+| `SEED-MET` 지표 집계 행 | 3일치 | `tbl_interlock_metric_daily` | SQL | 알려진 값으로 채워 두 성공률 계산 결과가 **서로 다른** 값이 나오는지 확인(**결과 구분 3종의 합이 요청 수보다 작은 일자**를 포함해야 정의 차이가 드러난다 — 결과 미확정으로 끝난 요청) | `BAT-06_011` |
 | `SEED-MET-OLD` 오래된 일자 행 | 1 | `tbl_interlock_metric_daily` | SQL | 어떤 보관 기간보다도 과거인 `metric_date` 행이 배치 실행 후에도 남는지 확인 | `BAT-02_009`·`BAT-06_013` |
 
 ### 연동 구성 상수 (설정)
@@ -97,6 +98,7 @@
 | 항목 | 최소 수량 | 시드 수단 | 확인 방법 | 비고(검증 대상 TC) |
 |---|--:|---|---|---|
 | `SEED-CONST-OK` 필수 상수 전량 | 1벌 | 설정 | 기동이 성공하고 사용자 진입 경로·서버 대면 API 4종이 응답하는지 확인 | 대부분의 TC 공통 전제 |
+| `SEED-CONST-RETURNURL` 복귀 주소 2벌 | 2벌 | 설정 | `<COMPLETION_REDIRECT_URL>` 에 **서로 다른 절대 URL** 을 주입해 각각 기동하고, 경로 ① 응답의 `returnUrl` 이 주입값과 문자 단위로 같은지 확인(값 자체는 본 문서군에 적지 않는다 — `OPS-001-04`) | `USR-05_011`·`USR-05_017` |
 | `SEED-CONST-MISSING1`·`MISSING3` 필수 누락 | 2벌 | 설정 | 기동이 중단되고 표준 출력에 **미충족 상수명이 전량** 나오는지 확인 | `SCEN_011`·`BAT-02_012` |
 | `SEED-CONST-BADFORMAT` 형식 위반 | 5벌 | 설정 | 다섯 변형 각각에서 기동이 중단되고 해당 항목명이 출력되는지 확인 | `SCEN_012` |
 | `SEED-CONST-NONOTICE` 안내 문구 빈 값 | 1벌 | 설정 | SCR-002 에 안내 영역이 렌더되지 않고 승인이 정상 진행되는지 확인 | `USR-04_013` |
@@ -114,3 +116,4 @@
 |---|---|---|---|
 | `CHK-NOSTORE` 저장소 전수 점검 절차 | 절차 | 데이터베이스 전 테이블·파일 시스템·캐시·세션 저장소·브라우저 저장소를 훑어 **표식 값**(시드에 심은 고유 문자열)이 0건인지 확인하는 절차 | `USR-03_013`·`USR-02_010`·`SCEN_015`·`SCEN_016` |
 | 표식 값 시드 | 파일 | 발송처키·생년월일·X 필드값에 검색 가능한 고유 문자열을 심고, 로그·응답·화면·저장소에서 그 문자열을 검색해 0건인지 확인 | `SCEN_016` |
+| `CHK-NAVBLOCK` 복귀 이동 차단 관측 절차 | 절차 | 브라우저 자동화로 **복귀 주소로의 네비게이션을 차단**한 뒤, 결과 화면이 그대로 남고 수동 이동 링크가 유지되며 새 EX 코드·알림이 생기지 않는지 확인하는 절차. 이동 성공 여부를 애플리케이션이 판정하지 않으므로 **관측은 브라우저 쪽에서만** 성립한다 | `USR-05_015` |

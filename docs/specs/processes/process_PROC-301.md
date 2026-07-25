@@ -6,7 +6,7 @@
 
 - **정의 대상**: 연동 1건의 진행과 결과를 **추적 키 기준 단일 레코드 하나에 모으는** 처리다. 조회·확보(생성·이어쓰기)·결과 확정·결과 확인 표시·완료 콜백 기록이라는 **다섯 계기**를 한 프로세스가 받아 트랜잭션 경계와 조건부 갱신 형태를 통일한다.
 - **관련 PRD 요구사항**:
-	- [`../../prd/PRD.md`](../../prd/PRD.md) §수행 범위 9 — "연동 추적 키 기준 **단일 추적 레코드**를 사용자가 진입한 시점에 생성하고, 승인·거부·복호화 결과·수신처 전달 결과·결과 확인·완료 콜백을 **같은 레코드에 이어 기록**한다."
+	- [`../../prd/PRD.md`](../../prd/PRD.md) §수행 범위 9 — "연동 추적 키 기준 **단일 추적 레코드**를 사용자가 진입한 시점에 생성하고, 승인·복호화 결과·수신처 전달 결과·결과 확인·완료 콜백을 **같은 레코드에 이어 기록**한다."
 	- [`../../prd/devspec/database.md`](../../prd/devspec/database.md) §연동 추적 레코드 · §추적 키 중복 수신.
 
 ---
@@ -44,7 +44,7 @@
 |---|---|---|
 | `LOOKUP` | PROC-201 `B3` · PROC-202 `B3` · PROC-203 `B3` | `B1` → `B2` → `B7` |
 | `SECURE` | PROC-102 `B6` · PROC-103 `B3` | `B1` → `B2` → `B3` → `B7` |
-| `FIX_RESULT` | PROC-103 `B5a` · PROC-104 `B6` | `B1` → `B4` → `B7` |
+| `FIX_RESULT` | PROC-104 `B6` | `B1` → `B4` → `B7` |
 | `CONFIRM_RESULT` | PROC-201 `B5` | `B1` → `B5` → `B7` |
 | `RECORD_CALLBACK` | PROC-203 `B4` | `B1` → `B6` → `B7` |
 
@@ -57,7 +57,7 @@
 |------|--------|------------|------|------|
 | 입력 | `kind` | string | Y | 위 다섯 계기 중 하나 |
 | 입력 | `trackingKey` | string(1~255) | Y | 대상 레코드. **변형하지 않는다** |
-| 입력 | `resultCode` | string | N | `kind = FIX_RESULT` 일 때만. 결과 구분 4종 |
+| 입력 | `resultCode` | string | N | `kind = FIX_RESULT` 일 때만. 결과 구분 3종(`BIZ-001-01`) |
 | 입력 | `at` | datetime | N | 계기 발생 시각(시간대 유지). `LOOKUP` 외 전부 필수 |
 | 출력 | `branch` | string | - | `NONE`·`OPEN`·`FIXED`(`LOOKUP`·`SECURE`) |
 | 출력 | `record` | [`MDL-001`](../datas/model_MDL-001.md) \| null | - | 최신 상태 |
@@ -113,7 +113,7 @@ B1. 기록 계기 수신
   입력 재검증:
     if (kind not in ['LOOKUP','SECURE','FIX_RESULT','CONFIRM_RESULT','RECORD_CALLBACK'])
                                                   → throw EX-BIZ-003 (500)
-    if (kind == 'FIX_RESULT' AND resultCode 가 4종에 없다)  → throw EX-BIZ-003 (500)
+    if (kind == 'FIX_RESULT' AND resultCode 가 3종에 없다)  → throw EX-BIZ-003 (500)
   분기: kind 에 따라 아래 단계 하나로 간다
 
 B2. 추적 키 기준 사전 조회 — FN-007 · POL BIZ-002-03 · DATA-002-05 (validate)

@@ -51,7 +51,7 @@
 | 입력 | `trackingKey` | string(1~255) | Y | [`MDL-011`](../datas/model_MDL-011-015.md). 공백만 불가 |
 | 출력 | `trackingKey` | string | - | **입력값을 변형 없이 그대로** 되돌린다(`DATA-004-01`) |
 | 출력 | `isSuccess` | boolean\|null | - | 결과 구분에서 산출하는 파생값(`SUCCESS` = `true`) |
-| 출력 | `resultCode` | string\|null | - | 결과 구분 4종. `null` = 결과 미확정 |
+| 출력 | `resultCode` | string\|null | - | 결과 구분 3종(`BIZ-001-01`). `null` = 결과 미확정 |
 | 출력 | `isResultConfirmed` | boolean | - | 결과 확인 여부(파생) |
 | 출력 | `resultAt` · `resultConfirmedAt` | string(ISO 8601+오프셋)\|null | - | 처리 일시·결과 확인 일시 |
 

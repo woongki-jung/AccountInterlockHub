@@ -51,7 +51,7 @@
 | 입력 | `encY` | string(Base64URL) | Y | 키 암호문 |
 | 입력 | (요청 URL 전체) | string | Y | 길이 상한 판정 대상([`MDL-018`](../datas/model_MDL-016-018.md)) |
 | 출력 | 화면 문서 | `text/html; charset=utf-8` | - | 200 고정. 판정 실패도 200 이다 |
-| 출력 | 초기 상태 | `{ stage, resultPath?, reasonCode?, isReAnnouncement? }` | - | `stage` = `IDENTITY` 또는 `RESULT`. `RESULT` 는 [`MDL-009`](../datas/model_MDL-007-010.md) 값 체계 |
+| 출력 | 초기 상태 | `{ stage, resultPath?, reasonCode?, isReAnnouncement?, returnUrl? }` | - | `stage` = `IDENTITY` 또는 `RESULT`. `RESULT` 는 [`MDL-009`](../datas/model_MDL-007-010.md) 값 체계. **`returnUrl` 은 계약에만 있고 이 접점에서는 나타나지 않는다** — 진입 실패는 항상 경로 ② 다(`BIZ-001-06`) |
 
 ### 연관 데이터 및 외부 호출
 
@@ -79,7 +79,7 @@ F1. 문서 수신 → 초기 상태 해석
     initial   = 문서에 주입된 초기 상태 { stage, resultPath?, reasonCode? }
     stage     = 로컬 상태<'IDENTITY' | 'RESULT'>(초기값 initial.stage)
   검증:
-    if (initial 이 없거나 stage 가 두 값 밖)   → stage = 'RESULT', resultPath = 3
+    if (initial 이 없거나 stage 가 두 값 밖)   → stage = 'RESULT', resultPath = 2
                                               // 빈 화면을 만들지 않는다 (SVC-005 F-003)
   호출 수단: 없음 — 진입 응답에 이미 실려 있다. 추가 요청을 보내지 않는다
   진행 중 UI: 없음 — 첫 그림에 이미 내용이 있으므로 스켈레톤을 쓰지 않는다
@@ -140,7 +140,7 @@ B5. 판정 실패 계수 — PROC-303 호출 · POL BIZ-002-02 · BIZ-005-02 ②
   PROC-303({ kind: 'UNIDENTIFIED_FAILURE', at: NOW() })
       → 영속화 쿼리는 PROC-303 B3 (tbl_interlock_metric_daily 원자적 UPSERT)
       → request_count +1 · decrypt_failed_count +1
-  실패 시: 계수 실패가 응답을 막지 않는다 — 화면은 그대로 경로 ③ 을 안내하고,
+  실패 시: 계수 실패가 응답을 막지 않는다 — 화면은 그대로 경로 ② 를 안내하고,
            기술적 실패는 운영 로그에만 남긴다 (OPS-003-03)
   보안 이벤트 기록: 만들지 않는다 (OPS-003-02)
 
@@ -150,6 +150,8 @@ B6. 초기 상태 구성 — PROC-105 호출 · POL SEC-002-05 (mask)
       resultInfo = PROC-105({ source: 'ENTRY_FAILURE', reasonCode: reason })
       initial    = { stage: 'RESULT', resultPath: resultInfo.resultPath,
                      reasonCode: reason, isReAnnouncement: false }
+      // returnUrl 은 실리지 않는다 — 진입 판정 실패는 항상 경로 ② 라
+      //   PROC-105 B3 의 동봉 조건(경로 ① 한정)이 성립하지 않는다 (POL BIZ-001-06)
   else
       initial    = { stage: 'IDENTITY' }
   마스킹: FN-015 로 내보내기 직전 정제 — encX·encY·요청 URL·복호화 중간 값을 담지 않는다
@@ -184,9 +186,9 @@ B7. 화면 문서 응답 (다음 단계 이관)
 | 3 | BE `B3` | 진입 파라미터 파싱 | 쿼리 문자열 | `encX`·`encY` 판독·중복 거부 | `MDL-004` |
 | 4 | BE `B4` | 구조 판정 | `MDL-004` | FN-003 — 디코드·16 배수. 실패 `EX-SEC-001` | 판정 결과 |
 | 5 | BE `B5` | 판정 실패 계수 | 실패 사유 | PROC-303 `UNIDENTIFIED_FAILURE`(레코드 미생성) | 실패 사유 |
-| 6 | BE `B6` | 초기 상태 구성 | 판정 결과·실패 사유 | PROC-105 로 경로 ③ 산출 · FN-015 정제 | 초기 상태 |
+| 6 | BE `B6` | 초기 상태 구성 | 판정 결과·실패 사유 | PROC-105 로 경로 ② 산출 · FN-015 정제 | 초기 상태 |
 | 7 | BE `B7` | 화면 문서 응답 | 초기 상태 | 200 `text/html` + 초기 상태 주입 | 화면 문서 |
-| 8 | FE `F1` | 초기 상태 해석 | 화면 문서 | `stage` 판독·비정상 값은 경로 ③ | `stage` |
+| 8 | FE `F1` | 초기 상태 해석 | 화면 문서 | `stage` 판독·비정상 값은 경로 ② | `stage` |
 | 9 | FE `F2` | 암호값 판독 | 자기 URL 쿼리 | 메모리로만 보유(저장소 금지) | `encPair` |
 | 10 | FE `F3` | 단계 화면 선택 | `stage`·`encPair` | `IDENTITY`→SCR-001 / `RESULT`→SCR-004 | (다음 프로세스) |
 
@@ -207,10 +209,10 @@ B7. 화면 문서 응답 (다음 단계 이관)
 
 | 코드 | 발생 조건 | 처리 방향 | 결과 |
 |------|----------|----------|------|
-| BR-001 | `B2`·`B4` 판정 결과 | 통과 → `B6`(`stage = IDENTITY`) / 위반 → `B5` → `B6`(`stage = RESULT`) | 본인확인 진행 또는 결과 경로 ③ |
-| `EX-SEC-001` | 파라미터 부재·빈 값·중복·Base64URL 디코드 실패·암호문 길이가 16의 배수 아님 | 복호화 미시도. 지표만 계수하고 레코드를 만들지 않는다 | 200 화면 + 결과 경로 ③ (`reasonCode` = `EX-SEC-001`) |
-| `EX-SEC-004` | 요청 URL 전체 길이 상한 초과 | 위와 같다 | 200 화면 + 결과 경로 ③ |
-| `EX-OPS-002` | 위로 분류되지 않는 내부 처리 실패 | 화면 문서를 돌려주되 경로 ③ 으로 안내한다. 내부 사유·스택을 담지 않는다 | 200 화면 + 결과 경로 ③ |
+| BR-001 | `B2`·`B4` 판정 결과 | 통과 → `B6`(`stage = IDENTITY`) / 위반 → `B5` → `B6`(`stage = RESULT`) | 본인확인 진행 또는 결과 경로 ② |
+| `EX-SEC-001` | 파라미터 부재·빈 값·중복·Base64URL 디코드 실패·암호문 길이가 16의 배수 아님 | 복호화 미시도. 지표만 계수하고 레코드를 만들지 않는다 | 200 화면 + 결과 경로 ② (`reasonCode` = `EX-SEC-001`) |
+| `EX-SEC-004` | 요청 URL 전체 길이 상한 초과 | 위와 같다 | 200 화면 + 결과 경로 ② |
+| `EX-OPS-002` | 위로 분류되지 않는 내부 처리 실패 | 화면 문서를 돌려주되 경로 ② 로 안내한다. 내부 사유·스택을 담지 않는다 | 200 화면 + 결과 경로 ② |
 | (일반 404) | 진입 경로가 아닌 요청 | 본문 없는 404. EX 코드를 담지 않는다(`SEC-003-02` 와 같은 취급) | 404 |
 
 - **4xx 응답을 만들지 않는다.** 진입 실패도 200 화면으로 안내한다([`../functions/spec-functions-api-user.md`](../functions/spec-functions-api-user.md) §연동 요청 진입).
@@ -218,7 +220,7 @@ B7. 화면 문서 응답 (다음 단계 이관)
 ### 실행 결과
 
 - **정상 결과**: 200 `text/html` + 초기 상태 `{ stage: 'IDENTITY' }`. 영속화·이벤트 발행 없음.
-- **실패 결과**: 200 `text/html` + 초기 상태 `{ stage: 'RESULT', resultPath: 3, reasonCode }`. 지표 집계에 요청 수 +1 · `decrypt_failed_count` +1. **추적 레코드는 만들지 않는다.**
+- **실패 결과**: 200 `text/html` + 초기 상태 `{ stage: 'RESULT', resultPath: 2, reasonCode }`. 지표 집계에 요청 수 +1 · `decrypt_failed_count` +1. **추적 레코드는 만들지 않는다.**
 - **후속 트리거**: PROC-102(사용자가 생년월일을 제출하면) · PROC-105(결과 경로 구성) · PROC-303(실패 계수).
 
 ### 의존 프로세스

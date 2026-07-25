@@ -51,7 +51,7 @@
 | 입력 | `birthDate` | string(6) | Y | `yyMMdd` 숫자 6자리([`MDL-006`](../datas/model_MDL-004-006.md)). 서버가 보관하지 않는다 |
 | 출력 | `stage` | string | - | `CONSENT` 또는 `RESULT` |
 | 출력 | `consent` | [`MDL-008`](../datas/model_MDL-007-010.md) | N | `stage = CONSENT` 일 때만. 상수 파싱 결과를 그대로 싣는다 |
-| 출력 | `resultPath`·`isReAnnouncement` | number·boolean | N | `stage = RESULT`(확정 결과 재안내)일 때만([`MDL-009`](../datas/model_MDL-007-010.md)) |
+| 출력 | `resultPath`·`isReAnnouncement`·`returnUrl` | number·boolean·string | N | `stage = RESULT`(확정 결과 재안내)일 때만([`MDL-009`](../datas/model_MDL-007-010.md)). `returnUrl` 은 그중에서도 **경로 ① 에만** 나타난다(`BIZ-001-06`) |
 
 ### 연관 데이터 및 외부 호출
 
@@ -113,8 +113,8 @@ F3. 실패 응답 처리
     if (err.code == 'EX-AUTH-002')  alert = 재입력 안내    · 단계 유지 · 값 유지 + 전체 선택
     if (err.code == 'EX-BIZ-003')   alert = 재시도 안내    · 단계 유지 · 버튼 재활성
     if (err.code in ['EX-SEC-001','EX-SEC-002'])
-        단계 전이 → SCR-004 결과 경로 ③ (사유 코드로 설명 문구만 고른다)
-    if (그 밖)                       단계 전이 → SCR-004 결과 경로 ③
+        단계 전이 → SCR-004 결과 경로 ② (사유 코드로 설명 문구만 고른다)
+    if (그 밖)                       단계 전이 → SCR-004 결과 경로 ②
   재시도 정책: 화면이 자동으로 다시 보내지 않는다. 사용자가 다시 누른다
   표시 금지: 시도 횟수·남은 횟수·내부 단계 (POL AUTH-002-04 · SEC-002-05)
 ```
@@ -159,7 +159,7 @@ B4b. 규약 위반·구조 위반 처리 — POL BIZ-002-02 · BIZ-005-02 ② (�
       // 진입 단계에서 이미 계수됐을 수 있으나 같은 요청인지 판정할 수단이 없다.
       // 시도마다 계수되는 중복은 수용 한계다 (POL BIZ-005-05)
       PROC-303({ kind: 'UNIDENTIFIED_FAILURE', at: NOW() })
-  return 400 FN-014(code)                       // 화면은 결과 경로 ③ 으로 간다
+  return 400 FN-014(code)                       // 화면은 결과 경로 ② 로 간다
 
 B5. 추적 키 추출 → 원문 즉시 폐기 — POL BIZ-002-06 · DATA-004-01 (transform)
 
@@ -184,7 +184,9 @@ B7. 확정 결과 재안내 분기 — POL BIZ-002-03 ③ · BIZ-002-04 (validat
       resultInfo = PROC-105({ source: 'RECORD', record: secured.record, isReAnnouncement: true })
       // 레코드를 갱신하지 않는다 (보관 기산점이 밀리지 않는다)
       // 요청 수를 계수하지 않는다 (POL BIZ-005-03)
-      return 200 { stage: 'RESULT', resultPath: resultInfo.resultPath, isReAnnouncement: true }
+      return 200 { stage: 'RESULT', ...resultInfo }   // MDL-009 를 그대로 싣는다
+      // resultInfo 에 returnUrl 이 있으면(경로 ①) 함께 나가고 없으면(경로 ③) 나가지 않는다.
+      //   동봉 여부를 여기서 다시 판정하지 않는다 (POL BIZ-001-06 — 판정은 PROC-105 B3 한 곳)
 
 B8. 동의 항목 구성 응답 (다음 단계 이관) — POL DATA-003-01 · SEC-002-05 (mask)
 
@@ -216,7 +218,7 @@ B8. 동의 항목 구성 응답 (다음 단계 이관) — POL DATA-003-01 · SE
 | 2 | BE `B1` | 요청 수신 | 요청 DTO | 인증 없음·요청 제한 없음 | 요청 DTO |
 | 3 | BE `B2` | 입력 검증 | 요청 DTO | FN-005 — 위반 `EX-AUTH-001` | 검증 통과 값 |
 | 4 | BE `B3` | 복호화 판정 | 검증 통과 값 | FN-004 4단계 | `MDL-005` 또는 EX 코드 |
-| 5 | BE `B4a`/`B4b` | 실패 분류 | EX 코드 | 1·2단계=재입력 / 3·4단계=계수 후 경로 ③ | 400 응답 |
+| 5 | BE `B4a`/`B4b` | 실패 분류 | EX 코드 | 1·2단계=재입력 / 3·4단계=계수 후 경로 ② | 400 응답 |
 | 6 | BE `B5` | 추적 키 추출·원문 폐기 | `MDL-005` | 추적 키만 취하고 X 폐기 | `trackingKey` |
 | 7 | BE `B6` | 추적 레코드 확보 | `trackingKey` | PROC-301(+PROC-303) 단일 트랜잭션 | `MDL-001`·분기 |
 | 8 | BE `B7` | 확정 재안내 분기 | 분기 | `FIXED` 면 PROC-105 로 재안내 | 응답 DTO |
@@ -250,17 +252,17 @@ B8. 동의 항목 구성 응답 (다음 단계 이관) — POL DATA-003-01 · SE
 | BR-018 | `B4b`·`B6` 요청 수 계수 시점 | 레코드 최초 생성 / 추적 키 미확보 실패 | 요청 수 +1 |
 | `EX-AUTH-001` | `birthDate` 부재·숫자 6자리 아님 | 복호화 미시도·결과 미확정 | 400 · `SCR-001` 유지 |
 | `EX-AUTH-002` | 판정 1·2단계 실패 | 재입력 안내·기록 없음 | 400 · `SCR-001` 유지 |
-| `EX-SEC-001` | 암호값 구조 위반 | 지표만 계수 | 400 · 결과 경로 ③ |
-| `EX-SEC-002` | 판정 3·4단계 실패 | `DECRYPT_FAILED` 계수(레코드 미생성) | 400 · 결과 경로 ③ |
+| `EX-SEC-001` | 암호값 구조 위반 | 지표만 계수 | 400 · 결과 경로 ② |
+| `EX-SEC-002` | 판정 3·4단계 실패 | `DECRYPT_FAILED` 계수(레코드 미생성) | 400 · 결과 경로 ② |
 | `EX-BIZ-003` | 레코드 확보·지표 계수 실패 | 트랜잭션 되돌림·결과 미확정 | 500 · 재시도 가능 |
 | `EX-OPS-002` | 위로 분류되지 않는 내부 실패 | 내부 사유·스택을 담지 않는다 | 500 |
 
 ### 실행 결과
 
 - **정상 결과**: 200 `{ stage: 'CONSENT', consent }`. 영속화 — `ENT-001` 행 1건(최초 성공 시) · `ENT-003` `request_count` +1. 재진입·재시도이면 영속화 없음.
-- **확정 재안내 결과**: 200 `{ stage: 'RESULT', resultPath, isReAnnouncement: true }`. **어떤 컬럼도 갱신하지 않고 계수도 하지 않는다.**
+- **확정 재안내 결과**: 200 `{ stage: 'RESULT', resultPath, isReAnnouncement: true, returnUrl? }`. `returnUrl` 은 경로 ① 에만 실린다(`BIZ-001-06`). 이 접점의 재안내 경로는 ①·③ 뿐이다(`EXC-BIZ-14`). **어떤 컬럼도 갱신하지 않고 계수도 하지 않는다.**
 - **실패 결과**: 400·500 오류 응답 엔벨로프. `EX-SEC-001`·`EX-SEC-002` 는 지표 계수만 남긴다.
-- **후속 트리거**: PROC-103(사용자가 동의·승인을 제출하면) · PROC-105(재안내·경로 ③).
+- **후속 트리거**: PROC-103(사용자가 동의·승인을 제출하면) · PROC-105(재안내·경로 ②).
 
 ### 의존 프로세스
 

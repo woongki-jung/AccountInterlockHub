@@ -132,7 +132,7 @@
 | POL · Positive | `SEC-003-03` · EXC-BIZ-11 · `DATA-001-01` | PROC-204 | BR-013 | 높음 | 자동 |
 
 - **전제**: `SEED-VEC-01`(파일) · `MOCK-RCV` 요청 로그 초기화 · 저장 3종 사전 스냅샷
-- **단계**: ① 적합·부적합 각각으로 자가진단을 20회 호출 `B4`·`B6` ② `tbl_interlock_tracking` 행 수 → **불변** ③ `tbl_consent_proof` 행 수 → **불변** ④ `tbl_interlock_metric_daily` 카운터 5종 → **전부 불변**(자가진단은 연동이 아니다) ⑤ 모의 수신처 요청 로그 → **0건**
+- **단계**: ① 적합·부적합 각각으로 자가진단을 20회 호출 `B4`·`B6` ② `tbl_interlock_tracking` 행 수 → **불변** ③ `tbl_consent_proof` 행 수 → **불변** ④ `tbl_interlock_metric_daily` 카운터 4종 → **전부 불변**(자가진단은 연동이 아니다) ⑤ 모의 수신처 요청 로그 → **0건**
 - **판정**: 공통 판정 기준
 
 ### API-04_013 응답에 원문·키·중간 값·단계 번호가 없음

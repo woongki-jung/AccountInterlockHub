@@ -141,8 +141,8 @@
 |---|---|---|---|---|---|
 | DATA · Positive | `BIZ-001-01` · `BIZ-001-03` · ENT-001 `result_code` CHECK | PROC-201 | BR-002(`FIXED`) | 높음 | 자동 |
 
-- **전제**: `SEED-TRK-FIXED-SUCCESS`·`-DENIED`·`-DECRYPT`·`-DELIVERY`(SQL — 결과 4종 각각)
-- **단계**: ① 네 레코드를 각각 조회 `B4` → `resultCode` 가 `SUCCESS`·`USER_DENIED`·`DECRYPT_FAILED`·`DELIVERY_FAILED` 로 **저장값 그대로** 실린다 ② 별칭·대소문자 변형·번호 코드로 바뀌지 않음을 확인 ③ 화면의 결과 경로 값·지표 컬럼과 같은 열거형을 쓰는지 대조 ④ 4종 밖 값을 직접 INSERT 하려 하면 DB CHECK 제약이 거부하는지 확인
+- **전제**: `SEED-TRK-FIXED-SUCCESS`·`-DECRYPT`·`-DELIVERY`(SQL — 결과 3종 각각)
+- **단계**: ① 세 레코드를 각각 조회 `B4` → `resultCode` 가 `SUCCESS`·`DECRYPT_FAILED`·`DELIVERY_FAILED` 로 **저장값 그대로** 실린다 ② 별칭·대소문자 변형·번호 코드로 바뀌지 않음을 확인 ③ 화면의 결과 경로 값·지표 컬럼과 같은 열거형을 쓰는지 대조 ④ 3종 밖 값(`USER_DENIED` 포함)을 직접 INSERT 하려 하면 DB CHECK 제약이 거부하는지 확인 ⑤ 결과 미확정 레코드의 응답이 어떤 결과 구분도 싣지 않음을 확인(미동의 이탈이 남긴 상태 — `BIZ-005-04`)
 - **판정**: 공통 판정 기준
 
 ### API-01_014 응답의 추적 키 = 입력값 무변형 에코

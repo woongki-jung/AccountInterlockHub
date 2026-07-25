@@ -7,7 +7,7 @@
 - **기능 목적**: 추적 레코드 밖의 두 저장 대상에 기록하는 기능이다 — **동의 증적**(사후 입증)과 **연동 지표 집계**(삭제 이후에도 남는 건수). 둘 다 추적 레코드와 같은 처리 경계에서 갱신돼야 정합이 유지된다.
 - **관련 PRD 요구사항**:
 	- [`../../prd/PRD.md`](../../prd/PRD.md) §수행 범위 10 — "**동의 증적 기록**: 사용자가 **어느 시점의 어떤 동의 항목에 동의했는지**를 개인정보 없이 남긴다."
-	- [`../../prd/PRD.md`](../../prd/PRD.md) §수행 범위 11 — "**연동 지표 집계**: 일자 단위 요청·성공·거부·실패 건수만 누적한다."
+	- [`../../prd/PRD.md`](../../prd/PRD.md) §수행 범위 11 — "**연동 지표 집계**: 일자 단위 요청·성공·실패 건수만 누적한다."
 
 ---
 
@@ -30,7 +30,7 @@
 ```
 function FN-012 (
   trackingKey: string,      // 확보된 레코드의 추적 키·필수
-  submission: MDL-007,      // 동의·승인 제출·필수(decision = APPROVE 여야 한다)
+  submission: MDL-007,      // 동의·승인 제출·필수(속성은 agreedItemCodes 하나뿐)
   consent: MDL-008,         // 기동 시 파싱한 동의 항목 구성·필수
   at: datetime,             // 승인 확정 시각·필수
 ): MDL-002
@@ -42,8 +42,7 @@ function FN-012 (
 | 구분 | 항목명 | 데이터 타입 | 필수 | 제약 | 설명 |
 |------|--------|------------|------|------|------|
 | 입력 | trackingKey | string | Y | 1~255자 | 증적과 사용자를 잇는 유일한 값 |
-| 입력 | submission.decision | string | Y | `APPROVE` 만 허용 | 거부는 증적을 만들지 않는다(`BIZ-003-03`) |
-| 입력 | submission.agreedItemCodes | string[] | Y | 각 코드가 `consent.items[].code` 에 존재 | 선택 항목의 동의 여부도 이 목록으로 남는다 |
+| 입력 | submission.agreedItemCodes | string[] | Y | 각 코드가 `consent.items[].code` 에 존재하고 **필수 항목을 모두 포함** | 선택 항목의 동의 여부도 이 목록으로 남는다. 진행 의사 값을 따로 받지 않는다(`BIZ-003-01`) |
 | 입력 | consent.version | string(64) | Y | `^[0-9a-f]{64}$` | 기동 시 산출된 값을 그대로 쓴다 |
 | 입력 | consent.notice · consent.items | — | Y | 상수 파싱 결과 | 스냅샷의 출처 |
 | 출력 | proof | MDL-002 | - | 생성 후 불변 | 기록된 동의 증적 |
@@ -51,8 +50,11 @@ function FN-012 (
 ### 처리 흐름 (의사코드)
 
 ```
-1. 계기 검증 — POL DATA-003-04 (validate)
-   if (submission.decision != 'APPROVE')                → throw EX-BIZ-003 (500)
+1. 계기 검증 — POL DATA-003-04 · BIZ-003-01 (validate)
+   // 승인 성립 조건은 필수 동의 충족 하나다 — 진행 의사 값을 받지 않는다
+   required = consent.items.filter(i => i.required).map(i => i.code)
+   if (required 중 submission.agreedItemCodes 에 없는 코드가 있다)
+                                                        → throw EX-BIZ-003 (500)
 
 2. 동의 항목 정합 검증 — ENT-002 §구현 가이드 (validate)
    for each code in submission.agreedItemCodes:
@@ -83,9 +85,10 @@ function FN-012 (
 
 | HTTP status | EX 코드 | 발생 조건 | 사용자 메시지 | 개발자 노트 |
 |-------------|---------|-----------|---------------|-------------|
-| 500 | `EX-BIZ-003` | 계기가 승인이 아님·동의 항목 정합 위반·증적 저장 실패 | "처리 중 문제가 발생했습니다. 잠시 후 다시 시도해 주세요." | **결과를 확정하지 않고 수신처 전달도 수행하지 않는다**(`BIZ-003-04`). 사용자는 다시 시도할 수 있다 |
+| 500 | `EX-BIZ-003` | 승인이 성립하지 않은 제출(필수 동의 미충족)로 호출됨·동의 항목 정합 위반·증적 저장 실패 | "처리 중 문제가 발생했습니다. 잠시 후 다시 시도해 주세요." | **결과를 확정하지 않고 수신처 전달도 수행하지 않는다**(`BIZ-003-04`). 사용자는 다시 시도할 수 있다 |
 
-- **필수 동의 미충족**은 이 기능에 도달하기 전에 걸러진다 — 승인 제출 접점이 서버 재검증에서 400 `EX-BIZ-001` 로 종료한다(`BIZ-003-02`).
+- **필수 동의 미충족**은 이 기능에 도달하기 전에 걸러진다 — 승인 제출 접점이 서버 재검증에서 400 `EX-BIZ-001` 로 종료한다(`BIZ-003-02`). 단계 1 은 그 뒤의 **마지막 방어**이며, 여기까지 온 미충족 제출은 사용자 입력 오류가 아니라 호출측 결함이라 500 으로 다룬다.
+- **미동의 이탈에는 이 기능이 호출되지 않는다**(`BIZ-003-03`·`DATA-003-04`). 증적도 결과도 만들지 않고 **결과 미확정**으로 남는다.
 
 ### 의존 기능
 
@@ -129,7 +132,7 @@ function FN-013 (
 | 구분 | 항목명 | 데이터 타입 | 필수 | 제약 | 설명 |
 |------|--------|------------|------|------|------|
 | 입력 | event.kind | string | Y | `REQUEST`·`UNIDENTIFIED_FAILURE`·`RESULT` | 계수 계기의 종류 |
-| 입력 | event.resultCode | string | N | `kind = RESULT` 일 때만 필수·`BIZ-001-01` 4종 | 갱신할 결과 카운터 선택 |
+| 입력 | event.resultCode | string | N | `kind = RESULT` 일 때만 필수·`BIZ-001-01` **3종** | 갱신할 결과 카운터 선택 |
 | 입력 | event.at | datetime | Y | 시간대 유지 | 일자 산출 기준 |
 | 출력 | — | — | - | - | 반환값 없음 |
 
@@ -138,7 +141,7 @@ function FN-013 (
 ```
 1. 계기 검증 — POL BIZ-005-02 (validate)
    if (event.kind not in ['REQUEST','UNIDENTIFIED_FAILURE','RESULT'])  → throw EX-BIZ-003 (500)
-   if (event.kind == 'RESULT' AND event.resultCode 가 4종에 없다)       → throw EX-BIZ-003 (500)
+   if (event.kind == 'RESULT' AND event.resultCode 가 3종에 없다)       → throw EX-BIZ-003 (500)
 
 2. 일자 산출 — ENT-003 §일자 경계 기준 (transform)
    metricDate = DATE_IN_TIMEZONE(event.at, 'Asia/Seoul')
@@ -147,8 +150,9 @@ function FN-013 (
    if (event.kind == 'REQUEST')                columns = [request_count]
    if (event.kind == 'UNIDENTIFIED_FAILURE')   columns = [request_count, decrypt_failed_count]
    if (event.kind == 'RESULT')                 columns = [ 아래 대응표의 컬럼 1개 ]
-       SUCCESS → success_count · USER_DENIED → user_denied_count
-       DECRYPT_FAILED → decrypt_failed_count · DELIVERY_FAILED → delivery_failed_count
+       SUCCESS → success_count · DECRYPT_FAILED → decrypt_failed_count
+       DELIVERY_FAILED → delivery_failed_count
+       // 거부 카운터가 없다 — 컬럼은 요청 수 1개 + 결과 구분 3종 = 4개다 (POL BIZ-005-01)
 
 4. 원자적 UPSERT (삽입과 증가를 한 문장으로)
    INSERT INTO tbl_interlock_metric_daily (metric_date, <columns>)
@@ -174,7 +178,10 @@ function FN-013 (
 | 복호화 판정 3·4단계 실패로 종료 | PROC-102 · PROC-104 | `UNIDENTIFIED_FAILURE` | `BIZ-005-02` ② (추적 키 미확보) |
 | 결과 구분 확정 | FN-009 단계 3 | `RESULT` | `BIZ-005-04` |
 | 재진입 · 본인확인 재시도 · 확정 결과 재안내 | — | 호출하지 않는다 | `BIZ-005-03` |
+| **결과 미확정 이탈**(미동의 이탈 · 본인확인 미완료 이탈) | — | 호출하지 않는다 | `BIZ-005-04` — **요청 수에만 남고**(레코드 최초 생성 시점에 이미 계수됐다) 어느 결과 구분 카운터에도 계수하지 않는다 |
 | 자가진단 호출 | — | 호출하지 않는다 | EXC-BIZ-11 · `SEC-003-03` |
+
+- **결과 구분 3종의 합은 요청 수보다 작을 수 있다**(`BIZ-005-04`). 결과 미확정으로 끝난 연동과 일자 경계를 걸친 연동 때문이며 결함이 아니다 — 등식 검사를 두지 않는다([`data_ENT-003.md`](../datas/data_ENT-003.md) §행 단위 합계에 제약을 두지 않는 이유).
 
 ### 에러 처리 (에러 코드 카탈로그)
 

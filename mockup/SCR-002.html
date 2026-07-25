@@ -67,12 +67,9 @@
   .consent-item .ci-body{flex:1;}
   .consent-item .ci-name{font-weight:var(--font-weight-semibold);display:flex;align-items:center;flex-wrap:wrap;gap:6px;}
   .consent-item .ci-desc{font-size:var(--font-size-sm);color:var(--color-text-muted);margin-top:2px;}
-  /* 잠금(제출 중) — design-system-components.md §ConsentList·ConsentItem: opacity 금지, 비활성 토큰 쌍(4.82:1 실측)으로 표현 */
-  .consent-list.locked{pointer-events:none;}
-  .consent-list.locked .consent-item{background:var(--color-disabled-bg);}
-  .consent-list.locked .ci-name,
-  .consent-list.locked .ci-desc{color:var(--color-disabled-fg);}
-  .consent-list.locked input[type=checkbox]{accent-color:var(--color-disabled-fg);}
+  /* 잠금(제출 중) 상태를 두지 않는다 — design-system-components.md §ConsentList·ConsentItem:
+     거부 제출이 폐지되면서 목록을 잠근 채 대기할 트리거가 사라졌다. 승인은 발신 즉시 카드가
+     SCR-003 으로 바뀌어 목록 자체가 화면에서 사라지므로, 잠금 CSS·상태를 만들지 않는다. */
 
   .badge{display:inline-flex;align-items:center;gap:4px;font-size:var(--font-size-xs);border-radius:var(--radius-pill);padding:2px var(--space-xs);font-weight:var(--font-weight-semibold);}
   .badge-required{background:var(--color-primary-weak);color:var(--color-primary-strong);}
@@ -84,16 +81,9 @@
   .btn-primary{background:var(--color-primary);color:#fff;}
   .btn-primary:hover{background:var(--color-primary-strong);}
   .btn-primary:focus-visible{outline:2px solid #fff;box-shadow:0 0 0 4px var(--color-focus);}
-  .btn-secondary{background:var(--color-surface);color:var(--color-primary);border-color:var(--color-border);margin-top:var(--space-sm);}
-  .btn-secondary:hover{background:var(--color-primary-weak);}
   .btn[aria-disabled="true"]{background:var(--color-disabled-bg);color:var(--color-disabled-fg);cursor:not-allowed;border-color:transparent;}
   .btn:focus-visible{outline:2px solid var(--color-focus);outline-offset:2px;}
-  .fine-print{margin:var(--space-sm) 0 0;font-size:var(--font-size-xs);color:var(--color-text-muted);text-align:center;}
-
-  @keyframes spin{to{transform:rotate(360deg);}}
-  .spinner{width:18px;height:18px;border-radius:50%;border:3px solid rgba(255,255,255,.4);border-top-color:#fff;animation:spin .9s linear infinite;flex:none;}
-  .spinner.dark{border:3px solid rgba(31,94,174,.25);border-top-color:var(--color-primary);}
-  @media (prefers-reduced-motion:reduce){.spinner{animation-duration:1.6s;}}
+  /* Spinner 규칙을 두지 않는다 — SCR-002 에는 Spinner 를 쓰는 상태가 없다(승인 제출 즉시 카드가 SCR-003 으로 교체된다) */
 
   .flow-note{max-width:480px;margin:var(--space-lg) auto 0;padding:var(--space-md);border:1px dashed #A9B2C0;border-radius:var(--radius-md);background:#FBFCFE;color:var(--color-text-muted);font-size:var(--font-size-sm);}
   .flow-note-title{font-weight:700;color:#5B4400;background:#FDF3E2;display:inline-block;padding:2px 8px;border-radius:999px;font-size:var(--font-size-xs);margin-bottom:var(--space-sm);}
@@ -117,21 +107,21 @@
     </nav>
     <div class="mockup-states">
       <span class="mockup-states-label">상태 전환:</span>
-      <button type="button" class="state-btn" data-state="initialUnchecked">초기(미동의)</button>
+      <button type="button" class="state-btn" data-state="initialUnchecked">초기 미동의</button>
       <button type="button" class="state-btn" data-state="agreed">동의 완료</button>
       <button type="button" class="state-btn" data-state="noNotice">안내 문구 없음</button>
-      <button type="button" class="state-btn" data-state="blocked">필수 동의 미충족 오류</button>
-      <button type="button" class="state-btn" data-state="rejecting">거부 처리 중</button>
-      <button type="button" class="state-btn" data-state="retryable">처리 오류</button>
+      <button type="button" class="state-btn" data-state="gated">유효성 안내(화면 게이팅)</button>
+      <button type="button" class="state-btn" data-state="blocked">서버 EX-BIZ-001</button>
+      <button type="button" class="state-btn" data-state="retryable">EX-BIZ-003 재시도</button>
     </div>
-    <p class="mockup-note">사양: screen_SCR-002.md §화면 상태 전이 · design-system.md §안내 영역 레이아웃 전제. 체크박스를 직접 눌러도 "동의하고 연동하기" 버튼의 활성 여부가 실시간으로 바뀝니다.</p>
+    <p class="mockup-note">사양: screen_SCR-002.md §화면 상태 전이 · §조건부 표시. <strong>거부·취소 종료 수단은 없습니다</strong> — 동의하지 않는 사용자의 종료 수단은 창을 닫는 것입니다(<code>BIZ-003-03</code>). "유효성 안내"는 미동의 상태에서 버튼을 눌렀을 때 화면이 막는 1차 방어(문구: "모든 항목에 동의해 주셔야 합니다"), "서버 EX-BIZ-001"은 서버 재검증 실패(문구: "필수 동의 항목에 모두 동의해 주세요.") — 문구가 서로 다릅니다. 체크박스를 직접 눌러도 버튼 활성 여부가 즉시 반영됩니다.</p>
   </div>
 </div>
 
 <div class="page">
   <main class="card">
     <h1 class="stage-title">연동 동의</h1>
-    <p class="stage-desc">아래 내용을 확인하고 연동을 진행할지 선택해 주세요.</p>
+    <p class="stage-desc">아래 내용을 확인하고 모든 항목에 동의해 주세요.</p>
 
     <div class="notice" id="notice">
       <p>아래 항목에 동의하시면 서비스 연동이 진행됩니다. 동의하지 않으시면 연동이 취소됩니다.</p>
@@ -157,43 +147,38 @@
     <button type="button" class="btn btn-primary" id="approve-btn">
       <span id="approve-content">동의하고 연동하기</span>
     </button>
-    <button type="button" class="btn btn-secondary" id="reject-btn">
-      <span id="reject-content">동의하지 않고 종료</span>
-    </button>
-    <p class="fine-print">동의하지 않으면 연동이 취소되며, 이 링크로는 다시 진행할 수 없습니다.</p>
   </main>
 </div>
 
 <aside class="flow-note">
   <p class="flow-note-title">사양 §화면 간 이동 경로 요약 (목업 보조 — 제품 UI 아님)</p>
   <ul>
-    <li>승인 클릭(필수 동의 충족 시 항상) → <a href="SCR-003.html">SCR-003 연동 진행 안내</a></li>
-    <li>거부 클릭 → 버튼 안 진행 표시 후 <a href="SCR-004.html">SCR-004 결과 안내(경로 ②)</a></li>
+    <li>승인 버튼 클릭(필수 동의 충족) → <a href="SCR-003.html">SCR-003 연동 진행 안내</a></li>
+    <li>승인 제출 응답이 확정 결과 재안내 또는 <code>EX-SEC-001</code>·<code>EX-SEC-002</code> → <a href="SCR-004.html">SCR-004 결과 안내</a></li>
     <li>승인 시점 재복호화 실패(<code>EX-AUTH-001</code>·<code>EX-AUTH-002</code>) → <a href="SCR-001.html">SCR-001 본인확인(재입력)</a></li>
-    <li>필수 동의 미충족·처리 오류 → 이 화면 유지(위 상태 전환 참고)</li>
+    <li>필수 미충족 상태에서 승인 버튼 클릭(<code>aria-disabled</code>) → 이 화면 유지 — 요청을 보내지 않고 유효성 안내만 띄운다</li>
+    <li>서버 재검증 실패(<code>EX-BIZ-001</code>)·처리 오류(<code>EX-BIZ-003</code>) → 이 화면 유지(위 상태 전환 참고)</li>
   </ul>
 </aside>
 <p class="mockup-footer">정본 사양: docs/specs/screens/screen_SCR-002.md · design-system.md · design-system-components.md(NoticeBlock·ConsentList·Button)</p>
 
 <script>
+  // 상태 6종 — screen_SCR-002.md §화면 상태 전이 · §조건부 표시.
+  // Gated(화면 게이팅·BR-004)와 Blocked(서버 재검증·BR-005)는 같은 알림 영역을 쓰지만 문구가 다르다.
   var STATES = {
-    initialUnchecked: { label:'초기(미동의)',    notice:true,  checked:false, alertText:'', secLoading:false, locked:false },
-    agreed:           { label:'동의 완료',        notice:true,  checked:true,  alertText:'', secLoading:false, locked:false },
-    noNotice:         { label:'안내 문구 없음',   notice:false, checked:false, alertText:'', secLoading:false, locked:false },
-    blocked:          { label:'필수 동의 미충족', notice:true,  checked:false, alertText:'필수 동의 항목에 모두 동의해 주세요.', secLoading:false, locked:false },
-    rejecting:        { label:'거부 처리 중',     notice:true,  checked:false, alertText:'', secLoading:true,  locked:true },
-    retryable:        { label:'처리 오류',        notice:true,  checked:true,  alertText:'처리 중 문제가 발생했습니다. 잠시 후 다시 시도해 주세요.', secLoading:false, locked:false }
+    initialUnchecked: { label:'초기 미동의',              notice:true,  checked:false, alertText:'' },
+    agreed:           { label:'동의 완료',                notice:true,  checked:true,  alertText:'' },
+    noNotice:         { label:'안내 문구 없음',           notice:false, checked:false, alertText:'' },
+    gated:            { label:'유효성 안내(화면 게이팅)', notice:true,  checked:false, alertText:'모든 항목에 동의해 주셔야 합니다', focusCheckbox:true },
+    blocked:          { label:'서버 EX-BIZ-001',          notice:true,  checked:false, alertText:'필수 동의 항목에 모두 동의해 주세요.', focusCheckbox:true },
+    retryable:        { label:'EX-BIZ-003 재시도',        notice:true,  checked:true,  alertText:'처리 중 문제가 발생했습니다. 잠시 후 다시 시도해 주세요.' }
   };
 
   var notice = document.getElementById('notice');
-  var list = document.getElementById('consent-list');
   var checkbox = document.getElementById('ci-1');
   var alertEl = document.getElementById('alert');
   var alertText = document.getElementById('alert-text');
   var approveBtn = document.getElementById('approve-btn');
-  var approveContent = document.getElementById('approve-content');
-  var rejectBtn = document.getElementById('reject-btn');
-  var rejectContent = document.getElementById('reject-content');
 
   function updateApproveEnabled(checked){
     if (checked) approveBtn.removeAttribute('aria-disabled');
@@ -215,44 +200,32 @@
       alertEl.hidden = true;
     }
 
-    list.classList.toggle('locked', s.locked);
-    list.setAttribute('aria-busy', s.locked ? 'true' : 'false');
-    checkbox.disabled = s.locked;
-
-    if (s.secLoading) {
-      rejectContent.innerHTML = '<span class="spinner" aria-hidden="true"></span><span>처리 중</span>';
-      approveBtn.setAttribute('aria-disabled', 'true');
-    } else {
-      rejectContent.textContent = '동의하지 않고 종료';
-    }
-
     document.querySelectorAll('.state-btn').forEach(function(b){
       b.classList.toggle('active', b.getAttribute('data-state') === key);
     });
+
+    // "첫 미충족 항목으로 포커스" — 현재 상수는 필수 항목 1건이라 그 체크박스로 옮긴다.
+    if (s.focusCheckbox) { checkbox.focus(); }
   }
 
   document.querySelectorAll('.state-btn').forEach(function(b){
     b.addEventListener('click', function(){ applyState(b.getAttribute('data-state')); });
   });
 
-  // 체크박스를 직접 조작해도 승인 버튼 활성 여부가 즉시 반영된다 (BIZ-003-01 — 1차 방어는 화면, 판정 근거는 서버)
+  // 체크박스를 직접 조작해도 승인 버튼 활성 여부가 즉시 반영된다(BIZ-003-01 — 1차 방어는 화면, 판정 근거는 서버).
+  // 체크박스는 어떤 상태에서도 disabled 로 두지 않는다 — 잠금 상태가 없다(design-system-components.md §ConsentList).
   checkbox.addEventListener('change', function(){
     updateApproveEnabled(checkbox.checked);
     if (checkbox.checked) { alertEl.hidden = true; }
   });
 
-  // "동의하고 연동하기": 미충족 상태에서 클릭하면 필수 동의 안내를 보여준다(aria-disabled 는 클릭을 막지 않고 안내로 응대한다).
+  // "동의하고 연동하기": aria-disabled 여도 클릭 이벤트는 살아 있다 — 그 자리에서 유효성 안내를 띄운다(화면 게이팅, 서버를 부르지 않는다).
   approveBtn.addEventListener('click', function(){
     if (approveBtn.getAttribute('aria-disabled') === 'true') {
-      if (!checkbox.checked) { applyState('blocked'); }
+      applyState('gated');
       return;
     }
     window.location.href = 'SCR-003.html';
-  });
-
-  // "동의하지 않고 종료": 항상 즉시 결과 화면(경로 ②)으로 이동한다(BIZ-003-03 — 진행 화면을 거치지 않는다).
-  rejectBtn.addEventListener('click', function(){
-    window.location.href = 'SCR-004.html';
   });
 
   applyState('initialUnchecked');

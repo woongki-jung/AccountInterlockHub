@@ -6,7 +6,7 @@
 
 - **기능 목적**: 확보된 추적 레코드에 **세 가지 사실을 이어 쓴다** — 결과 구분 확정, 결과 확인 표시, 완료 콜백 수신. 셋 다 "아직 비어 있을 때만 채운다"는 같은 형태라, 재요청·중복 통지·동시 요청에서 값이 덮이지 않는다.
 - **관련 PRD 요구사항**:
-	- [`../../prd/PRD.md`](../../prd/PRD.md) §수행 범위 9 — "승인·거부·복호화 결과·수신처 전달 결과·결과 확인·완료 콜백을 같은 레코드에 이어 기록한다."
+	- [`../../prd/PRD.md`](../../prd/PRD.md) §수행 범위 9 — "승인·복호화 결과·수신처 전달 결과·결과 확인·완료 콜백을 같은 레코드에 이어 기록한다."
 	- [`../../prd/devspec/external-apis.md`](../../prd/devspec/external-apis.md) §처리상태 확인 API — "허브는 결과를 담아 응답한 시점에 그 레코드를 결과 확인 완료로 표시하고 확인 일시를 남긴다. 이 시점이 보관 기간의 기산점이다."
 
 ---
@@ -30,7 +30,7 @@
 ```
 function FN-009 (
   trackingKey: string,      // 확보된 레코드의 추적 키·필수
-  resultCode: string,       // BIZ-001-01 의 4종 중 하나·필수
+  resultCode: string,       // BIZ-001-01 의 3종 중 하나·필수
   at: datetime,             // 결과 확정 시각·필수
 ): MDL-001                  // 확정 후(또는 이미 확정돼 있던) 레코드
   throws RecordWriteError { code: EX-BIZ-003, http: 500 }
@@ -41,7 +41,7 @@ function FN-009 (
 | 구분 | 항목명 | 데이터 타입 | 필수 | 제약 | 설명 |
 |------|--------|------------|------|------|------|
 | 입력 | trackingKey | string | Y | 1~255자 | 대상 레코드 |
-| 입력 | resultCode | string | Y | `SUCCESS`·`USER_DENIED`·`DECRYPT_FAILED`·`DELIVERY_FAILED` | 단일 열거형(`BIZ-001-01`) |
+| 입력 | resultCode | string | Y | `SUCCESS`·`DECRYPT_FAILED`·`DELIVERY_FAILED` | 단일 열거형 **3종**(`BIZ-001-01` — 거부 값이 없다) |
 | 입력 | at | datetime | Y | 시간대 유지 | 처리 일시·지표 일자 산출 기준 |
 | 출력 | record | MDL-001 | - | - | 확정 결과가 담긴 레코드 |
 
@@ -49,7 +49,7 @@ function FN-009 (
 
 ```
 1. 값 검증 — POL BIZ-001-01 (validate)
-   if (resultCode not in ['SUCCESS','USER_DENIED','DECRYPT_FAILED','DELIVERY_FAILED'])
+   if (resultCode not in ['SUCCESS','DECRYPT_FAILED','DELIVERY_FAILED'])
                                                 → throw EX-BIZ-003 (500)
 
 2. 조건부 확정 — POL BIZ-001-04 (트랜잭션 시작)
@@ -72,7 +72,17 @@ function FN-009 (
 
 ### API 인터페이스
 
-해당 없음 — 거부 제출(`PROC-103`)과 수신처 전달 판정(`PROC-104`)이 호출한다.
+해당 없음 — **수신처 전달 판정**(`PROC-104`)이 낸 결과를 승인 제출 오케스트레이션(`PROC-103`)이 확정 기록시킨다(`PROC-301` 경유).
+
+### 결과 확정 계기 (둘뿐이다)
+
+| 계기 | 확정 값 | 근거 |
+|---|---|---|
+| 수신처 전달 성공 | `SUCCESS` | `BIZ-004-03` · 전달 성공 판정([`spec-functions-api-server.md`](spec-functions-api-server.md) §전달 성공 판정 기준) |
+| 수신처 전달이 즉시 재시도까지 소진하고 실패 | `DELIVERY_FAILED` | `BIZ-004-03` |
+
+- **미동의로 끝난 연동에는 이 기능이 호출되지 않는다**(`BIZ-003-03`). 결과 구분을 확정하지 않고 **결과 미확정**으로 남긴다(`EXC-BIZ-05`) — 거부를 뜻하는 입력값이 없으므로 호출하면 단계 1 에서 `EX-BIZ-003` 으로 막힌다.
+- **`DECRYPT_FAILED` 는 값 체계에 있으나 이 기능으로 확정되는 경로가 없다**(`EXC-BIZ-14`). 그 실패는 추적 키를 얻지 못한 상태라 지목할 레코드가 없어 지표 집계에만 계수된다(FN-013).
 
 ### 에러 처리 (에러 코드 카탈로그)
 
@@ -94,6 +104,7 @@ function FN-009 (
 - **조건부 UPDATE 로 만든다**(`WHERE … result_code IS NULL`). 조회 후 응용 코드에서 판정하면 같은 추적 키의 동시 요청에서 값이 덮인다([`data_ENT-001.md`](../datas/data_ENT-001.md) §구현 가이드).
 - `result_code` 와 `result_at` 은 **항상 같은 갱신에서 함께 채운다**(테이블 제약 `ck_result_pair`).
 - **결과 구분 문자열 상수는 한 곳에만 정의하고** 화면·API·집계가 그 정의를 가져다 쓴다(`BIZ-001-03`). 저장 계층에서 별칭·대소문자 변형을 만들지 않는다.
+- **거부 값(`USER_DENIED`)을 열거형에 되살리지 않는다**(`BIZ-001-01` 구현 가이드). 도달할 수 없는 값을 남기면 발송처가 쓸모없는 처리 분기를 만든다. `DECRYPT_FAILED` 와 성질이 다르다 — 그 값은 지표 집계에 실제로 누적되므로 값 체계에 남는다.
 - 완료 콜백은 결과 확정 이후에도 이어 쓴다 — 본 기능의 1회성 규칙 대상이 아니다(BR-021·FN-011).
 
 ---

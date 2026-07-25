@@ -6,7 +6,7 @@
 
 - **정의 대상**: 추적 레코드가 보관 기간이 지나 지워진 뒤에도 **사용량·성공률을 낼 수 있도록** 개인정보 없는 일자별 건수를 누적하는 처리다. 추적 키를 담지 않아 개별 연동으로 환원되지 않으므로 삭제 대상이 아니다.
 - **관련 PRD 요구사항**:
-	- [`../../prd/PRD.md`](../../prd/PRD.md) §수행 범위 11 — "**연동 지표 집계**: 일자 단위 요청·성공·거부·실패 건수만 누적한다. 추적 키를 포함하지 않아 개별 연동으로 환원되지 않으며 보관 기간 삭제의 영향을 받지 않는다."
+	- [`../../prd/PRD.md`](../../prd/PRD.md) §수행 범위 11 — "**연동 지표 집계**: 일자 단위 요청·성공·실패 건수만 누적한다. 추적 키를 포함하지 않아 개별 연동으로 환원되지 않으며 보관 기간 삭제의 영향을 받지 않는다."
 	- [`../../prd/PRD.md`](../../prd/PRD.md) §성과 지표 — 지표 정의와 산출 근거. **목표치 수치는 그 문서를 참조하며 본 사양에 옮겨 적지 않는다.**
 
 ---
@@ -55,7 +55,7 @@
 | 구분 | 항목명 | 데이터 타입 | 필수 | 설명 |
 |------|--------|------------|------|------|
 | 입력 | `kind` | string | Y | `REQUEST` · `UNIDENTIFIED_FAILURE` · `RESULT` |
-| 입력 | `resultCode` | string | N | `kind = RESULT` 일 때만 필수. 결과 구분 4종 |
+| 입력 | `resultCode` | string | N | `kind = RESULT` 일 때만 필수. 결과 구분 3종(`BIZ-001-01`) |
 | 입력 | `at` | datetime | Y | 계기 발생 시각(시간대 유지) — 일자 산출 기준 |
 | 출력 | — | — | - | **반환값 없음.** 실패는 예외로만 알린다 |
 
@@ -93,10 +93,12 @@ C1. 계수 계기 전달 (상위 프로세스)
 
 C2. 지표 산출 (허브 운영자 — 읽기 절차)
 
-  저장된 5개 카운터를 직접 조회해 지표를 낸다 (조회 API·화면을 두지 않는다)
-    전체 성공률          = success_count ÷ request_count
-    거부 제외 기술 성공률 = success_count ÷ (request_count − user_denied_count)
-    사용량               = 기간 내 request_count 합계
+  저장된 4개 카운터를 직접 조회해 지표를 낸다 (조회 API·화면을 두지 않는다)
+    전체 요청 기준 성공률   = success_count ÷ request_count                    // 결과 미확정 포함
+    결과 확정 건 기준 성공률 = success_count ÷ (success_count + decrypt_failed_count
+                                              + delivery_failed_count)        // 미확정 제외
+    사용량                 = 기간 내 request_count 합계
+  // 두 정의가 갈리는 지점은 결과 미확정 요청의 분모 포함 여부다 (ENT-003 §지표 산출)
   // 어느 정의를 목표치 판정에 쓸지는 담당자 이월이다 (POL BIZ-005-06)
   // 목표 수치를 본 사양에 옮겨 적지 않는다 — docs/prd/PRD.md §성과 지표를 참조한다
   // 나눗셈은 실수 연산으로 수행한다 (정수 나눗셈이 되지 않게)
@@ -111,7 +113,7 @@ B1. 계수 계기 수신 — POL BIZ-005-02 (validate)
   인증·인가 검증: 인증 없음 — AUTH-001 인용
   입력 재검증:
     if (kind not in ['REQUEST','UNIDENTIFIED_FAILURE','RESULT'])       → throw EX-BIZ-003 (500)
-    if (kind == 'RESULT' AND resultCode 가 4종에 없다)                  → throw EX-BIZ-003 (500)
+    if (kind == 'RESULT' AND resultCode 가 3종에 없다)                  → throw EX-BIZ-003 (500)
 
 B2. 일자 확정 — ENT-003 §일자 경계 기준 (transform)
 
@@ -134,11 +136,13 @@ B4. 결과 구분 카운터 갱신 — POL BIZ-005-04 · BIZ-001-01 · BIZ-001-0
   if (kind == 'RESULT')
       columns = { <대응 컬럼>: 1 }
           SUCCESS         → success_count
-          USER_DENIED     → user_denied_count
           DECRYPT_FAILED  → decrypt_failed_count
           DELIVERY_FAILED → delivery_failed_count
       // 대응표를 한 곳에만 둔다. 저장 계층에서 별칭·대소문자 변형을 만들지 않는다
+      // 거부 카운터를 두지 않는다 — 값 체계에 없는 값이다 (POL BIZ-005-01 · BIZ-001-01)
       // 레코드당 1회만 호출된다 — 감산·이동이 없다 (결과는 바뀌지 않는다)
+      // 결과가 확정되지 않은 채 끝난 연동(미동의 이탈·본인확인 미완료 이탈)은
+      //   이 자리로 오지 않는다 — 요청 수에만 남는다 (POL BIZ-005-04)
 
   ── 공통 영속화 (B3·B4 가 같은 문장을 쓴다) ──
   INSERT INTO tbl_interlock_metric_daily (metric_date, <columns 의 키들>)
@@ -154,7 +158,7 @@ B4. 결과 구분 카운터 갱신 — POL BIZ-005-04 · BIZ-001-01 · BIZ-001-0
 B5. 지표 산출 (읽기 절차 — 런타임 계수 경로가 아니다)
 
   SELECT metric_date, request_count, success_count,
-         user_denied_count, decrypt_failed_count, delivery_failed_count
+         decrypt_failed_count, delivery_failed_count
   FROM tbl_interlock_metric_daily
   WHERE metric_date BETWEEN :from AND :to
   ORDER BY metric_date;
@@ -171,7 +175,7 @@ B5. 지표 산출 (읽기 절차 — 런타임 계수 경로가 아니다)
 | 요청→도메인 | BE `B1` | `{ kind, resultCode?, at }` | 계기 값 | 열거형 검증(계기·결과 구분) |
 | 도메인→도메인 | BE `B2` | `at`(TIMESTAMPTZ) | `metric_date`(DATE) | `Asia/Seoul` 고정 변환 — 시간대 명시 |
 | 도메인→ENT | BE `B3`·`B4` | 계기 + 일자 | `tbl_interlock_metric_daily` UPSERT | 대상 컬럼 선택 후 +1. 삽입과 증가를 한 문장으로 |
-| ENT→도메인 | BE `B5` | 집계 행 | [`MDL-003`](../datas/model_MDL-003.md) | 카운터 5종을 그대로 읽는다. 비율은 읽는 시점 계산 |
+| ENT→도메인 | BE `B5` | 집계 행 | [`MDL-003`](../datas/model_MDL-003.md) | 카운터 4종을 그대로 읽는다. 비율은 읽는 시점 계산 |
 
 - **`FE→요청`·`도메인→응답`·`응답→FE` 지점이 없다** — 사용자 표면과 반환값이 없다.
 
@@ -208,7 +212,7 @@ B5. 지표 산출 (읽기 절차 — 런타임 계수 경로가 아니다)
 | `EX-BIZ-003` | 계기 값 위반 · UPSERT 실패 | 호출측 트랜잭션과 함께 되돌린다 | 500 (상위가 응답) |
 
 - **본 프로세스는 4xx 를 만들지 않는다.** 사용자 입력을 직접 받지 않는다.
-- **행 단위 합계 제약이 없다** — 결과 미확정 연동과 자정 경계 때문에 `결과 카운터 합계 ≠ 요청 수` 가 정상이다([`../datas/data_ENT-003.md`](../datas/data_ENT-003.md) §행 단위 합계에 제약을 두지 않는 이유).
+- **행 단위 합계 제약이 없다** — 결과 미확정 연동(미동의 이탈 포함)과 자정 경계 때문에 `결과 카운터 합계 ≠ 요청 수` 가 정상이다([`../datas/data_ENT-003.md`](../datas/data_ENT-003.md) §행 단위 합계에 제약을 두지 않는 이유).
 
 ### 실행 결과
 

@@ -51,8 +51,8 @@
 |---|---|---|---|---|---|
 | INTG · Boundary | PROC-202 `B4` 완료 판정 · `BIZ-001-01` | PROC-202 | BR-011 · BR-002(`OPEN`·`FIXED`) | 보통 | 자동 |
 
-- **전제**: `SEED-TRK-OPEN`·`SEED-TRK-FIXED-SUCCESS`·`-DENIED`·`-DECRYPT`·`-DELIVERY`(SQL)
-- **단계**: ① 다섯 상태의 레코드를 각각 조회 `B3`·`B4` → 전건 200(결과 구분·처리 성공 여부를 판정에 쓰지 않는다) ② 전달이 실패한 레코드(`DELIVERY_FAILED`)의 응답 → `isCallbackReceived = false`(콜백이 올 수 없는 상태이므로 항상 미수신) ③ 결과 미확정 레코드도 조회가 성립하는지 확인 ④ **완료 콜백 수신 여부 하나만** 판정 근거임을 기록
+- **전제**: `SEED-TRK-OPEN`·`SEED-TRK-FIXED-SUCCESS`·`-DECRYPT`·`-DELIVERY`(SQL)
+- **단계**: ① 네 상태의 레코드를 각각 조회 `B3`·`B4` → 전건 200(결과 구분·처리 성공 여부를 판정에 쓰지 않는다) ② 전달이 실패한 레코드(`DELIVERY_FAILED`)의 응답 → `isCallbackReceived = false`(콜백이 올 수 없는 상태이므로 항상 미수신) ③ 결과 미확정 레코드도 조회가 성립하는지 확인 ④ **완료 콜백 수신 여부 하나만** 판정 근거임을 기록
 - **판정**: 공통 판정 기준
 
 ### API-02_005 인증 없이 호출 가능 — 설계된 부재
