@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SCR-004 연동 결과 안내 — AccountInterlockHub 목업</title>
+<style>
+  :root{
+    --color-bg:#F4F6F9; --color-surface:#FFFFFF; --color-text:#1B2027; --color-text-muted:#556070;
+    --color-border:#767F8C; --color-divider:#D8DDE5; --color-primary:#1F5EAE; --color-primary-strong:#17498A;
+    --color-primary-weak:#EAF1FB; --color-focus:#0B4FA8; --color-success:#1C7A4B; --color-success-strong:#0F5C37;
+    --color-success-weak:#E8F5EE; --color-danger:#B3261E; --color-danger-strong:#8E1D17; --color-danger-weak:#FCEBE9;
+    --color-warning:#8A5A00; --color-warning-strong:#7A4F00; --color-warning-weak:#FDF3E2; --color-neutral:#3B4452;
+    --color-neutral-weak:#EDF0F4; --color-disabled-bg:#E7EAF0; --color-disabled-fg:#5C6675;
+    --font-family-base:-apple-system,BlinkMacSystemFont,"Segoe UI","Malgun Gothic","Apple SD Gothic Neo",Roboto,"Helvetica Neue",Arial,sans-serif;
+    --font-size-xs:0.8125rem; --font-size-sm:0.875rem; --font-size-base:1rem; --font-size-lg:1.125rem;
+    --font-size-xl:1.375rem; --font-size-2xl:1.75rem;
+    --font-weight-regular:400; --font-weight-semibold:600; --font-weight-bold:700;
+    --line-height-tight:1.35; --line-height-base:1.6;
+    --space-2xs:4px; --space-xs:8px; --space-sm:12px; --space-md:16px; --space-lg:24px; --space-xl:32px; --space-2xl:48px;
+    --radius-sm:6px; --radius-md:10px; --radius-lg:14px; --radius-pill:999px;
+    --shadow-card:0 1px 2px rgba(16,24,40,.06), 0 1px 3px rgba(16,24,40,.10);
+    --size-hit-min:44px; --size-control-height:48px; --size-content-max:480px;
+    --motion-duration-fast:120ms; --motion-duration-base:200ms; --motion-easing:cubic-bezier(.2,0,.38,1);
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{font-family:var(--font-family-base);background:var(--color-bg);color:var(--color-text);line-height:var(--line-height-base);-webkit-font-smoothing:antialiased;}
+  svg{display:block;}
+  button{font-family:inherit;}
+
+  /* ================= 목업 전용 도구 (제품 UI 아님) ================= */
+  .mockup-toolbar{position:sticky;top:0;z-index:100;background:#20242C;color:#F4F6F9;font-size:13px;border-bottom:3px solid #F5A623;}
+  .mockup-toolbar-inner{max-width:960px;margin:0 auto;padding:8px 12px 10px;}
+  .mockup-flag{display:inline-flex;align-items:center;gap:6px;background:#F5A623;color:#20242C;font-weight:700;padding:3px 10px;border-radius:999px;font-size:12px;letter-spacing:.02em;margin-right:10px;}
+  .mockup-nav{display:inline-flex;flex-wrap:wrap;gap:4px;vertical-align:middle;}
+  .mockup-nav a{color:#D8DDE5;text-decoration:none;padding:6px 10px;border-radius:6px;font-size:13px;border:1px solid transparent;}
+  .mockup-nav a:hover{background:#2E3340;color:#fff;}
+  .mockup-nav a.current{background:#F4F6F9;color:#20242C;font-weight:700;}
+  .mockup-states{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;align-items:center;}
+  .mockup-states-label{color:#9AA4B2;margin-right:2px;font-size:12px;}
+  .state-btn{background:#2E3340;color:#D8DDE5;border:1px solid #3A4050;border-radius:6px;padding:6px 10px;font-size:12.5px;cursor:pointer;}
+  .state-btn:hover{background:#3A4050;}
+  .state-btn.active{background:#F5A623;color:#20242C;border-color:#F5A623;font-weight:700;}
+  .mockup-note{color:#9AA4B2;font-size:11.5px;margin-top:6px;}
+  .mockup-check{display:inline-flex;align-items:center;gap:6px;color:#D8DDE5;font-size:12.5px;}
+  #reason-row[hidden]{display:none;}
+
+  /* ================= 제품 UI (design-system.md 토큰) ================= */
+  .page{padding:var(--space-xl) var(--space-md);display:flex;justify-content:center;}
+  @media (min-width:480px){.page{padding-left:var(--space-lg);padding-right:var(--space-lg);}}
+  @media (min-width:768px){.page{padding-top:var(--space-2xl);padding-bottom:var(--space-2xl);}}
+
+  main.card{width:100%;max-width:480px;background:var(--color-surface);border-radius:var(--radius-lg);box-shadow:var(--shadow-card);padding:var(--space-lg) var(--space-md);}
+  @media (min-width:480px){main.card{max-width:440px;padding:var(--space-lg);}}
+  @media (min-width:768px){main.card{max-width:var(--size-content-max);}}
+
+  .result-panel{border-radius:var(--radius-md);padding:var(--space-lg);border-left:4px solid transparent;}
+  .result-panel.path-success{background:var(--color-success-weak);border-left-color:var(--color-success);}
+  .result-panel.path-neutral{background:var(--color-neutral-weak);border-left-color:var(--color-neutral);}
+  .result-panel.path-danger{background:var(--color-danger-weak);border-left-color:var(--color-danger);}
+  .result-panel.path-warning{background:var(--color-warning-weak);border-left-color:var(--color-warning);}
+
+  .result-icon{width:40px;height:40px;margin-bottom:var(--space-md);}
+  .path-success .result-icon{color:var(--color-success);}
+  .path-neutral .result-icon{color:var(--color-neutral);}
+  .path-danger .result-icon{color:var(--color-danger);}
+  .path-warning .result-icon{color:var(--color-warning);}
+
+  .result-panel h1{font-size:var(--font-size-2xl);line-height:var(--line-height-tight);font-weight:var(--font-weight-bold);margin:0;color:var(--color-text);}
+  .path-success h1{color:var(--color-success-strong);}
+  .path-neutral h1{color:var(--color-neutral);}
+  .path-danger h1{color:var(--color-danger-strong);}
+  .path-warning h1{color:var(--color-warning-strong);}
+
+  .badge{display:inline-flex;align-items:center;gap:4px;font-size:var(--font-size-xs);border-radius:var(--radius-pill);padding:2px var(--space-xs);font-weight:var(--font-weight-semibold);background:var(--color-neutral-weak);color:var(--color-neutral);margin-top:var(--space-sm);}
+  .badge svg{width:12px;height:12px;}
+
+  .result-desc{margin:var(--space-md) 0 0;color:var(--color-text);}
+  .result-next{margin:var(--space-md) 0 0;color:var(--color-text-muted);font-size:var(--font-size-sm);}
+
+  .flow-note{max-width:480px;margin:var(--space-lg) auto 0;padding:var(--space-md);border:1px dashed #A9B2C0;border-radius:var(--radius-md);background:#FBFCFE;color:var(--color-text-muted);font-size:var(--font-size-sm);}
+  .flow-note-title{font-weight:700;color:#5B4400;background:#FDF3E2;display:inline-block;padding:2px 8px;border-radius:999px;font-size:var(--font-size-xs);margin-bottom:var(--space-sm);}
+  .flow-note ul{margin:0;padding-left:1.1em;}
+  .flow-note li{margin-bottom:4px;}
+  .flow-note a{color:var(--color-primary);}
+  .mockup-footer{max-width:480px;margin:var(--space-lg) auto var(--space-xl);text-align:center;color:#8A93A3;font-size:11px;padding:0 var(--space-md);}
+</style>
+</head>
+<body>
+
+<div class="mockup-toolbar">
+  <div class="mockup-toolbar-inner">
+    <span class="mockup-flag">목업 전용 — 제품 UI 아님</span>
+    <nav class="mockup-nav">
+      <a href="index.html">허브</a>
+      <a href="SCR-001.html">① SCR-001 본인확인</a>
+      <a href="SCR-002.html">② SCR-002 동의·승인</a>
+      <a href="SCR-003.html">③ SCR-003 진행 안내</a>
+      <a href="SCR-004.html" class="current">④ SCR-004 결과 안내</a>
+    </nav>
+    <div class="mockup-states">
+      <span class="mockup-states-label">결과 경로:</span>
+      <button type="button" class="state-btn" data-path="1">① 연동 완료</button>
+      <button type="button" class="state-btn" data-path="2">② 사용자 거부</button>
+      <button type="button" class="state-btn" data-path="3">③ 링크·복호화 오류</button>
+      <button type="button" class="state-btn" data-path="4">④ 수신처 전달 실패</button>
+    </div>
+    <div class="mockup-states" id="reason-row">
+      <span class="mockup-states-label">③ 사유 코드:</span>
+      <button type="button" class="state-btn" data-reason="sec001">링크 형식 위반</button>
+      <button type="button" class="state-btn" data-reason="sec004">URL 길이 초과</button>
+      <button type="button" class="state-btn" data-reason="sec002">규약 위반</button>
+      <button type="button" class="state-btn" data-reason="ops002">내부 처리 오류</button>
+    </div>
+    <div class="mockup-states">
+      <label class="mockup-check"><input type="checkbox" id="reannounce-toggle"> 확정 결과 재안내로 보기("이미 처리된 요청입니다" 배지)</label>
+    </div>
+    <p class="mockup-note">사양: screen_SCR-004.md §결과 4경로 · §확정 결과 재안내. 다섯 번째 경로는 만들지 않습니다(BIZ-001-02). 이 화면에는 버튼이 없습니다 — 여정의 끝입니다.</p>
+    <p class="mockup-note" id="path3-reannounce-warning" style="color:#F5A623;font-weight:600;" hidden>⚠️ 사양 보완 후보 — PROC-105·PROC-102·PROC-103 을 추적하면 경로 ③(DECRYPT_FAILED)은 추적 레코드가 만들어지기 전에 항상 확정되어, 이 조합(경로 ③ + 재안내)이 실제로는 발생하지 않을 가능성이 있습니다. mockup/INDEX.md §사양 보완 후보 1 참고.</p>
+  </div>
+</div>
+
+<div class="page">
+  <main class="card">
+    <div class="result-panel" id="result-panel" role="status">
+      <div class="result-icon" id="result-icon" aria-hidden="true"></div>
+      <h1 id="result-title"></h1>
+      <div class="badge" id="reannounce-badge" hidden>
+        <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 4v4h4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/><path d="M4.5 8a5 5 0 1 0 1.6-3.7" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+        <span>이미 처리된 요청입니다</span>
+      </div>
+      <p class="result-desc" id="result-desc"></p>
+      <p class="result-next" id="result-next"></p>
+    </div>
+  </main>
+</div>
+
+<aside class="flow-note">
+  <p class="flow-note-title">사양 §화면 간 이동 경로 요약 (목업 보조 — 제품 UI 아님)</p>
+  <ul>
+    <li>이 화면은 여정의 끝입니다 — 화면이 제공하는 이동 수단이 없습니다</li>
+    <li>새로고침·같은 링크 재진입 → <a href="SCR-001.html">SCR-001 본인확인</a>부터 다시 시작(진입 판정 통과 시)</li>
+    <li>결과가 확정된 추적 키로 재진입하면 본인확인 통과 후 이 화면(확정 결과 재안내)으로 돌아옵니다</li>
+    <li>진입 단계 실패(경로 ③)는 추적 레코드가 없어 재진입해도 같은 판정으로 다시 경로 ③이 됩니다</li>
+  </ul>
+</aside>
+<p class="mockup-footer">정본 사양: docs/specs/screens/screen_SCR-004.md · design-system.md §결과 4경로의 시각 구분 · design-system-components.md(ResultPanel·Badge)</p>
+
+<script>
+  var ICONS = {
+    check: '<svg viewBox="0 0 40 40" width="40" height="40" aria-hidden="true"><circle cx="20" cy="20" r="18" fill="none" stroke="currentColor" stroke-width="2.5"/><path d="M12 20.5l5.5 5.5L28 14" fill="none" stroke="currentColor" stroke-width="2.75" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+    minus: '<svg viewBox="0 0 40 40" width="40" height="40" aria-hidden="true"><circle cx="20" cy="20" r="18" fill="none" stroke="currentColor" stroke-width="2.5"/><line x1="12" y1="20" x2="28" y2="20" stroke="currentColor" stroke-width="2.75" stroke-linecap="round"/></svg>',
+    exclaimCircle: '<svg viewBox="0 0 40 40" width="40" height="40" aria-hidden="true"><circle cx="20" cy="20" r="18" fill="none" stroke="currentColor" stroke-width="2.5"/><line x1="20" y1="11" x2="20" y2="23" stroke="currentColor" stroke-width="2.75" stroke-linecap="round"/><circle cx="20" cy="28.5" r="1.6" fill="currentColor"/></svg>',
+    exclaimTriangle: '<svg viewBox="0 0 40 40" width="40" height="40" aria-hidden="true"><path d="M20 6.5 L36 32.5 L4 32.5 Z" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linejoin="round"/><line x1="20" y1="16.5" x2="20" y2="24.5" stroke="currentColor" stroke-width="2.75" stroke-linecap="round"/><circle cx="20" cy="28.2" r="1.6" fill="currentColor"/></svg>'
+  };
+
+  // 경로별 고정 문구 — screen_SCR-004.md §결과 4경로 그대로
+  var PATHS = {
+    '1': { cls:'path-success', icon:ICONS.check,          title:'연동이 완료되었습니다',     desc:'요청하신 연동이 정상적으로 처리되었습니다.', next:'이 창은 닫으셔도 됩니다.' },
+    '2': { cls:'path-neutral', icon:ICONS.minus,          title:'연동을 진행하지 않았습니다', desc:'동의하지 않으셔서 연동이 취소되었습니다.',   next:'다시 연동하려면 연동을 요청한 서비스에서 새로 요청해 주세요.' },
+    '4': { cls:'path-warning', icon:ICONS.exclaimTriangle,title:'연동을 마치지 못했습니다',   desc:'연동 대상 서비스에 전달하지 못했습니다.',    next:'다시 연동하려면 연동을 요청한 서비스에서 새로 요청해 주세요.' }
+  };
+  var PATH3 = { cls:'path-danger', icon:ICONS.exclaimCircle, title:'연동을 진행할 수 없습니다', next:'연동을 요청한 서비스에서 새 링크를 받아 다시 진행해 주세요.' };
+  // 사유 코드별 기본 문구 — function_FN-014-015.md §오류 메시지 기본값
+  var REASONS = {
+    sec001: '연동 링크가 올바르지 않습니다.',
+    sec004: '전달 정보가 허용 크기를 넘었습니다.',
+    sec002: '연동 요청 정보가 규약과 맞지 않습니다.',
+    ops002: '처리 중 문제가 발생했습니다. 잠시 후 다시 시도해 주세요.'
+  };
+  var REANNOUNCE_SUFFIX = ' 이 연동은 앞서 처리가 끝났고, 지금 보시는 결과가 그때 확정된 결과입니다.';
+
+  var state = { path:'1', reason:'sec001', reannounce:false };
+
+  var panel = document.getElementById('result-panel');
+  var iconEl = document.getElementById('result-icon');
+  var titleEl = document.getElementById('result-title');
+  var descEl = document.getElementById('result-desc');
+  var nextEl = document.getElementById('result-next');
+  var badgeEl = document.getElementById('reannounce-badge');
+  var reasonRow = document.getElementById('reason-row');
+  var reannounceToggle = document.getElementById('reannounce-toggle');
+
+  function render(){
+    var meta, desc;
+    if (state.path === '3') {
+      meta = PATH3;
+      desc = REASONS[state.reason];
+    } else {
+      meta = PATHS[state.path];
+      desc = meta.desc;
+    }
+
+    panel.className = 'result-panel ' + meta.cls;
+    iconEl.innerHTML = meta.icon;
+    titleEl.textContent = meta.title;
+    descEl.textContent = state.reannounce ? (desc + REANNOUNCE_SUFFIX) : desc;
+    nextEl.textContent = meta.next;
+    badgeEl.hidden = !state.reannounce;
+
+    reasonRow.hidden = state.path !== '3';
+    document.getElementById('path3-reannounce-warning').hidden = !(state.path === '3' && state.reannounce);
+
+    document.querySelectorAll('[data-path]').forEach(function(b){
+      b.classList.toggle('active', b.getAttribute('data-path') === state.path);
+    });
+    document.querySelectorAll('[data-reason]').forEach(function(b){
+      b.classList.toggle('active', b.getAttribute('data-reason') === state.reason);
+    });
+  }
+
+  document.querySelectorAll('[data-path]').forEach(function(b){
+    b.addEventListener('click', function(){ state.path = b.getAttribute('data-path'); render(); });
+  });
+  document.querySelectorAll('[data-reason]').forEach(function(b){
+    b.addEventListener('click', function(){ state.reason = b.getAttribute('data-reason'); render(); });
+  });
+  reannounceToggle.addEventListener('change', function(){ state.reannounce = reannounceToggle.checked; render(); });
+
+  render();
+</script>
+</body>
+</html>
