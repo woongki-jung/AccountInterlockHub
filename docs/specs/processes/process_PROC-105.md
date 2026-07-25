@@ -49,6 +49,7 @@
 
 - **진입 조건**: **인증 없음 — `AUTH-001` 인용.** 상위 프로세스 안에서 실행되므로 자체 진입 조건이 없다.
 - **사전 검증**: 입력이 위 네 출처 중 하나여야 한다. 어느 것에도 해당하지 않으면 **경로 ③** 으로 안내한다(`SVC-005` F-003).
+- **`RECORD` 출처가 실어 오는 결과 구분은 셋뿐이다** — `SUCCESS`·`USER_DENIED`·`DELIVERY_FAILED`. `DECRYPT_FAILED` 는 추적 레코드에 기록되는 경로가 없어(EXC-BIZ-14) `RECORD` 로 들어오지 않는다. 복호화 실패는 `REASON_CODE`(`EX-SEC-002`)로 들어와 `resultCode = null` 경로를 타고 ③ 이 된다.
 
 ### 입력/출력 정의
 
@@ -127,6 +128,7 @@ B1. 결과 확보 (호출 진입)
         → resultPath = 3 로 확정하고 B3 으로 간다        // 매핑되지 않는 상태는 경로 ③
   값 확보:
     if (source == 'RECORD')       resultCode = input.record.resultCode
+                                  // 레코드가 실어 오는 값은 SUCCESS·USER_DENIED·DELIVERY_FAILED 뿐이다 (EXC-BIZ-14)
     if (source == 'RESULT_CODE')  resultCode = input.resultCode
     if (source in ['ENTRY_FAILURE','REASON_CODE'])  resultCode = null
 
@@ -136,9 +138,9 @@ B2. 결과 경로 선택 — POL BIZ-001-02 · BIZ-001-03 (validate)
   switch (resultCode)
       case 'SUCCESS'          → resultPath = 1
       case 'USER_DENIED'      → resultPath = 2
-      case 'DECRYPT_FAILED'   → resultPath = 3
+      case 'DECRYPT_FAILED'   → resultPath = 3     // 방어적 분기 — 현 설계에서 도달하지 않는다 (EXC-BIZ-14)
       case 'DELIVERY_FAILED'  → resultPath = 4
-      case null               → resultPath = 3     // 진입 단계 실패·규약 위반(추적 레코드 없음)
+      case null               → resultPath = 3     // 진입 단계 실패·규약 위반(추적 레코드 없음) — 복호화 실패는 실제로 이 자리로 온다
       default                 → resultPath = 3     // 매핑되지 않는 상태 (SVC-005 F-003)
   // 다섯 번째 경로를 만들지 않는다
   // 결과 구분 값을 변환·별칭화하지 않는다 (POL BIZ-001-03)
@@ -216,7 +218,9 @@ B3. 결과 안내 구성 — POL BIZ-002-04 ③ · SEC-002-05 (mask)
 ### 구현 가이드
 
 - **결과 구분 → 경로 대응을 한 곳에만 둔다.** 화면·조회 API·다른 프로세스가 각자 구현하면 같은 연동이 자리마다 다르게 읽힌다([`../datas/model_MDL-007-010.md`](../datas/model_MDL-007-010.md) `MDL-009` 구현 가이드).
-- **경로 ③ 은 두 출처를 받는다** — 결과 구분 `DECRYPT_FAILED` 와 추적 레코드가 없는 진입 단계 실패다. 따라서 **결과 구분 값이 없어도 이 경로를 그릴 수 있어야 한다**.
+- **경로 ③ 은 두 출처를 받는다** — 결과 구분 `DECRYPT_FAILED` 와 추적 레코드가 없는 진입 단계 실패다(둘 다 실제로는 사유 코드로 도착한다 — 복호화 실패는 `EX-SEC-002`). 따라서 **결과 구분 값이 없어도 이 경로를 그릴 수 있어야 한다**.
+- **`case 'DECRYPT_FAILED'` 는 방어적 분기다 — 현 설계에서 어느 출처로도 이 값이 들어오지 않는다.** ① `RECORD` 는 그 값이 담긴 행이 만들어지는 경로가 없어(EXC-BIZ-14) 실어 올 수 없고 ② `RESULT_CODE` 는 PROC-103 이 이번에 확정한 결과라 `SUCCESS`·`USER_DENIED`·`DELIVERY_FAILED` 뿐이며 ③ 복호화 실패는 `REASON_CODE`(`EX-SEC-002`)로 들어와 `resultCode = null` 자리에서 ③ 이 된다. **분기를 지우지 않는다** — 열거형 전건을 다루는 편이 안전하고, 값 체계는 4종을 유지한다(`BIZ-001-01`·`BIZ-001-03`). 후행 단계는 이 분기의 도달 불가를 결함으로 보고하지 않는다.
+- **`RECORD` 출처에 `reasonCode` 가 없어도 문제가 되지 않는다.** 경로 ③ 의 설명 문구는 사유 코드가 고르는데, 확정 결과 재안내로 경로 ③ 이 나오는 경우가 없기 때문이다([`../screens/screen_SCR-004.md`](../screens/screen_SCR-004.md) §확정 결과 재안내 — 배지가 붙는 경로는 ①·②·④).
 - **재안내에서 아무것도 쓰지 않는다.** `result_confirmed_at` 을 건드리면 보관 기산점이 밀리고(`BIZ-002-04`), 요청 수를 올리면 지표가 중복된다(`BIZ-005-03`).
 - **`isReAnnouncement` 를 저장하지 않는다.** 안내 구성에만 쓰는 표시 정보이며 대응 컬럼이 없다.
 - **경로 값이 범위를 벗어나면 화면이 아니라 서버가 먼저 보정한다.** 서버가 `1~4` 를 보장해야 화면이 빈 상태를 다루지 않는다.

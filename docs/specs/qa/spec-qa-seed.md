@@ -61,14 +61,14 @@
 
 ### 추적 레코드 (SQL · `tbl_interlock_tracking`)
 
-각 시드는 **대응하는 암호값 쌍**(그 `trackingKey` 를 담은 X 로 만든 값)을 파일 시드로 함께 갖춰야 재진입 흐름을 검증할 수 있다.
+각 시드는 **대응하는 암호값 쌍**(그 `trackingKey` 를 담은 X 로 만든 값)을 파일 시드로 함께 갖춰야 재진입 흐름을 검증할 수 있다. 예외는 `SEED-TRK-FIXED-DECRYPT` 다 — `DECRYPT_FAILED` 는 추적 레코드에 기록되는 경로가 없어(EXC-BIZ-14) 런타임으로는 만들어질 수 없는 상태를 SQL 로 직접 만든 **값 체계 검증 전용 시드**이며, 재진입·재안내 흐름에 쓰지 않는다.
 
 | 항목 | 최소 수량 | 시드 수단 | 확인 방법 | 비고(검증 대상 TC) |
 |---|--:|---|---|---|
 | `SEED-TRK-OPEN` 결과 미확정 | 1 | SQL | `result_code IS NULL AND result_at IS NULL` 인 행이 대상 키로 1건 | `USR-03_010`·`API-01_002`·`API-03_004`·`BAT-04_002` |
 | `SEED-TRK-FIXED-SUCCESS` | 1 | SQL | `result_code = 'SUCCESS' AND result_at IS NOT NULL AND result_confirmed_at IS NULL` | `USR-03_011`·`API-01_001`·`API-03_001`·`BAT-04_003` |
 | `SEED-TRK-FIXED-DENIED` | 1 | SQL | `result_code = 'USER_DENIED'` | `USR-04_010`·`USR-05_006`·`API-01_013` |
-| `SEED-TRK-FIXED-DECRYPT` | 1 | SQL | `result_code = 'DECRYPT_FAILED'` | `API-01_013` |
+| `SEED-TRK-FIXED-DECRYPT` | 1 | SQL | `result_code = 'DECRYPT_FAILED'` | `API-01_013` (값 체계 검증 전용 — 재진입 흐름 미사용) |
 | `SEED-TRK-FIXED-DELIVERY` | 1 | SQL | `result_code = 'DELIVERY_FAILED'` | `USR-02_012`·`API-02_004`·`API-03_003` |
 | `SEED-TRK-CONFIRMED` 결과 확인 완료 | 1 | SQL | `result_confirmed_at IS NOT NULL AND callback_received_at IS NOT NULL` | `BAT-04_010` |
 | `SEED-TRK-CALLBACK` 콜백 수신 | 1 | SQL | `callback_received_at IS NOT NULL` | `API-02_001` |
