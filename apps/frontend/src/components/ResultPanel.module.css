@@ -29,6 +29,10 @@
   color: var(--color-warning);
 }
 
+/* 값은 StageTitle(결과 변형)과 같다 — design-system-components.md
+   §StageTitle "결과 변형 --font-size-2xl". 값 자체는 처음부터 정확해
+   회귀 1회차(R-2)에서 바꾸지 않았다(표기만 정리 — 재작업이 필요했던
+   쪽은 ProgressPanel 뿐이다). */
 .title {
   font-size: var(--font-size-2xl);
   font-weight: var(--font-weight-bold);

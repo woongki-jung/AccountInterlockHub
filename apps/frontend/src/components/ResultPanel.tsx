@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState, type MouseEvent } from 'react';
+import { normalizeResultPath } from '../api/types';
 import type { ResultPath } from '../api/types';
 import { useStageFocus } from '../hooks/useStageFocus';
 import { Badge } from './Badge';
@@ -39,7 +40,10 @@ interface ResultPanelProps {
  * 결과 3경로 표시 + 복귀 안내 영역 — design-system-components.md §ResultPanel.
  * 경로별 아이콘·색·기본 제목은 design-system.md §결과 3경로의 시각 구분을
  * 그대로 따른다(resultContent.ts). 애니메이션 없이 텍스트만 갱신하고,
- * 카운트다운 영역은 aria-hidden 이다.
+ * 카운트다운 영역은 aria-hidden 이다. 제목 글꼴(`--font-size-2xl`)은
+ * StageTitle(결과 변형)과 같은 값이다(design-system-components.md
+ * §StageTitle) — 카탈로그 표기가 그렇게 정리됐을 뿐 값·구조는 바뀌지
+ * 않았다(회귀 1회차 R-2, 재작업이 필요했던 쪽은 ProgressPanel 뿐이다).
  */
 export function ResultPanel({
   resultPath,
@@ -51,9 +55,15 @@ export function ResultPanel({
   description,
   nextNote,
 }: ResultPanelProps) {
-  const meta = RESULT_PATH_META[resultPath];
+  // 경로 값이 1~3 밖이거나 없으면 경로 ②로 그린다(screen_SCR-004.md §구현
+  // 가이드 — 미매핑 catch-all). 앞선 단계(hydration·transitions)에서 이미
+  // 정규화했더라도 그 타입 선언이 런타임을 보장하지 않으므로(JSON.parse
+  // 경계) 이 컴포넌트도 다시 거친다 — RESULT_PATH_META 조회 직전의 단일
+  // 관문이라 자리를 옮기지 않는다.
+  const resolvedResultPath = normalizeResultPath(resultPath);
+  const meta = RESULT_PATH_META[resolvedResultPath];
   const resolvedTitle = title ?? meta.title;
-  const resolvedDescription = description ?? defaultDescriptionFor(resultPath, reasonCode);
+  const resolvedDescription = description ?? defaultDescriptionFor(resolvedResultPath, reasonCode);
   const resolvedNextNote = nextNote ?? meta.nextNote;
 
   const headingRef = useStageFocus(resolvedTitle);

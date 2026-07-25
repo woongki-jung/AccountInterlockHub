@@ -1,4 +1,7 @@
-/* ProgressPanel — design-system-components.md §ProgressPanel */
+/* ProgressPanel — design-system-components.md §ProgressPanel.
+   제목·보조 문구 글꼴은 이제 StageTitle 컴포넌트가 규정한다(자체 제목
+   글꼴 규정을 버리고 합성으로 바뀜 — 회귀 1회차 R-2, 구 .title 규칙의
+   --font-size-lg 값 오류와 함께 폐기). */
 
 .panel {
   display: flex;
@@ -15,17 +18,6 @@
 .spinnerSlot {
   color: var(--color-primary);
   margin-bottom: var(--space-md);
-}
-
-.title {
-  font-size: var(--font-size-lg);
-  font-weight: var(--font-weight-bold);
-  color: var(--color-text);
-}
-
-.subtitle {
-  margin-top: var(--space-xs);
-  color: var(--color-text-muted);
 }
 
 .alert {

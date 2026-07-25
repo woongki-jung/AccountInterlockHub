@@ -50,7 +50,19 @@ export function useInterlockFlow(): InterlockFlow {
   const lastConsentRef = useRef<ConsentConfigDto | null>(null);
 
   const [birthDate, setBirthDate] = useState('');
-  const [view, setView] = useState<ScreenView>(() => initialViewFromEntryState(readInitialState()));
+  const [view, setView] = useState<ScreenView>(() => {
+    const initial = initialViewFromEntryState(readInitialState());
+    if (initial.screen === 'SCR-004') {
+      // 수화(hydration) 경로로 첫 렌더부터 곧장 RESULT 에 진입하는
+      // 경우다 — 아래 applyNextView() 를 거치지 않는 유일한 경로라
+      // 여기서 따로 폐기한다(DATA-001-03, screen_SCR-004.md §구현
+      // 가이드 "결과를 표시한 뒤에도 페이지 메모리의 암호값·생년월일을
+      // 계속 들고 있을 이유가 없다"). birthDate 는 이 시점까지 입력받은
+      // 적이 없어(useState('') 초기값 그대로) 별도로 비울 것이 없다.
+      encRef.current = EMPTY_ENC_PAIR;
+    }
+    return initial;
+  });
 
   /** lastConsent 동기화 + 결과 도달 시 메모리 폐기를 한 곳에 모은다. */
   function applyNextView(next: ScreenView) {

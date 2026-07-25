@@ -7,6 +7,21 @@
 /** 결과 3경로 번호 — ① 완료 ② 링크·복호화 오류 ③ 전달 실패(BIZ-001-02, MDL-009). */
 export type ResultPath = 1 | 2 | 3;
 
+/**
+ * 경로 값 정규화 — 1~3 밖이거나 없으면 경로 ②로 그린다(screen_SCR-004.md
+ * §구현 가이드 "경로 값이 1~3 밖이거나 없으면 경로 ②로 그린다" · SVC-005
+ * F-003 미매핑 catch-all). `resultPath` 를 다루는 세 지점 — 진입 초기 상태
+ * 수화(api/hydration.ts) · 단계 상태머신(stage/transitions.ts) ·
+ * ResultPanel(components) — 이 함수 하나만 거치게 해 판정을 중복
+ * 구현하지 않는다. 값이 `JSON.parse` 결과나 응답 캐스팅(api/client.ts 의
+ * `data as TResponse`)을 거쳐 오므로, 정적 타입이 `ResultPath` 라고
+ * 말해도 런타임에 실제로 그렇다는 보장이 없어 항상 실행한다.
+ */
+export function normalizeResultPath(value: unknown): ResultPath {
+  if (value === 1 || value === 2 || value === 3) return value;
+  return 2;
+}
+
 /** MDL-008 동의 항목 구성의 항목 하나. */
 export interface ConsentItemDto {
   code: string;

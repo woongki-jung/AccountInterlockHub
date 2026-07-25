@@ -1,5 +1,6 @@
 import type { ApiOutcome } from '../api/client';
 import { defaultMessageFor } from '../api/errorMessages';
+import { normalizeResultPath } from '../api/types';
 import type { ApproveResponseDto, ConsentConfigDto, EntryInitialStateDto, VerifyResponseDto } from '../api/types';
 import type { ConsentAlert, ScreenView } from './types';
 
@@ -18,7 +19,11 @@ export function initialViewFromEntryState(initial: EntryInitialStateDto): Screen
   return {
     screen: 'SCR-004',
     result: {
-      resultPath: initial.resultPath,
+      // 경로 값이 1~3 밖이거나 없으면 경로 ②로 그린다(screen_SCR-004.md
+      // §구현 가이드 — 미매핑 catch-all). hydration.ts 가 이미 정규화해
+      // 넘기더라도 그 타입 선언이 런타임을 보장하지 않으므로 이 지점에서
+      // 다시 거친다 — RESULT_PATH_META 조회(ResultPanel) 이전 단일 관문.
+      resultPath: normalizeResultPath(initial.resultPath),
       reasonCode: initial.reasonCode,
       isReAnnouncement: initial.isReAnnouncement,
       returnUrl: initial.returnUrl,
