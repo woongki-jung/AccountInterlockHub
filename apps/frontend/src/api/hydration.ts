@@ -27,18 +27,6 @@ const ABSENT_INITIAL_STATE: EntryInitialStateDto = {
 };
 
 /**
- * 개발 편의 전용 시작 상태 — `vite dev` 로 백엔드 주입 없이 문서를 직접
- * 열람할 때(스크립트 요소 자체가 없는 경우, 아래 조건 ①)만 쓴다.
- * `import.meta.env.DEV` 가드로 운영 빌드에는 실리지 않는다 — 운영 경로는
- * 조건 ①도 다른 세 조건과 똑같이 `ABSENT_INITIAL_STATE`(경로 ②)로
- * 떨어진다(PROC-101 F1 "IDENTITY 로 폴백하면 사양 위반이다"). 실 배선(P16)
- * 이후에는 백엔드가 항상 태그를 주입하므로 운영 빌드는 이 분기 자체가
- * 없다(`import.meta.env.DEV` 가 프로덕션 빌드에서 상수 false 로 치환돼
- * 번들에서 제거된다).
- */
-const DEV_ONLY_STARTING_STATE: EntryInitialStateDto = { stage: 'IDENTITY' };
-
-/**
  * 문서에 주입된 초기 상태를 읽는다. 스켈레톤을 쓰지 않으므로(design-system.md
  * §상태 표현 "초기") 마운트 이전, 즉 첫 렌더의 initial state 계산 시점에
  * 동기로 호출한다 — useEffect 로 나중에 읽지 않는다.
@@ -63,11 +51,14 @@ export function readInitialState(): EntryInitialStateDto {
   const matches = document.querySelectorAll(`[id="${INITIAL_STATE_ELEMENT_ID}"]`);
 
   if (matches.length === 0) {
-    // 조건 ① 요소가 없다.
-    if (import.meta.env.DEV) {
-      // ⚠️ 개발 편의 전용 분기 — 위 DEV_ONLY_STARTING_STATE 주석 참고.
-      return DEV_ONLY_STARTING_STATE;
-    }
+    // 조건 ① 요소가 없다 — 다른 세 조건과 동일하게 예외 없이 경로 ②로
+    // 간다(회귀 2회차 I-B 정정: 이전에는 여기서 import.meta.env.DEV 분기로
+    // 개발 전용 IDENTITY 시작 상태를 반환했으나, 그 예외가 이 판독
+    // 함수를 사양의 무조건 규칙 밖으로 빼냈고 vite dev 환경에서는 조건
+    // ②③④·JSON.parse·normalizeResultPath 를 포함한 판독 경로 전체를
+    // 죽은 코드로 만들었다 — 개발 편의는 판독 함수가 아니라 주입
+    // 계층(vite.config.ts 의 dev 전용 플러그인)으로 옮겼다. 이 함수는
+    // dev·build·운영 어디서나 완전히 같은 코드 경로로 판독한다.
     return ABSENT_INITIAL_STATE;
   }
 

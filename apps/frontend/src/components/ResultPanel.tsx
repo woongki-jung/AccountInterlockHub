@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useRef, useState, type MouseEvent } from 'react';
 import { normalizeResultPath } from '../api/types';
 import type { ResultPath } from '../api/types';
-import { useStageFocus } from '../hooks/useStageFocus';
 import { Badge } from './Badge';
 import { CheckCircleIcon, ExclaimCircleIcon, ExclaimTriangleIcon } from './icons';
 import {
@@ -14,6 +13,7 @@ import {
   formatReturnCountdown,
   isAbsoluteHttpUrl,
 } from './resultContent';
+import { StageTitle } from './StageTitle';
 import styles from './ResultPanel.module.css';
 
 interface ResultPanelProps {
@@ -40,10 +40,12 @@ interface ResultPanelProps {
  * 결과 3경로 표시 + 복귀 안내 영역 — design-system-components.md §ResultPanel.
  * 경로별 아이콘·색·기본 제목은 design-system.md §결과 3경로의 시각 구분을
  * 그대로 따른다(resultContent.ts). 애니메이션 없이 텍스트만 갱신하고,
- * 카운트다운 영역은 aria-hidden 이다. 제목 글꼴(`--font-size-2xl`)은
- * StageTitle(결과 변형)과 같은 값이다(design-system-components.md
- * §StageTitle) — 카탈로그 표기가 그렇게 정리됐을 뿐 값·구조는 바뀌지
- * 않았다(회귀 1회차 R-2, 재작업이 필요했던 쪽은 ProgressPanel 뿐이다).
+ * 카운트다운 영역은 aria-hidden 이다. **자체 제목을 그리지 않고
+ * StageTitle(결과 변형)을 합성한다**(회귀 2회차 I-A 시정 — 회귀 1회차의
+ * "값이 같아 재작업 없음" 판단은 오판이었다. §StageTitle 이 신설한 크기
+ * 변형은 값이 아니라 **계약을 한 곳에 두는 것**이 목적이라 값이 같아도
+ * 합성이 필요했다). 포커스 이동·문서 제목 일치는 StageTitle 내부
+ * (useStageFocus)가 수행한다.
  */
 export function ResultPanel({
   resultPath,
@@ -65,8 +67,6 @@ export function ResultPanel({
   const resolvedTitle = title ?? meta.title;
   const resolvedDescription = description ?? defaultDescriptionFor(resolvedResultPath, reasonCode);
   const resolvedNextNote = nextNote ?? meta.nextNote;
-
-  const headingRef = useStageFocus(resolvedTitle);
 
   const canReturn =
     typeof returnUrl === 'string' &&
@@ -120,9 +120,7 @@ export function ResultPanel({
   return (
     <div className={`${styles.panel} ${styles[meta.kind]}`} role="status">
       <ResultIcon kind={meta.kind} />
-      <h1 ref={headingRef} tabIndex={-1} className={styles.title}>
-        {resolvedTitle}
-      </h1>
+      <StageTitle title={resolvedTitle} variant="result" />
       {isReAnnouncement ? <Badge variant="reannounce">{RE_ANNOUNCEMENT_BADGE_LABEL}</Badge> : null}
       <p className={styles.description}>
         {resolvedDescription}

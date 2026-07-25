@@ -50,7 +50,11 @@ export function viewAfterVerify(outcome: ApiOutcome<VerifyResponseDto>): ScreenV
     return {
       screen: 'SCR-004',
       result: {
-        resultPath: data.resultPath,
+        // 회귀 2회차 S-1 — resultPath 를 다루는 지점은 hydration.ts·
+        // ResultPanel 뿐 아니라 여기(응답 성공 분기)도 포함된다. HTTP
+        // 응답 JSON 을 거쳐 온 값이라 정적 타입만으로는 런타임을
+        // 보장하지 않는다(api/client.ts 의 무검증 캐스팅).
+        resultPath: normalizeResultPath(data.resultPath),
         isReAnnouncement: data.isReAnnouncement,
         returnUrl: data.returnUrl,
       },
@@ -87,7 +91,12 @@ export function viewAfterApprove(
     const data = outcome.data;
     return {
       screen: 'SCR-004',
-      result: { resultPath: data.resultPath, isReAnnouncement: data.isReAnnouncement, returnUrl: data.returnUrl },
+      // 회귀 2회차 S-1 — 같은 이유로 여기도 정규화를 거친다(viewAfterVerify 참고).
+      result: {
+        resultPath: normalizeResultPath(data.resultPath),
+        isReAnnouncement: data.isReAnnouncement,
+        returnUrl: data.returnUrl,
+      },
     };
   }
 

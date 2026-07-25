@@ -11,10 +11,6 @@
   padding: var(--space-xl) 0;
 }
 
-.panel:focus {
-  outline: none;
-}
-
 .spinnerSlot {
   color: var(--color-primary);
   margin-bottom: var(--space-md);

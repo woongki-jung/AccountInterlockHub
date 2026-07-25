@@ -4,10 +4,13 @@ import { useEffect, useRef } from 'react';
  * 단계가 바뀔 때 새 제목(h1)으로 포커스를 옮기고 문서 제목을 같은 문구로
  * 맞춘다 — design-system.md §접근성 기준 "상태 알림".
  *
- * StageTitle·ResultPanel 양쪽이 각자의 <h1> 을 그리므로(전자는
- * --font-size-xl, 후자는 결과 패널 자체 구조의 --font-size-2xl —
- * design-system-components.md §StageTitle·§ResultPanel) 동작을 훅 하나로
- * 공유해 두 곳에서 같은 규칙이 어긋나지 않게 한다.
+ * **직접 호출처는 StageTitle 하나뿐이다**(회귀 2회차 I-A 정정 — 이전에는
+ * ResultPanel 도 자체 <h1> 을 그리며 이 훅을 직접 불렀으나, 그 계약이
+ * design-system-components.md §StageTitle 위반이라 지금은 ResultPanel·
+ * ProgressPanel 모두 StageTitle 을 합성해 쓸 뿐 이 훅을 직접 부르지
+ * 않는다). StageTitle 은 크기 변형 2종(기본·결과) 모두에서 이 훅 하나로
+ * 포커스 이동·문서 제목 일치를 수행해, 두 변형이 서로 다른 규칙으로
+ * 어긋나지 않게 한다.
  *
  * @param title 지금 보이는 제목 문구. 빈 문자열이면 아무 것도 하지 않는다.
  */

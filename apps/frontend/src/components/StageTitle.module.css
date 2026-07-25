@@ -5,10 +5,21 @@
 }
 
 .title {
-  font-size: var(--font-size-xl);
   font-weight: var(--font-weight-bold);
   line-height: var(--line-height-tight);
   color: var(--color-text);
+}
+
+/* 크기 변형 2종뿐(design-system-components.md §StageTitle "변형은 이
+   둘뿐이며 그 밖의 크기를 만들지 않는다") — 기본(화면 제목)·결과(SCR-004
+   결과 제목). 두 클래스는 font-size 만 갖고 겹치지 않아 .title 과 함께
+   적용해도 특이도·소스순서에 기대지 않는다. */
+.titleDefault {
+  font-size: var(--font-size-xl);
+}
+
+.titleResult {
+  font-size: var(--font-size-2xl);
 }
 
 .title:focus {

@@ -10,12 +10,18 @@ export type ResultPath = 1 | 2 | 3;
 /**
  * 경로 값 정규화 — 1~3 밖이거나 없으면 경로 ②로 그린다(screen_SCR-004.md
  * §구현 가이드 "경로 값이 1~3 밖이거나 없으면 경로 ②로 그린다" · SVC-005
- * F-003 미매핑 catch-all). `resultPath` 를 다루는 세 지점 — 진입 초기 상태
- * 수화(api/hydration.ts) · 단계 상태머신(stage/transitions.ts) ·
- * ResultPanel(components) — 이 함수 하나만 거치게 해 판정을 중복
- * 구현하지 않는다. 값이 `JSON.parse` 결과나 응답 캐스팅(api/client.ts 의
- * `data as TResponse`)을 거쳐 오므로, 정적 타입이 `ResultPath` 라고
- * 말해도 런타임에 실제로 그렇다는 보장이 없어 항상 실행한다.
+ * F-003 미매핑 catch-all). `resultPath` 가 `SCR-004` 화면 상태로 흘러
+ * 들어가는 지점 전부가 이 함수 하나만 거치게 해 판정을 중복 구현하지
+ * 않는다 — 진입 초기 상태 수화(api/hydration.ts `readInitialState`) ·
+ * 단계 상태머신의 세 함수(stage/transitions.ts `initialViewFromEntryState`
+ * · `viewAfterVerify` 성공 분기 · `viewAfterApprove` 성공 분기) ·
+ * ResultPanel(components, 조회 직전 최종 관문). 값이 `JSON.parse` 결과나
+ * HTTP 응답 캐스팅(api/client.ts 의 `data as TResponse`)을 거쳐 오므로,
+ * 정적 타입이 `ResultPath` 라고 말해도 런타임에 실제로 그렇다는 보장이
+ * 없어 항상 실행한다. **새 지점이 `SCR-004` 결과를 만들면 이 목록에
+ * 추가하고 반드시 정규화를 거치게 한다** — 회귀 2회차 S-1 은 이 목록이
+ * 실제 코드와 어긋난 채(verify·approve 성공 분기 누락) 방치됐던 것을
+ * 시정한 것이다.
  */
 export function normalizeResultPath(value: unknown): ResultPath {
   if (value === 1 || value === 2 || value === 3) return value;
