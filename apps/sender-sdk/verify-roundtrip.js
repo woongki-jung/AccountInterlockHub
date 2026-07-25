@@ -14,9 +14,18 @@
  * apps/backend 의 소스·설정을 고치지 않는다 — 이미 빌드된 dist/crypto/**(node:crypto
  * 외 외부 의존이 없는 순수 함수 모음)를 읽기 전용으로 불러와 쓴다.
  *
+ * [회귀 1회차 S-4] 구조 비교(deepEqual)만으로는 "의미상 같음"만 증명한다 — 리뷰어가 별도
+ * 구현으로 6/6 바이트 동일까지 확인했으므로 그 강도를 여기 고정해 둔다. judgeDecryption 은
+ * 중간값(복호화 평문 바이트)을 반환하지 않으므로(DATA-001-03 — 지역 값으로만 다룬다), 판정
+ * 1·2단계(encY 복호화 → encX 복호화, FN-004 §설명 1·2)만 허브가 내보낸 원시 도구
+ * (parseCipherPair·normalizeKey·CIPHER_ALGORITHM·IV_LENGTH_BYTES)로 이 스크립트가 직접
+ * 재구성해 평문 바이트 자체를 얻고, 벡터 파일에 적힌 input.payload 원문 텍스트(재직렬화
+ * 없는 원본 바이트)와 Buffer.equals 로 대조한다. 3·4단계(UTF-8/JSON 파싱·trackingKey 형식
+ * 검증)는 이 보조 검증을 거치지 않는다 — 그건 위 judgeDecryption 기반 검증이 이미 맡는다.
+ *
  * 실행: node verify-roundtrip.js [벡터 파일 경로]
  *   (생략 시 이 스크립트와 같은 폴더의 protocol-test-vectors.json 을 쓴다)
- * 종료 코드: 0 = 전건 원문 복원 일치 / 1 = 하나 이상 불일치 / 2 = 실행 자체 실패.
+ * 종료 코드: 0 = 전건 원문 복원 일치(구조+바이트) / 1 = 하나 이상 불일치 / 2 = 실행 자체 실패.
  *
  * 본 스크립트는 backend-developer(작성 doer)의 자가 실측 도구다 — 합격·통과 판정은
  * 내리지 않는다(기능검증은 별도 tester doer 소관). 아래 출력은 실측 관측치일 뿐이다.
@@ -24,6 +33,7 @@
 
 const fs = require('fs');
 const path = require('path');
+const nodeCrypto = require('crypto');
 
 function main() {
   const vectorsPath = process.argv[2] || path.join(__dirname, 'protocol-test-vectors.json');
@@ -64,6 +74,13 @@ function main() {
     console.error('judgeDecryption 을 dist/crypto 에서 찾지 못했습니다(허브 빌드 산출물을 확인하십시오).');
     process.exit(2);
   }
+  const byteCheckFns = ['parseCipherPair', 'normalizeKey', 'CIPHER_ALGORITHM', 'IV_LENGTH_BYTES'];
+  for (const name of byteCheckFns) {
+    if (hubCrypto[name] === undefined) {
+      console.error('바이트 동일성 보조 검증에 필요한 ' + name + ' 을 dist/crypto 에서 찾지 못했습니다.');
+      process.exit(2);
+    }
+  }
 
   const cases = Array.isArray(vectors.cases) ? vectors.cases : [];
   if (cases.length === 0) {
@@ -71,29 +88,51 @@ function main() {
     process.exit(2);
   }
 
+  const rawPayloads = extractRawPayloadTexts(vectorsRaw);
+  if (rawPayloads.length !== cases.length) {
+    console.error(
+      '벡터 파일에서 추출한 input.payload 원문 개수(' + rawPayloads.length +
+      ')가 케이스 수(' + cases.length + ')와 다릅니다 — 바이트 동일성 보조 검증을 건너뜁니다.');
+  }
+
   const results = [];
   for (let i = 0; i < cases.length; i++) {
     const testCase = cases[i];
     const caseId = testCase.caseId;
+    const reasons = [];
+    let structuralMatch = false;
+    let byteMatch = null; // null = 이 케이스에서 시도하지 않음(원문 추출 실패 등)
+
     try {
       const encPair = { encX: testCase.expected.encX, encY: testCase.expected.encY };
       const birthDate = testCase.input.birthDate;
+
       const recovered = judgeDecryption(encPair, birthDate);
       const expectedPayload = testCase.input.payload;
-      const match = deepEqual(recovered, expectedPayload);
-      results.push({ caseId: caseId, match: match, reason: match ? null : 'payload mismatch' });
+      structuralMatch = deepEqual(recovered, expectedPayload);
+      if (!structuralMatch) reasons.push('구조 비교(judgeDecryption) 불일치');
+
+      if (rawPayloads.length === cases.length) {
+        const plainBytes = decryptPlainBytesViaHubPrimitives(hubCrypto, encPair, birthDate);
+        const expectedBytes = Buffer.from(rawPayloads[i], 'utf8');
+        byteMatch = plainBytes.equals(expectedBytes);
+        if (!byteMatch) reasons.push('바이트 비교(복호화 평문 vs 벡터 원문) 불일치');
+      }
     } catch (err) {
       const exCode = err && err.exCode ? err.exCode : '';
       const reason = err && err.name ? err.name : 'Error';
-      results.push({ caseId: caseId, match: false, reason: reason + (exCode ? ' (' + exCode + ')' : '') + ': ' + (err && err.message) });
+      reasons.push(reason + (exCode ? ' (' + exCode + ')' : '') + ': ' + (err && err.message));
     }
+
+    const match = reasons.length === 0;
+    results.push({ caseId: caseId, match: match, structuralMatch: structuralMatch, byteMatch: byteMatch, reason: reasons.join('; ') });
   }
 
   let matched = 0;
   for (const r of results) {
     if (r.match) {
       matched++;
-      console.log('[MATCH]   ' + r.caseId);
+      console.log('[MATCH]    ' + r.caseId + ' (구조 일치 + 바이트 일치)');
     } else {
       console.log('[MISMATCH] ' + r.caseId + ' - ' + r.reason);
     }
@@ -103,6 +142,40 @@ function main() {
   console.log(JSON.stringify(summary));
 
   process.exit(matched === cases.length ? 0 : 1);
+}
+
+// protocol-test-vectors.json 원문에서 각 케이스의 "input.payload": {...} 줄을 순서대로 찾아
+// 그 값 부분(재직렬화 없는 원본 텍스트)만 뽑는다. VectorGen(AccountInterlockHub.SenderSdk.
+// VectorGen/Program.cs)이 payload 를 항상 한 줄 압축 JSON 으로 쓰기 때문에 성립하는 전제다
+// (전체 JSON 파서를 새로 만들지 않기 위한 최소 구현 — 벡터 파일 저작 방식이 바뀌면 함께
+// 손봐야 한다).
+function extractRawPayloadTexts(vectorsRawText) {
+  const lines = vectorsRawText.split(/\r\n|\r|\n/);
+  const raws = [];
+  const pattern = /^\s*"payload":\s*(.+)$/;
+  for (const line of lines) {
+    const m = line.match(pattern);
+    if (m) {
+      raws.push(m[1]);
+    }
+  }
+  return raws;
+}
+
+// FN-004(judgeDecryption)의 판정 1·2단계만 재구성해 복호화 평문 바이트를 직접 얻는다.
+// 정책이 정한 부분(구조 판정·키 정규화·알고리즘 상수)은 허브가 내보낸 함수·상수를 그대로
+// 쓰고, AES 복호화 호출 자체만 이 스크립트가 수행한다(judgeDecryption 이 중간값을 반환하지
+// 않으므로 — DATA-001-03).
+function decryptPlainBytesViaHubPrimitives(hubCrypto, encPair, birthDate) {
+  const cipher = hubCrypto.parseCipherPair(encPair);
+  const keyY = hubCrypto.normalizeKey(birthDate);
+
+  const decipherY = nodeCrypto.createDecipheriv(hubCrypto.CIPHER_ALGORITHM, keyY.key, keyY.iv);
+  const keyXBytes = Buffer.concat([decipherY.update(cipher.y), decipherY.final()]);
+
+  const ivX = Buffer.from(keyXBytes.subarray(0, hubCrypto.IV_LENGTH_BYTES));
+  const decipherX = nodeCrypto.createDecipheriv(hubCrypto.CIPHER_ALGORITHM, keyXBytes, ivX);
+  return Buffer.concat([decipherX.update(cipher.x), decipherX.final()]);
 }
 
 // 순서 무관 얕은 재귀 깊은 비교(JSON.parse 결과 전용 — Date·함수 등은 다루지 않는다).
