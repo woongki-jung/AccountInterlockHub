@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { INTERLOCK_METRIC_DAILY_TABLE, RESULT_CODE_VALUES, ResultCode } from '../entities';
+import { DatabaseService } from '../database/database.service';
 import { RecordWriteError } from './records.errors';
 import { toMetricDate } from './metric-date';
 import { METRIC_EVENT_KIND_VALUES, MetricEvent } from './metric-event.types';
@@ -18,14 +19,21 @@ const RESULT_CODE_METRIC_COLUMN: Record<ResultCode, MetricColumn> = {
 };
 
 /**
- * FN-013 지표 카운터 갱신(function_FN-012-013.md). **자기 트랜잭션을 열지 않는다** — 호출부
- * (FN-008·FN-009, 또는 후속 Phase 의 PROC-303 배선)가 이미 열어 둔 트랜잭션에 참여할 뿐이다.
- * FN-013 자신의 처리 흐름 의사코드에는 "트랜잭션 시작/종료" 주석이 없고 각 호출측 함수 쪽에만
- * "같은 트랜잭션 경계"로 적혀 있다 — 트랜잭션 경계의 소유자는 항상 호출측이다.
+ * FN-013 지표 카운터 갱신(function_FN-012-013.md §시그니처). **자기 트랜잭션을 열지 않는다** —
+ * 호출부(FN-008·FN-009, 또는 후속 Phase 의 PROC-303 배선)가 이미 열어 둔 트랜잭션에 참여할 뿐이다.
+ *
+ * `executor` 는 **`REQUEST`·`RESULT` 계기에서는 반드시 넘겨야 한다** — 레코드 기록과 같은 커넥션·
+ * 실행자 위에서 수행돼야 함께 커밋되거나 함께 되돌려진다(`SVC-014` F-008). **`UNIDENTIFIED_FAILURE`
+ * 만 생략할 수 있다** — 그 계기의 호출 지점(PROC-101 B5·PROC-102 B4b·PROC-104 B2)은 호출측이
+ * 트랜잭션을 열지 않는 자리라 넘길 실행 문맥이 없고, 단계 4 의 UPSERT 한 문장이 그 자체로
+ * 원자적이다. 생략 시 커넥션 풀(`DatabaseService`)에서 단독 갱신한다 — `lookup()`(FN-007)과 같은
+ * "생략하면 풀에서 단독 실행" 관례다.
  */
 @Injectable()
 export class MetricCounterService {
-  async recordEvent(executor: QueryExecutor, event: MetricEvent): Promise<void> {
+  constructor(private readonly db: DatabaseService) {}
+
+  async recordEvent(event: MetricEvent, executor: QueryExecutor = this.db): Promise<void> {
     // 1. 계기 검증 — POL BIZ-005-02. TS 판별 유니온이 컴파일 타임에 이미 강제하지만, 이 서비스는
     //    향후 컨트롤러 계층 등 비TS 경계에서도 호출될 수 있어 런타임 방어를 유지한다.
     if (!METRIC_EVENT_KIND_VALUES.includes(event.kind)) {

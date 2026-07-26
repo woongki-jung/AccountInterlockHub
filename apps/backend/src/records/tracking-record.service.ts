@@ -93,7 +93,7 @@ export class TrackingRecordService {
         // FN-013 요청 수 계수 — 같은 트랜잭션(POL BIZ-005-02 ①). 실패하면 EX-BIZ-003 이 전파돼
         // 호출측이 INSERT 와 함께 되돌린다(이 함수는 트랜잭션을 소유하지 않으므로 스스로
         // 롤백하지 않는다 — 롤백은 호출측 BEGIN 의 몫이다).
-        await this.metrics.recordEvent(executor, { kind: 'REQUEST', at });
+        await this.metrics.recordEvent({ kind: 'REQUEST', at }, executor);
         const created = await this.lookup(trackingKey, executor);
         return {
           branch: 'OPEN' as const,
@@ -145,7 +145,7 @@ export class TrackingRecordService {
       );
 
       if (update.rowCount === 1) {
-        await this.metrics.recordEvent(executor, { kind: 'RESULT', resultCode, at });
+        await this.metrics.recordEvent({ kind: 'RESULT', resultCode, at }, executor);
       } else {
         // 갱신 0행 — 이미 확정된 상태이거나 대상 레코드가 없다. 어느 쪽이든 계수하지 않는다
         // (BIZ-001-04). 대상 자체가 없으면 결함으로 본다(정상 호출은 항상 확보된 레코드를 갖는다).
