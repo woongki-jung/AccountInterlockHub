@@ -32,8 +32,8 @@
 | **수신처(서비스 B)** | **모킹 필수** | 실엔드포인트가 없다. `<RECEIVER_DELIVERY_URL>` 잠정값의 도메인이 **문서용 예약 도메인**이라 실 호스트로 연결되지 않는다. 전달 성공·실패를 검증하려면 모의 수신처가 있어야 한다 |
 | 발송처 | 모킹하지 않는다 | 발송처의 역할은 **연동 라이브러리 호출**이며 `ENV-LIB` 하네스가 그 역할을 그대로 수행한다 |
 | 사용자 | 모킹하지 않는다 | 브라우저 자동화가 실제 화면을 조작한다 |
-| 시각 | 부분 모킹 | 보관 경계·일자 경계 TC 는 **시드 데이터의 일시를 조정**해 만든다. 명령 진입점이 기준 일시 인자를 받지 않으므로 시스템 시각을 바꾸는 방식은 쓰지 않는다 |
-| 내부 실패 | fault 주입 | DB 연결 차단·특정 UPDATE/INSERT/UPSERT 실패·암호 기능 초기화 실패. 미구축 시 해당 TC 는 🟠 Block |
+| 시각 | 부분 모킹 | **기본은 시드 조정**이다 — 보관 경계·일자 경계 TC 는 **시드 데이터의 일시를 조정**해 만든다(명령 진입점이 기준 일시 인자를 받지 않으므로 임계값을 주입할 수 없다). **예외는 기산 방식 자체를 검증하는 2건**(`BAT-02_016` 월말 clamp · `BAT-02_017` 달력 프레임)이며 여기에는 `CHK-CLOCK` **실행 시각 제어**가 필요하다 — 임계값이 `baseAt` 의 **벽시계 일자·시각대**에서 산출되므로(`DATA-002-06` ①③) 그 결함은 *실행 일자가 월말인 회차* · *KST 일자와 UTC 일자가 갈리는 시각대의 회차*에만 드러나고, 시드를 아무리 옮겨도 도달할 수 없다. 미구축 시 두 TC 는 🟠 Block |
+| 내부 실패 | fault 주입 | DB 연결 차단·특정 UPDATE/INSERT/UPSERT 실패·암호 기능 초기화 실패·**보관 배치 삭제 실패**(`BAT-02_013`·`BAT-02_018`)·**경합 삭제 주입**(`CHK-RACEDEL` — `PROC-201` `B3`·`B5` 사이). 미구축 시 해당 TC 는 🟠 Block |
 | 서버 응답(화면 방어 검증용) | 응답 변조(`MOCK-RESP`) | 화면이 **서버가 낼 수 없는 값**을 받았을 때의 방어를 확인하려면 응답을 조작해야 한다 — 범위 밖 `resultPath`(`USR-05_005`), 절대 URL 미달·다른 스킴의 `returnUrl`(`USR-05_014`), **진입 문서의 초기 상태 부재 판정 4조건**(`USR-01_014` — 요소 없음·같은 `id` 둘 이상·`JSON.parse` 실패·`stage` 범위 밖). 서버는 그런 값을 만들지 않으므로(기동 검증·`B3` 판정) 실제 흐름으로는 재현되지 않는다. 미구축 시 해당 TC 는 🟠 Block |
 | 초기 상태 값(주입 이스케이프 검증용) | 값 주입 하네스 | 서버가 만드는 초기 상태 값에 `<`·`>`·`&`·`U+2028`·`U+2029` 와 `</script>` 문자열을 담아 **문서 바이트에서 치환 여부**를 관측한다(`USR-01_015`). 이 접점의 초기 상태에는 서버가 정한 고정 어휘만 실려 실제 흐름으로는 그런 값이 만들어지지 않으므로, 무조건 적용되는 이스케이프 의무는 값을 주입해야 관측된다. 미구축 시 해당 TC 는 🟠 Block |
 
@@ -68,11 +68,11 @@
 
 | 항목 | 최소 수량 | 시드 수단 | 확인 방법 | 비고(검증 대상 TC) |
 |---|--:|---|---|---|
-| `SEED-TRK-OPEN` 결과 미확정 | 1 | SQL | `result_code IS NULL AND result_at IS NULL` 인 행이 대상 키로 1건 | `USR-03_010`·`API-01_002`·`API-02_004`·`API-03_004`·`BAT-04_002` |
-| `SEED-TRK-FIXED-SUCCESS` | 1 | SQL | `result_code = 'SUCCESS' AND result_at IS NOT NULL AND result_confirmed_at IS NULL` | `USR-03_011`·`USR-05_006`·`USR-05_013`·`API-01_001`·`API-01_013`·`API-02_004`·`API-03_001`·`BAT-04_003` |
+| `SEED-TRK-OPEN` 결과 미확정 | 1 | SQL | `result_code IS NULL AND result_at IS NULL` 인 행이 대상 키로 1건 | `USR-03_010`·`API-01_002`·`API-01_016`·`API-02_004`·`API-03_004`·`BAT-04_002` |
+| `SEED-TRK-FIXED-SUCCESS` | 1 | SQL | `result_code = 'SUCCESS' AND result_at IS NOT NULL AND result_confirmed_at IS NULL` | `USR-03_011`·`USR-05_006`·`USR-05_013`·`API-01_001`·`API-01_013`·`API-01_015`·`API-01_016`·`API-02_004`·`API-03_001`·`BAT-04_003` |
 | `SEED-TRK-FIXED-DECRYPT` | 1 | SQL | `result_code = 'DECRYPT_FAILED'` | `API-01_013`·`API-02_004` (값 체계 검증 전용 — 재진입 흐름 미사용) |
 | `SEED-TRK-FIXED-DELIVERY` | 1 | SQL | `result_code = 'DELIVERY_FAILED'` | `USR-02_012`·`USR-03_011`·`USR-04_010`·`USR-05_006`·`USR-05_013`·`API-01_013`·`API-02_004`·`API-03_003` |
-| `SEED-TRK-CONFIRMED` 결과 확인 완료 | 1 | SQL | `result_confirmed_at IS NOT NULL AND callback_received_at IS NOT NULL` | `BAT-04_010` |
+| `SEED-TRK-CONFIRMED` 결과 확인 완료 | 1 | SQL | `result_confirmed_at IS NOT NULL AND callback_received_at IS NOT NULL` | `BAT-04_010`·`API-01_016` |
 | `SEED-TRK-CALLBACK` 콜백 수신 | 1 | SQL | `callback_received_at IS NOT NULL` | `API-02_001` |
 | `SEED-TRK-LEN` 키 길이 경계 | 2 | SQL | `char_length(tracking_key)` 가 각각 1·255 | `API-01_008` |
 | `SEED-TRK-OPAQUE` 불투명 키 | 1 | SQL | 대소문자 혼합·구분 기호·다국어 문자를 포함하고, 조회 응답의 에코와 문자 단위로 같은지 대조 | `API-01_014`·`API-03_011` |
@@ -80,15 +80,19 @@
 | `SEED-TRK-RETENTION-CREATED` | 2 | SQL | `result_confirmed_at IS NULL` 이고 `created_at` 이 실행 시각 − `<RETENTION_MAX_MONTHS>` 보다 과거인 행 1건 · 이후인 행 1건 | `BAT-02_005` |
 | `SEED-TRK-RETENTION-MIX` 두 기준 조합 | 4 | SQL | 결과 확인 기산만 경과 / 생성 기산만 경과 / 둘 다 경과 / 둘 다 미경과 각 1건 | `BAT-02_006` |
 | `SEED-TRK-BOUNDARY` 경계 3종 | 3 | SQL | 각 기준 일시의 1초 전 / 정확히 / 1초 후에 해당하는 행 | `BAT-02_007` |
-| `SEED-TRK-RETENTION` 삭제 대상 일반 | 3 | SQL | 위 기준 중 하나 이상을 넘긴 행. 배치 실행 후 0건이 되는지로 재확인 | `BAT-02_001`·`_010`·`_014`·`API-01_011` |
+| `SEED-TRK-CLAMP` 월말 자리 2종 | 2 | SQL | `CHK-CLOCK` 으로 고정한 실행 시각에서 산출한 **말일 내림(clamp) 임계값**과 **이월(rollover) 임계값** **사이**에 놓인 행 1건 · clamp 임계값보다 **오래된** 행 1건. 확인 쿼리로 두 임계값을 손계산해 각 행의 대상 컬럼이 그 구간에 들어가는지 대조한다(사이에 놓인 행이 clamp 구현에서는 잔존, 이월 구현에서는 삭제되는 것이 판정의 전부다) | `BAT-02_016` |
+| `SEED-TRK-TZFRAME` 달력 프레임 3종 | 3 | SQL | `CHK-CLOCK` 으로 **KST 일자 ≠ UTC 일자**인 시각에 실행하도록 고정한 뒤, `Asia/Seoul` 프레임 임계값과 UTC 프레임 임계값 **사이**에 놓인 행 1건 · 두 임계값 바깥(더 오래된 쪽/더 최근 쪽) 각 1건. 두 임계값이 같은 값이면 시드가 성립하지 않으므로 실행 시각을 다시 고른다 | `BAT-02_017` |
+| `SEED-TRK-RETENTION` 삭제 대상 일반 | 3 | SQL | 위 기준 중 하나 이상을 넘긴 행. 배치 실행 후 0건이 되는지로 재확인 | `BAT-02_001`·`_010`·`_014`·`_018`·`API-01_011` |
 | `SEED-PAIR-RETENTION` 레코드+증적 쌍 | 1쌍 | SQL | 같은 `tracking_key` 로 추적 레코드는 삭제 대상, 증적은 보존 기간 안인지 각각 확인 | `BAT-02_008` |
 
 ### 동의 증적·지표 집계 (SQL)
 
 | 항목 | 최소 수량 | 저장 위치 | 시드 수단 | 확인 방법 | 비고(검증 대상 TC) |
 |---|--:|---|---|---|---|
-| `SEED-CSP-OLD` 보존 경과 증적 | 1 | `tbl_consent_proof` | SQL | `consented_at` 이 실행 시각 − `<CONSENT_PROOF_RETENTION_MONTHS>` 보다 과거인 행 1건 | `BAT-02_001`·`_010`·`BAT-05_011` |
+| `SEED-CSP-OLD` 보존 경과 증적 | 1 | `tbl_consent_proof` | SQL | `consented_at` 이 실행 시각 − `<CONSENT_PROOF_RETENTION_MONTHS>` 보다 과거인 행 1건 | `BAT-02_001`·`_010`·`_018`·`BAT-05_011` |
 | `SEED-CSP-BOUNDARY` 경계 3종 | 3 | `tbl_consent_proof` | SQL | 기준 일시의 1초 전 / 정확히 / 1초 후 | `BAT-02_007` |
+| `SEED-CSP-CLAMP` 월말 자리 2종 | 2 | `tbl_consent_proof` | SQL | `SEED-TRK-CLAMP` 과 같은 배치를 `consented_at` 기준으로 만든다 — 동의 증적 기준 일시에도 같은 clamp 규칙이 적용되는지가 관측 대상이다(`DATA-002-06` 은 세 기준 일시 전부에 예외 없이 적용된다) | `BAT-02_016` |
+| `SEED-CSP-TZFRAME` 달력 프레임 3종 | 3 | `tbl_consent_proof` | SQL | `SEED-TRK-TZFRAME` 과 같은 배치를 `consented_at` 기준으로 만든다 — 세 기준 일시가 같은 달력 프레임으로 산출되는지 확인한다 | `BAT-02_017` |
 | `SEED-PROOF-STALE` 앞선 보관 주기 증적 + 재수신 레코드 | 1쌍 | `tbl_consent_proof` + `tbl_interlock_tracking` | SQL | **같은 `tracking_key`** 로 ⓐ 증적 1행이 남아 있고 ⓑ 그 키의 **옛 추적 레코드는 없으며**(보관 배치로 삭제된 상태를 재현) ⓒ 같은 키로 새로 만든 추적 레코드가 `result_code IS NULL` 이고 그 `created_at` 이 ⓐ 의 `consented_at` **보다 나중**인지 각각 확인. 검증 쿼리: 이 키로 `SELECT COUNT(*) FROM tbl_consent_proof WHERE tracking_key = :k` 가 1 이고, `SELECT created_at FROM tbl_interlock_tracking WHERE tracking_key = :k` 가 그 증적의 `consented_at` 보다 큰지 대조. **증적이 추적 레코드보다 오래 남는 것은 정상 상태다**(`DATA-002-02`·EXC-BIZ-04) | `USR-04_018` |
 | `SEED-MET` 지표 집계 행 | 3일치 | `tbl_interlock_metric_daily` | SQL | 알려진 값으로 채워 두 성공률 계산 결과가 **서로 다른** 값이 나오는지 확인(**결과 구분 3종의 합이 요청 수보다 작은 일자**를 포함해야 정의 차이가 드러난다 — 결과 미확정으로 끝난 요청) | `BAT-06_011` |
 | `SEED-MET-OLD` 오래된 일자 행 | 1 | `tbl_interlock_metric_daily` | SQL | 어떤 보관 기간보다도 과거인 `metric_date` 행이 배치 실행 후에도 남는지 확인 | `BAT-02_009`·`BAT-06_013` |
@@ -121,4 +125,6 @@
 | 표식 값 시드 | 파일 | 발송처키·생년월일·X 필드값에 검색 가능한 고유 문자열을 심고, 로그·응답·화면·저장소에서 그 문자열을 검색해 0건인지 확인 | `SCEN_016` |
 | `CHK-NAVBLOCK` 복귀 이동 차단 관측 절차 | 절차 | 브라우저 자동화로 **복귀 주소로의 네비게이션을 차단**한 뒤, 결과 화면이 그대로 남고 수동 이동 링크가 유지되며 새 EX 코드·알림이 생기지 않는지 확인하는 절차. 이동 성공 여부를 애플리케이션이 판정하지 않으므로 **관측은 브라우저 쪽에서만** 성립한다 | `USR-05_015` |
 | `CHK-FOCUSEMU` 포커스 에뮬레이션 전제 | 절차 | 헤드리스 브라우저는 창 포커스가 없어 **`Emulation.setFocusEmulationEnabled({enabled: true})` 를 페이지 로드 전에 켜지 않으면 `:focus` 가 매치되지 않는다.** 확인 방법: ① 그 설정을 켠 뒤 포커스를 준 요소에 링이 실제로 관측되는지 ② **양성 대조** — 링이 없어야 하는 상태에서 실제로 "링 없음"이 나오는지. ②를 빠뜨리면 관측 실패와 결함 부재가 구별되지 않아 **시정 전후가 똑같이 "링 없음"으로 나오는 위음성**이 된다(`a8058a0` 검증 1회차 실사례). 미충족 시 해당 관측은 🟠 Block(🔴 Fail 로 올리지 않는다) | `USR-04_004`·`USR-02_015`·`USR-05_010`·`USR-04_011`·`USR-04_003`·`USR-03_015` |
+| `CHK-CLOCK` 실행 시각 제어 절차 | 절차 | 배치·계수의 **실행 시각을 `Asia/Seoul` 벽시계로 지정**해 재현 가능하게 만드는 절차. 보관 배치는 **인자를 두지 않아 기준 일시를 주입할 수단이 없으므로**(`DATA-002-04`) 실행 시각 자체를 고정하는 것이 유일한 수단이다. 확인 방법: 지정한 벽시계로 배치를 1회 실행하고 요약의 `baseAt` 이 **그 값과 `+09:00` 오프셋 표기까지 일치**하는지 대조한다. 월말·KST 월 1일 자정 직후처럼 **결함이 드러나는 좁은 구간을 지목할 수 있어야** 시드를 충족한다 | `BAT-02_016`·`BAT-02_017` · `BAT-06_007`·`BAT-06_008`(두 TC 는 본 절차를 "시각 제어 수단"으로 부른다) |
+| `CHK-RACEDEL` 경합 삭제 주입 절차 | 절차 | 요청 처리 도중 **사전 조회(`PROC-201` `B3`)와 표시 갱신(`B5`) 사이에** 그 추적 키의 행을 하드 삭제하는 절차. 보관 배치의 실제 발화 시점을 그 사이에 맞출 수 없으므로 **허브 단독으로는 재현되지 않는다** — fault 주입 하네스가 ⓐ `B3` 반환 직후 실행을 멈추는 훅을 제공해 별도 세션이 `DELETE` + `COMMIT` 하거나 ⓑ `B5` 직전 삭제를 주입해야 한다. 확인 방법: 주입 후 표시 갱신이 **0행**이고 같은 경계의 재조회가 대상 없음으로 갈리는지 실측. 미충족 시 해당 TC 는 🟠 Block(🔴 Fail 로 올리지 않는다) | `API-01_015` |
 | `CHK-PGKILL` 커넥션 강제 종료 절차 | 절차 | 운영에서 실제로 일어나는 방식(**서버측 세션 강제 종료** — `pg_terminate_backend`)으로 커넥션을 끊는 절차. **유휴 커넥션과 체크아웃(사용 중) 커넥션을 각각** 지목할 수 있어야 한다(`pg_stat_activity` 의 `state` 로 `idle` / `active` 를 구분해 대상 `pid` 를 고른다). 확인 방법: 대상 세션이 실제로 사라졌는지(`pg_stat_activity` 재조회)와 애플리케이션 **PID·리스닝 포트가 유지**되는지를 각각 실측. 클라이언트가 받는 오류는 관리자 종료(`57P01`) 계열이다. **한쪽 경로만 재현하는 절차는 이 시드를 충족하지 않는다**(`OPS-004-02` 가 "각각"을 요구한다) | `SCEN_024`·`SCEN_025`·`SCEN_026` |
