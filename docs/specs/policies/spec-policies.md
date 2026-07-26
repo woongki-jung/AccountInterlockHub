@@ -49,7 +49,7 @@ AccountInterlockHub 가 준수하는 정책의 단일 출처다. 방향 근거�
 | DATA | 저장 대상·보관·삭제·개인정보·추적 키 취급 | [`policy_DATA.md`](policy_DATA.md) |
 | BIZ | 결과 구분·추적 레코드·동의 승인·수신처 전달·지표 계수 | [`policy_BIZ.md`](policy_BIZ.md) |
 | SEC | 암호화 연동 규약·복호화 판정·자가진단 경로 취급 | [`policy_SEC.md`](policy_SEC.md) · [`policy_SEC-crypto.md`](policy_SEC-crypto.md) |
-| OPS | 상수 주입·배포 통제·접근 통제 부재·기록 범위 | [`policy_OPS.md`](policy_OPS.md) |
+| OPS | 상수 주입·배포 통제·접근 통제 부재·기록 범위·연결 장애 취급 | [`policy_OPS.md`](policy_OPS.md) |
 
 ## 정책 목록
 
@@ -70,10 +70,11 @@ AccountInterlockHub 가 준수하는 정책의 단일 출처다. 방향 근거�
 | SEC-002 | 복호화 판정·실패 분류 | SEC | 높음 | `USR-01`·`USR-03`·`API-04` | 5 | [`policy_SEC.md`](policy_SEC.md) |
 | SEC-003 | 자가진단 경로 취급 | SEC | 높음 | `API-04` | 5 | [`policy_SEC.md`](policy_SEC.md) |
 | OPS-001 | 상수 주입·잠정값 배포 통제 | OPS | 높음 | 공통 | 4 | [`policy_OPS.md`](policy_OPS.md) |
-| OPS-002 | 접근 통제 없음(수용 리스크) | OPS | 높음 | 공통 | 5 | [`policy_OPS.md`](policy_OPS.md) |
+| OPS-002 | 접근 통제 없음(수용 리스크) | OPS | 높음 | 공통 | 6 | [`policy_OPS.md`](policy_OPS.md) |
 | OPS-003 | 기록·관측 범위 | OPS | 보통 | 공통 | 5 | [`policy_OPS.md`](policy_OPS.md) |
+| OPS-004 | 데이터베이스 연결 장애·프로세스 생존 | OPS | 높음 | 공통 | 4 | [`policy_OPS.md`](policy_OPS.md) |
 
-정책 17건 · 규칙 88건.
+정책 18건 · 규칙 93건.
 
 ## 예외(EX) 코드 카탈로그
 
