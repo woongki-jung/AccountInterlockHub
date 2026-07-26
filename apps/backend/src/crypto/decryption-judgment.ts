@@ -12,6 +12,25 @@ import type { TransferPayload } from '../models/transfer-payload.model';
 const utf8StrictDecoder = new TextDecoder('utf-8', { fatal: true });
 
 /**
+ * FN-004 반환값 — `payload`(function_FN-004.md §시그니처가 문서화한 값)에 `rawPlaintext` 를
+ * 더한다. **P09(#486, PROC-104 B3 전달 페이로드 구성) 확장** — `process_PROC-104.md` B3
+ * "body = payload 의 UTF-8 바이트열 그대로 // 파싱한 객체를 다시 직렬화하지 않는다 — 숫자
+ * 표현·유니코드 이스케이프·필드 순서가 달라진다"는 파싱 **이전**의 원본 바이트열을 요구하는데,
+ * `function_FN-004.md` §시그니처의 출력란은 `payload: MDL-005` 하나만 문서화해 두 사양이
+ * 어긋난다(§완료 보고 "사양 결함" 참고). FN-004 는 이미 함수 내부에서 그 바이트열(`plain`)을
+ * 만들고도 버렸으므로(구 버전 — 유일한 소비자였던 `PROC-102`/`PROC-204` 는 `trackingKey` 만
+ * 필요), 재분해·재복호화 없이 **그 자리에서 함께 반환**하는 것이 유일하게 안전한 해법이다 —
+ * 별도 경로로 다시 만들면 `SEC-002-01`(세 접점이 반드시 같은 절차 하나를 공유)이 깨진다.
+ * 이 확장 시점에 `judgeDecryption` 의 호출부가 전무해(실측 — grep 0건) 기존 소비자를 깨지
+ * 않는다. `payload` 자체의 값·형태는 무변경이다.
+ */
+export interface DecryptionJudgmentResult {
+  readonly payload: TransferPayload;
+  /** X 평문의 UTF-8 원본 바이트열(JSON 파싱 이전) — PROC-104 B3 전용. 재직렬화하지 않는다. */
+  readonly rawPlaintext: Buffer;
+}
+
+/**
  * FN-004 복호화 판정(`SEC-002-01`, function_FN-004.md). **본인확인(`PROC-102`)·연동 실행
  * (`PROC-104`)·자가진단(`PROC-204`) 세 경로가 반드시 이 함수 하나를 공유하는 단일
  * 진입점이다**(`SEC-002-01` "허브와 자가진단이 같은 절차를 쓴다") — 세 곳이 서로 다른
@@ -34,15 +53,17 @@ const utf8StrictDecoder = new TextDecoder('utf-8', { fatal: true });
  * (`EX-SEC-002`, 결과 구분 `DECRYPT_FAILED`)로 던진다(`EXC-SEC-05`).
  *
  * 반환값·중간 값은 호출측이 지역 변수로만 다뤄야 한다(`DATA-001-03`) — 이 함수 자신도 중간
- * 값(`keyY`·`keyXBytes`·`ivX`·`plain`)을 어디에도 저장하지 않고, 반환·예외 발생과 함께
- * 지역 스코프를 벗어나 폐기된다. 승인 시점의 재복호화도 같은 함수를 다시 호출한다
- * (`EXC-SEC-07`·`BIZ-002-06`) — 한 연동에서 최소 두 번 호출된다.
+ * 값(`keyY`·`keyXBytes`·`ivX`)을 어디에도 저장하지 않고, 반환·예외 발생과 함께 지역 스코프를
+ * 벗어나 폐기된다. `plain`(X 평문)은 {@link DecryptionJudgmentResult.rawPlaintext} 로 호출측에
+ * 반환되므로 그 지역 스코프가 호출측으로 넘어갈 뿐, 저장소에 넣지 않는 원칙은 그대로다 — 호출측도
+ * 요청 처리 종료와 함께 폐기해야 한다(PROC-104 B7). 승인 시점의 재복호화도 같은 함수를 다시
+ * 호출한다(`EXC-SEC-07`·`BIZ-002-06`) — 한 연동에서 최소 두 번 호출된다.
  *
  * @throws {ProtocolFormatError} `EX-SEC-001` — 단계 0 구조 판정 실패(`FN-003` 그대로 전파).
  * @throws {IdentityMismatchError} `EX-AUTH-002` — 판정 1·2단계 실패.
  * @throws {ProtocolViolationError} `EX-SEC-002` — 판정 3·4단계 실패.
  */
-export function judgeDecryption(encPair: EncPair, birthDate: string): TransferPayload {
+export function judgeDecryption(encPair: EncPair, birthDate: string): DecryptionJudgmentResult {
   // 0. 구조 판정 — FN-003(validate). 실패 시 EX-SEC-001 그대로 전파된다.
   const cipher = parseCipherPair(encPair);
 
@@ -93,11 +114,12 @@ export function judgeDecryption(encPair: EncPair, birthDate: string): TransferPa
     throw new ProtocolViolationError('TRACKING_KEY_INVALID');
   }
 
-  // 7. 중간 값 폐기 — DATA-001-03. keyY·keyXBytes·ivX·plain 은 지역 값으로만 존재했고
-  //    별도 저장을 하지 않았다 — 함수를 벗어나는 순간 참조가 사라진다.
+  // 7. 중간 값 폐기 — DATA-001-03. keyY·keyXBytes·ivX 는 지역 값으로만 존재했고 별도 저장을
+  //    하지 않았다 — 함수를 벗어나는 순간 참조가 사라진다. plain 은 rawPlaintext 로 호출측에
+  //    넘어가되(PROC-104 B3 전용), 호출측도 요청 처리 종료와 함께 폐기해야 한다(PROC-104 B7).
 
   // 8. 반환
-  return payload as TransferPayload;
+  return { payload: payload as TransferPayload, rawPlaintext: plain };
 }
 
 /**
