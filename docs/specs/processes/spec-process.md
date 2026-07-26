@@ -5,7 +5,7 @@ AccountInterlockHub 의 코드 구현 단위 프로세스의 단일 출처다. �
 본 문서는 **설계 원칙·코드 체계·단계 라벨 체계·프로세스 목록·의존관계**를 담는다. 개별 프로세스 정의는 `process_<PROC 코드>.md` 가, 상위 사양과의 매핑은 아래 두 문서가 갖는다.
 
 - [`spec-process-mapping.md`](spec-process-mapping.md) — SVC·SCR·FN·ENT·MDL ↔ PROC 매핑과 **단계명 매핑 색인**
-- [`spec-process-policy-map.md`](spec-process-policy-map.md) — 정책 규칙 93건 ↔ 적용 PROC·단계 라벨(분량이 커서 별도 분기)
+- [`spec-process-policy-map.md`](spec-process-policy-map.md) — 정책 규칙 94건 ↔ 적용 PROC·단계 라벨(분량이 커서 별도 분기)
 
 ## 프로세스 설계 원칙 및 기본 방향
 
@@ -130,7 +130,8 @@ AccountInterlockHub 의 코드 구현 단위 프로세스의 단일 출처다. �
 | PROC-104 의 실행 구간 | **두 구간**(복호화 / 전달)으로 나뉘어 PROC-103 안에서 실행 | [`process_PROC-104.md`](process_PROC-104.md) |
 | 결과 구분 → 경로 번호 대응의 소재 | **PROC-105 한 곳** — 화면·다른 프로세스가 다시 구현하지 않는다. 경로는 **셋**이다(`BIZ-001-02`) | [`process_PROC-105.md`](process_PROC-105.md) |
 | 복귀 주소 동봉 판정의 소재 | **PROC-105 `B3` 한 곳** — 대상은 **연동 완료(경로 ①) 하나**이며(`EXC-BIZ-15`) 값도 호출측이 아니라 `B3` 이 구성 상수에서 직접 읽는다. 화면은 필드 존재 여부만 본다 | [`process_PROC-105.md`](process_PROC-105.md) |
-| 보관 배치의 두 진입 경로 | 스케줄·명령이 **같은 삭제 로직 함수**를 부르고 관측 계약(요약 JSON·종료 코드)도 같다 | [`process_PROC-304.md`](process_PROC-304.md) |
+| 보관 배치의 두 진입 경로 | 스케줄·명령이 **같은 삭제 로직 함수**(`B2`~`B6`)를 부르고 **요약 레코드·직렬화 형상·산정 기준까지 공용**이다. 그러나 **관측 표면은 경로별로 갈린다** — "표준 출력의 마지막 줄"과 "종료 코드"는 *1회 실행 후 종료하는* CLI 경로에만 성립하고, 스케줄 경로는 프리픽스 없는 요약 1줄을 성패와 무관하게 내보내며 성패는 `failureReason` 으로 알린다(종료 코드 없음·프로세스를 끝내지 않는다) | [`process_PROC-304.md`](process_PROC-304.md) §스케줄 경로의 관측 표면 (공용 계약 상한은 [`../functions/spec-functions-api-server.md`](../functions/spec-functions-api-server.md) §관측 표면의 경로별 분리) |
+| 보관 기산의 스케줄 앵커 | 스케줄은 **`Asia/Seoul` 앵커로 하루 1회** 발화한다(기산 프레임 `DATA-002-06` ① 과 같은 시간대여야 실행일과 임계값 산출일이 어긋나지 않는다). **구체 시각(시·분)은 build 결정**으로 남긴다 — 멱등·재산정이라 결과가 갈리지 않는다 | [`process_PROC-304.md`](process_PROC-304.md) §진입점 및 진입 조건 |
 | 라이브러리 PROC 의 레이어 대응 | 호출측(`C`) ↔ 라이브러리 내부(`L`) | 본 문서 §라이브러리 프로세스의 레이어 대응 |
 
 ### 담당자 확인 대기 — 기본안 적용
