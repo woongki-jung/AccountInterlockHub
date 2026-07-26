@@ -58,7 +58,7 @@ AccountInterlockHub 가 준수하는 정책의 단일 출처다. 방향 근거�
 | AUTH-001 | 인증 부재 선언 | AUTH | 높음 | 공통 | 3 | [`policy_AUTH.md`](policy_AUTH.md) |
 | AUTH-002 | 본인확인(생년월일) | AUTH | 높음 | `USR-03` | 4 | [`policy_AUTH.md`](policy_AUTH.md) |
 | DATA-001 | 무저장·개인정보 최소 | DATA | 높음 | 공통 | 5 | [`policy_DATA.md`](policy_DATA.md) |
-| DATA-002 | 보관·삭제 | DATA | 높음 | `BAT-02`·`BAT-04`·`BAT-05`·`BAT-06` | 5 | [`policy_DATA.md`](policy_DATA.md) |
+| DATA-002 | 보관·삭제 | DATA | 높음 | `BAT-02`·`BAT-04`·`BAT-05`·`BAT-06` | 6 | [`policy_DATA.md`](policy_DATA.md) |
 | DATA-003 | 개인정보 제3자 제공 동의·동의 증적 | DATA | 높음 | `USR-04`·`BAT-05` | 5 | [`policy_DATA.md`](policy_DATA.md) |
 | DATA-004 | 연동 추적 키 취급 | DATA | 보통 | 공통 | 3 | [`policy_DATA.md`](policy_DATA.md) |
 | BIZ-001 | 결과 구분 값 체계 | BIZ | 높음 | 공통 | 6 | [`policy_BIZ.md`](policy_BIZ.md) |
@@ -74,7 +74,7 @@ AccountInterlockHub 가 준수하는 정책의 단일 출처다. 방향 근거�
 | OPS-003 | 기록·관측 범위 | OPS | 보통 | 공통 | 5 | [`policy_OPS.md`](policy_OPS.md) |
 | OPS-004 | 데이터베이스 연결 장애·프로세스 생존 | OPS | 높음 | 공통 | 4 | [`policy_OPS.md`](policy_OPS.md) |
 
-정책 18건 · 규칙 93건.
+정책 18건 · 규칙 94건.
 
 ## 예외(EX) 코드 카탈로그
 

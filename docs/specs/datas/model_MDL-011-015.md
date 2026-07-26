@@ -73,7 +73,7 @@
 | trackingKey | string | Y | - | 입력값과 같아야 한다 | - | 입력 추적 키를 **변형 없이** 그대로 되돌린다(`DATA-004-01`) |
 | isSuccess | boolean \| null | N | null | 결과 미확정이면 null | - | 처리 성공 여부 |
 | resultCode | string \| null | N | null | 결과 구분 **3종** 중 하나 또는 null(`BIZ-001-01`) | - | 결과 구분. 값 변환·별칭을 만들지 않는다(`BIZ-001-03`) |
-| isResultConfirmed | boolean | Y | false | - | - | 결과 확인 여부 |
+| isResultConfirmed | boolean | Y | - | **파생** — `resultConfirmedAt !== null` | - | 결과 확인 여부. 저장하지 않고 응답 구성 시 산출한다 |
 | resultAt | datetime \| null | N | null | - | - | 처리 일시 |
 | resultConfirmedAt | datetime \| null | N | null | - | - | 결과 확인 일시 |
 
