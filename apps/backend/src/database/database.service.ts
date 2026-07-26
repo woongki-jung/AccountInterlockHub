@@ -7,8 +7,8 @@ import { loadDatabaseConfig } from './database.config';
  * PostgreSQL 연결 풀 보유소 — ENT-001~003 접근의 공통 하부 계층이다.
  * 쿼리 실행·트랜잭션 경계 제공에 한정한다. 결과 구분 3분기·조건부 UPDATE·UPSERT 같은
  * 저장 비즈니스 규칙(BIZ-002·BIZ-005)은 담지 않는다 — 그 구현은 PROC-301~303(P06) 소관이다.
- * 아직 AppModule 에 등록되지 않았다(database.module.ts 참고) — 런타임 조회·갱신이 필요한
- * 첫 Phase 가 AppModule.imports 에 배선한다.
+ * AppModule 등록은 P04 가 이미 수행했다(database.module.ts 참고 — 당초 계획은 P06 이었으나
+ * P04 가 실 DB 검증을 위해 선점했다).
  */
 @Injectable()
 export class DatabaseService implements OnModuleDestroy {
