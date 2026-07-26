@@ -1,9 +1,22 @@
 // PROC-105 연동 결과 안내(process_PROC-105.md) — 결과 구분 → 경로 번호 대응·복귀 주소 동봉
 // 여부를 **한 곳에만** 두는 자리다("대응을 여러 곳에 두면 화면이 보는 결과와 발송처가 조회하는
-// 결과가 갈린다" — 같은 문서 §개요). PROC-101 B6 가 이 프로세스를 호출한다(`source:
-// 'ENTRY_FAILURE'`). 다른 세 호출 지점(PROC-101 §진입점 및 진입 조건 표 — PROC-102 B7·B4b ·
-// PROC-103 B2·B4·B8)은 아직 배선되지 않은 후속 Phase 소관이나, 이 서비스는 PROC-105 전체를
-// 사양대로 구현해 재사용 가능하게 둔다(같은 매핑을 접점마다 다시 구현하지 않는다).
+// 결과가 갈린다" — 같은 문서 §개요). 이 서비스는 PROC-105 전체(B1~B3)를 사양대로 구현해
+// 재사용 가능하게 둔다(같은 매핑을 접점마다 다시 구현하지 않는다).
+//
+// 실제 호출 지점(P10 커버리지 재확인, 2026-07-26) — PROC-105 §진입점 및 진입 조건 표의 네
+// 출처 중 셋이 배선됐다: PROC-101 `B6`(`ENTRY_FAILURE` — entry.controller.ts) ·
+// PROC-102 `B7`(`RECORD` — identity-verification.service.ts) · PROC-103 `B4`(`RECORD`)·`B8`
+// (`RESULT_CODE` — consent-approval.service.ts). **`REASON_CODE` 출처(표의 "PROC-102 `B4b`
+// · PROC-103 `B2`")는 이 빌더를 호출하지 않는다 — 배선 누락이 아니라 설계다.** 두 실패
+// 원점 모두 결과를 확정하지 않고 그대로 던져 전역 예외 필터(`GlobalExceptionFilter`)가 만드는
+// 순수 FN-014 오류 응답 엔벨로프(`{code, message, details?}` — `resultPath` 필드 자체가 없다)
+// 로 응답이 끝나고, 화면(PROC-105 F1)이 `err.code` 로부터 직접 경로를 도출한다(실측:
+// process_PROC-102-logic.md B4b `"return 400 FN-014(code) // 화면은 결과 경로 ②로 간다"` ·
+// process_PROC-103-logic.md B2 · process_PROC-103.md §호출 관계 "PROC-105(동기 — `B4`·`B8`)"
+// — `B2` 가 빠져 있다). `ResultInfoInput` 이 `REASON_CODE` 변형을 여전히 두는 이유는 B1
+// 의사코드가 이 출처를 `ENTRY_FAILURE` 와 동일하게(`resultCode = null` → 경로②) 정의해
+// PROC-105 자신의 입력 계약을 완비해 두기 위함이다 — 실사용 호출부가 없다고 이 분기를
+// 지우지 않는다(대응 표는 이 함수 한 곳에 그대로 둔다는 원칙과 같다).
 import { Injectable } from '@nestjs/common';
 import { InterlockConfigService } from '../config/interlock-config.service';
 import type { ResultCode } from '../entities';
