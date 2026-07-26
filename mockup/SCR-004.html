@@ -134,7 +134,7 @@
     </div>
     <p class="mockup-note">사양: screen_SCR-004.md §결과 3경로 · §확정 결과 재안내 · §복귀 이동. <strong>네 번째 경로는 만들지 않습니다</strong>(<code>BIZ-001-02</code>). 이 화면에는 별도 버튼이 없습니다 — 유일한 조작 요소는 복귀 안내 영역의 수동 이동 링크뿐입니다.</p>
     <p class="mockup-note" id="reannounce-note" hidden>경로 ②(링크·복호화 오류)는 확정 결과 재안내 대상이 아닙니다 — 추적 키를 확보하기 전에 항상 실패가 확정돼 레코드가 만들어지지 않습니다(<code>EXC-BIZ-14</code>, screen_SCR-004.md §확정 결과 재안내: 배지가 붙는 경로는 ①·③뿐). 위 재안내 체크박스가 비활성화됩니다.</p>
-    <p class="mockup-note"><code>returnUrl</code> 토글은 경로와 무관하게 복귀 영역 표시를 켜고 끕니다 — 표시 조건이 경로 번호가 아니라 이 필드의 존재 여부임을 보이기 위한 것으로, <strong>실제로 값이 실리는 경로는 ① 하나뿐</strong>입니다(경로 ②·③ 에서 켜는 것은 목업 시연 전용이며 실제로 일어나지 않는 조합입니다). 외부 이동 토글이 꺼져 있으면(기본값) 대기 종료·수동 링크 클릭 시 실제로 이동하지 않고 "이동했습니다"로 대체합니다 — 이동 대상은 <strong>잠정 상수 · 실제 값은 CLAUDE.env.md</strong>(<code>&lt;COMPLETION_REDIRECT_URL&gt;</code>, 현재 개발용 더미 <code>https://www.naver.com</code>)입니다.</p>
+    <p class="mockup-note"><code>returnUrl</code> 토글은 경로 번호와 별개로 복귀 영역 표시를 켜고 끕니다 — 표시 조건이 경로 번호가 아니라 이 필드의 존재 여부임을 보이기 위한 것으로, <strong>실제로 값이 실리는 경로는 ① 하나뿐</strong>이라 경로 ②·③ 으로 바꾸면 <strong>기본으로 꺼집니다</strong>(거기서 직접 켜 보는 것은 목업 시연 전용이며 실제로 일어나지 않는 조합입니다). 외부 이동 토글이 꺼져 있으면(기본값) 대기 종료·수동 링크 클릭 시 실제로 이동하지 않고 "이동했습니다"로 대체합니다 — 이동 대상은 <strong>잠정 상수 · 실제 값은 CLAUDE.env.md</strong>(<code>&lt;COMPLETION_REDIRECT_URL&gt;</code>, 현재 개발용 더미 <code>https://www.naver.com</code>)입니다.</p>
   </div>
 </div>
 
@@ -315,14 +315,28 @@
   hasReturnUrlToggle.addEventListener('change', refreshReturnArea);
   replayBtn.addEventListener('click', refreshReturnArea);
 
+  // 목업 도구모음 전용 — returnUrl 토글의 **기본값**은 서버가 값을 실어 보내는 경로를 따라간다.
+  // 실제로 값이 실리는 경로는 ① 하나뿐이므로(BIZ-001-06 · EXC-BIZ-15) 경로 ②·③ 의 기본 화면에는
+  // 복귀 안내 영역이 서지 않는다 — 실재하지 않는 조합을 기본 화면으로 보이지 않기 위한 것이다.
+  // 표시 판정은 여전히 이 필드의 존재 여부 하나뿐이고(경로 번호로 다시 판정하지 않는다) 토글도
+  // 잠그지 않으므로, 검토자가 경로 ②·③ 에서 직접 켜서 시연하는 것은 그대로 가능하다.
+  function applyReturnUrlDefault(){
+    hasReturnUrlToggle.checked = (state.path === '1');
+  }
+
   document.querySelectorAll('[data-path]').forEach(function(b){
-    b.addEventListener('click', function(){ state.path = b.getAttribute('data-path'); render(); });
+    b.addEventListener('click', function(){
+      var nextPath = b.getAttribute('data-path');
+      if (nextPath !== state.path) { state.path = nextPath; applyReturnUrlDefault(); }
+      render();
+    });
   });
   document.querySelectorAll('[data-reason]').forEach(function(b){
     b.addEventListener('click', function(){ state.reason = b.getAttribute('data-reason'); render(); });
   });
   reannounceToggle.addEventListener('change', function(){ state.reannounce = reannounceToggle.checked; render(); });
 
+  applyReturnUrlDefault(); // 최초 로드 상태도 위 규칙에서 파생시킨다(초기 경로 ① → 켜짐)
   render();
 </script>
 </body>
