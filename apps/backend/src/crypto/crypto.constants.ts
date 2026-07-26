@@ -26,3 +26,20 @@ export const TRACKING_KEY_MAX_LENGTH = 255;
 
 /** 생년월일 자리 수(`yyMMdd`) — AUTH-002-02. */
 export const BIRTH_DATE_LENGTH = 6;
+
+/**
+ * X 평문(UTF-8 직렬화 후) 크기 상한(바이트) — SEC-001-09 §규약 확정값(policy_SEC-crypto.md:40).
+ * 라이브러리 암호화 호출·자가진단(API-04) 경계에서 검사 대상이다(FN-003 은 판정하지 않는다 —
+ * function_FN-001-003.md §FN-003 §에러 처리 "연동 요청 URL 전체 길이 상한은 본 기능이 판정하지
+ * 않는다"와 대칭으로, X 평문 상한도 이 파일이 아니라 각 사용처가 검사한다). P07(PROC-101)은 이
+ * 상수를 직접 쓰지 않지만, SEC-001-09·SEC-001-10 은 같은 §규약 확정값 표의 항목이라 매직 넘버
+ * 중복을 막기 위해 이 파일 하나에 함께 둔다(accountinterlockhub#484 인계 사항 §4).
+ */
+export const X_PLAINTEXT_MAX_LENGTH_BYTES = 1024;
+
+/**
+ * 연동 요청 URL 전체 길이 상한(문자 수) — SEC-001-10 §규약 확정값(policy_SEC-crypto.md:41).
+ * 원본 요청 URL 을 가진 접점은 진입(PROC-101)뿐이라 `PROC-101` `B2` 가 진입 시점에 판정한다
+ * (function_FN-001-003.md §FN-003 §에러 처리 같은 문장).
+ */
+export const INTERLOCK_REQUEST_URL_MAX_LENGTH_CHARS = 2000;

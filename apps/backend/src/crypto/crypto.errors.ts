@@ -22,7 +22,13 @@ export type ProtocolFormatReason =
   | 'ENC_X_EMPTY'
   | 'ENC_Y_EMPTY'
   | 'ENC_X_BLOCK_LENGTH_INVALID'
-  | 'ENC_Y_BLOCK_LENGTH_INVALID';
+  | 'ENC_Y_BLOCK_LENGTH_INVALID'
+  // PROC-101 B3 진입 파라미터 파싱(interlock-entry/entry-query.ts) — FN-003 호출 이전 단계.
+  // 같은 이름의 쿼리 파라미터가 둘 이상이면 Express 가 배열로 담아 준다(SEC-001-08 대소문자·
+  // 중복 판정, spec-functions-api.md §진입 파라미터 이름 "같은 이름의 파라미터가 둘 이상 오면
+  // 구조 위반"). 같은 EX-SEC-001 이므로 새 예외 클래스를 만들지 않고 이 유니온에만 추가한다.
+  | 'ENC_X_DUPLICATE'
+  | 'ENC_Y_DUPLICATE';
 
 /**
  * `EX-SEC-001`(400) — 구조 판정 실패(`SEC-002-02`). 암호 파라미터 부재·형식 위반·Base64URL

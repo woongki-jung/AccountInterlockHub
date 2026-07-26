@@ -4,6 +4,7 @@
 import { ArgumentsHost, BadRequestException, Catch, ExceptionFilter, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import type { Response } from 'express';
 import { InterlockConfigService } from '../../config/interlock-config.service';
+import { HARD_FALLBACK_DOCUMENT, renderEntryDocument } from '../../interlock-entry/entry-document';
 import { buildErrorEnvelope } from '../errors/error-envelope';
 import { FALLBACK_EX_CODE } from '../errors/ex-catalog';
 import { isHttpMappedError } from '../errors/http-mapped.error';
@@ -94,6 +95,16 @@ export class GlobalExceptionFilter implements ExceptionFilter {
 
     const mapped = isHttpMappedError(exception) ? exception : undefined;
 
+    // 진입 경로(GET <INTERLOCK_ENTRY_PATH>) 한정 폴백(accountinterlockhub#484 P07 §인계 사항 3) —
+    // Express 본문 파서가 라우팅 자체를 건너뛰는 예외적 요청(§본문 파싱 실패 아래 참고)은
+    // entry.controller.ts 의 컨트롤러가 전혀 실행되지 않아 그 파일의 방어(가장 바깥 try/catch)가
+    // 닿지 않는다. 이 접점만 "판정과 무관하게 200 + 화면 문서"(spec-functions-api-user.md
+    // §연동 요청 진입 §처리·응답 규약 5) 계약을 지켜야 하므로 여기서 별도로 흡수한다 —
+    // `body-parse-failure.ts` 가 이 경로(GET, 요청 본문 없음이 정상)를 의도적으로
+    // UNCLASSIFIED 로 남겨 둔 자리다(그 파일 자신의 문서 주석 "그 잔여를 200 으로 바꾸는 것은
+    // #484(P07) S-7 진입 접점 200 폴백의 몫이라 이 Phase 가 만들지 않는다").
+    if (!mapped && this.respondEntryPathFallback(request, exception, response)) return;
+
     if (!mapped && exception instanceof BadRequestException) {
       const handled = this.tryHandleBodyParseFailure(request, response);
       if (handled) return;
@@ -175,6 +186,47 @@ export class GlobalExceptionFilter implements ExceptionFilter {
       case 'UNCLASSIFIED':
         return false;
     }
+  }
+
+  /**
+   * 진입 경로(GET `<INTERLOCK_ENTRY_PATH>`) 한정 폴백(accountinterlockhub#484 P07 §인계 사항 3).
+   * Express 본문 파서가 라우팅 자체를 건너뛰게 만드는 실패(`BadRequestException`(JSON
+   * `SyntaxError`) 또는 그 밖의 본문 파서 오류, `isRoutingUnreachedFailure` 참고)가 **이 경로 +
+   * 이 메서드**에서 나면, `entry.controller.ts` 의 컨트롤러가 전혀 실행되지 않아 그 파일
+   * 자신의 방어(핸들러 전체를 감싸는 try/catch)가 닿지 않는다. `classifyBodyParseFailure()` 는
+   * 이 경로(GET, 정상적으로는 요청 본문이 없다)를 의도적으로 `UNCLASSIFIED` 로 남겨 두므로
+   * (`body-parse-failure.ts` 자신의 문서 주석 — "그 잔여를 200 으로 바꾸는 것은 #484(P07) S-7
+   * 진입 접점 200 폴백의 몫이라 이 Phase 가 만들지 않는다"), 그 잔여를 여기서 흡수한다.
+   *
+   * 처리 대상이면 `true` 를 돌려주고 200 `text/html` + 초기 상태(`EX-OPS-002`·경로 ②)로 응답을
+   * 완성한다 — 대상이 아니면 `false` 를 돌려주고 아무 응답도 만들지 않는다(호출측이 기존 경로로
+   * 계속 진행한다). 문서 조립(`renderEntryDocument`, 파일 읽기 포함)마저 실패하면
+   * `HARD_FALLBACK_DOCUMENT`(순수 문자열 리터럴 — 다시 실패할 경로가 없다)로 물러난다 —
+   * 이 필터는 애플리케이션의 마지막 방어선이라 여기서까지 예외가 새면 4xx·5xx 로 응답할
+   * 도리밖에 없다.
+   */
+  private respondEntryPathFallback(request: MinimalRequest, exception: unknown, response: Response): boolean {
+    const path = normalizePath(request.path ?? '');
+    const isEntryPathRoutingUnreachedFailure =
+      request.method === 'GET' &&
+      path === this.interlockConfig.interlockEntryPath &&
+      (exception instanceof BadRequestException || this.isRoutingUnreachedFailure(exception));
+
+    if (!isEntryPathRoutingUnreachedFailure) return false;
+
+    response.status(200);
+    response.set('Content-Type', 'text/html; charset=utf-8');
+    try {
+      response.send(
+        renderEntryDocument({ stage: 'RESULT', reasonCode: 'EX-OPS-002', resultPath: 2, isReAnnouncement: false }),
+      );
+    } catch (renderError) {
+      // 문서 조립(파일 읽기 포함) 자체가 실패한 경우 — OPS-003-03 처럼 기술적 실패만 로그에
+      // 남긴다(describeForLog 는 method·path·상태·예외 이름만 담고 message·stack 은 담지 않는다).
+      this.logger.error(this.describeForLog(renderError, 200, request));
+      response.send(HARD_FALLBACK_DOCUMENT);
+    }
+    return true;
   }
 
   /**
