@@ -41,11 +41,13 @@ interface ResultPanelProps {
  * 경로별 아이콘·색·기본 제목은 design-system.md §결과 3경로의 시각 구분을
  * 그대로 따른다(resultContent.ts). 애니메이션 없이 텍스트만 갱신하고,
  * 카운트다운 영역은 aria-hidden 이다. **자체 제목을 그리지 않고
- * StageTitle(결과 변형)을 합성한다**(회귀 2회차 I-A 시정 — 회귀 1회차의
- * "값이 같아 재작업 없음" 판단은 오판이었다. §StageTitle 이 신설한 크기
- * 변형은 값이 아니라 **계약을 한 곳에 두는 것**이 목적이라 값이 같아도
- * 합성이 필요했다). 포커스 이동·문서 제목 일치는 StageTitle 내부
- * (useStageFocus)가 수행한다.
+ * StageTitle(결과 변형, `placement="panel"`)을 합성한다**(회귀 2회차 I-A
+ * 시정 — 회귀 1회차의 "값이 같아 재작업 없음" 판단은 오판이었다.
+ * §StageTitle 이 신설한 크기 변형은 값이 아니라 **계약을 한 곳에 두는
+ * 것**이 목적이라 값이 같아도 합성이 필요했다). `placement="panel"` 은
+ * wrapper 를 렌더하지 않아(Fragment) 제목이 이 `.panel` 의 직계 flex
+ * 자식으로 서고, 아래 §간격(P16, `#493`)이 그 뒤 요소와의 간격을 정한다.
+ * 포커스 이동·문서 제목 일치는 StageTitle 내부(useStageFocus)가 수행한다.
  */
 export function ResultPanel({
   resultPath,
@@ -120,8 +122,12 @@ export function ResultPanel({
   return (
     <div className={`${styles.panel} ${styles[meta.kind]}`} role="status">
       <ResultIcon kind={meta.kind} />
-      <StageTitle title={resolvedTitle} variant="result" />
-      {isReAnnouncement ? <Badge variant="reannounce">{RE_ANNOUNCEMENT_BADGE_LABEL}</Badge> : null}
+      <StageTitle title={resolvedTitle} variant="result" placement="panel" />
+      {isReAnnouncement ? (
+        <Badge variant="reannounce" className={styles.reannounceBadge}>
+          {RE_ANNOUNCEMENT_BADGE_LABEL}
+        </Badge>
+      ) : null}
       <p className={styles.description}>
         {resolvedDescription}
         {isReAnnouncement ? ` ${RE_ANNOUNCEMENT_SUFFIX}` : ''}

@@ -1,26 +1,35 @@
 /* ResultPanel — design-system-components.md §ResultPanel ·
    design-system.md §결과 3경로의 시각 구분 */
 
-/* ⚠️ 미해소 간격 판단(회귀 2회차 I-A #4, 코드로 봉합하지 않음) — 이
-   .panel 의 gap 은 자식 전부(아이콘·제목·배지·설명·다음 안내·복귀 안내
-   영역)에 --space-sm 을 균일하게 준다. 그런데 이제 제목 자리를 채우는
-   StageTitle 은 자기 wrap 에 margin-bottom: --space-lg 를 이미 갖고
-   있다(StageTitle.module.css). flex gap 과 자식 자신의 margin 은
-   합산되므로, 제목→다음 형제 사이만 실측 space-lg+space-sm 이 되어
-   다른 형제 간격(space-sm)과 달라진다. design-system-components.md·
-   screen_SCR-004.md 어디에도 이 조합을 예상한 값이 없어 값을 새로
-   지어내지 않고 gap 을 그대로 두었다 — StageTitle 의 margin-bottom 을
-   여기서 상쇄하면 그 값(§StageTitle "아래 여백 --space-lg")을 조건부로
-   무시하는 것이라 "코드로 봉합"에 해당한다고 판단했다. 정본 판단 필요
-   (완료 보고에 사양 결함으로 별도 기재). */
+/* 간격(P16, #493 — 사양 확정 9e6eb90으로 §StageTitle·§ResultPanel §간격이
+   해결한 것을 이 파일이 이제 그대로 구현한다) — **균일 gap 을 쓰지
+   않는다**(배지가 제목에 붙어야 해 한 값으로 덮을 수 없다). 요소별
+   배정: 아이콘→제목 --space-md · 제목→배지 --space-sm(제목 바로 아래) ·
+   배지(없으면 제목)→설명 --space-md · 설명→다음 안내 --space-md ·
+   다음 안내→복귀 안내 영역 --space-md. StageTitle 이 placement="panel"
+   로 wrapper 없이 렌더돼(Fragment) 제목(h1)이 이 .panel 의 직계 flex
+   자식이 되므로(자기 여백은 갖지 않는다) 아래 `.panel > h1` 로 그 앞
+   간격을 이 패널이 직접 준다. 배지는 wrapper div 대신 Badge 자신에
+   .reannounceBadge 여백을 실어(직계 flex 자식 구조 유지) 제목→배지
+   간격을 낸다. .description·.nextNote 는 "배지 있으면 배지→설명,
+   없으면 제목→설명"이 **같은 값(md)**이라 조건 분기 없이 자기 margin-top
+   하나로 양쪽을 다 만족한다. 안쪽 여백은 --space-lg 균일(왼쪽 강조선
+   4px 은 border 라 패딩 박스 밖에 더해진다). */
 .panel {
   border-left: 4px solid transparent;
   border-radius: var(--radius-md);
-  padding: var(--space-lg) var(--space-md);
+  padding: var(--space-lg);
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  gap: var(--space-sm);
+}
+
+.panel > h1 {
+  margin-top: var(--space-md);
+}
+
+.reannounceBadge {
+  margin-top: var(--space-sm);
 }
 
 .success {
@@ -42,11 +51,13 @@
 }
 
 .description {
+  margin-top: var(--space-md);
   color: var(--color-text);
   line-height: var(--line-height-base);
 }
 
 .nextNote {
+  margin-top: var(--space-md);
   color: var(--color-text-muted);
   font-size: var(--font-size-sm);
 }

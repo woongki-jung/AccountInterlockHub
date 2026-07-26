@@ -1,7 +1,14 @@
 /* ProgressPanel — design-system-components.md §ProgressPanel.
    제목·보조 문구 글꼴은 이제 StageTitle 컴포넌트가 규정한다(자체 제목
    글꼴 규정을 버리고 합성으로 바뀜 — 회귀 1회차 R-2, 구 .title 규칙의
-   --font-size-lg 값 오류와 함께 폐기). */
+   --font-size-lg 값 오류와 함께 폐기).
+
+   간격(P16, #493 — 사양 확정 9e6eb90) — 요소 사이 --space-md 균일:
+   Spinner ↔ 제목 ↔ 보조 문구 ↔ (조건부) 알림. StageTitle 이
+   placement="panel" 로 wrapper 없이 렌더돼(Fragment) 제목·보조 문구가
+   이 .panel 의 직계 flex 자식이 되므로 아래 gap 이 그 사이에도 그대로
+   적용된다. 개별 자식이 자기 여백을 갖지 않는다 — 가지면 이 gap 과
+   합산돼 어떤 --space-* 토큰으로도 표현되지 않는 값이 된다(예: 16+12=28px). */
 
 .panel {
   display: flex;
@@ -9,15 +16,14 @@
   align-items: center;
   text-align: center;
   padding: var(--space-xl) 0;
+  gap: var(--space-md);
 }
 
 .spinnerSlot {
   color: var(--color-primary);
-  margin-bottom: var(--space-md);
 }
 
 .alert {
-  margin-top: var(--space-lg);
   width: 100%;
   text-align: left;
 }

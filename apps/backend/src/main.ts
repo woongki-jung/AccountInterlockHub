@@ -1,10 +1,27 @@
 import 'dotenv/config';
+import { resolve } from 'node:path';
 import express from 'express';
 import { NestFactory } from '@nestjs/core';
 import { ExpressAdapter } from '@nestjs/platform-express';
 import { AppModule } from './app.module';
-import { cacheControlMiddleware, buildKnownRoutes, createRouteGuardMiddleware } from './common/http';
+import {
+  cacheControlMiddleware,
+  buildKnownRoutes,
+  createRouteGuardMiddleware,
+  createStaticAssetsMiddleware,
+} from './common/http';
 import { loadInterlockConfig } from './config/interlock-config.loader';
+
+/**
+ * React 빌드 산출물 폴더 — `apps/frontend/dist`(infra.md §애플리케이션 구성 "단일 배포
+ * 단위"). `main.ts` 자신의 컴파일 위치 기준으로 계산한다: 이 파일은 항상
+ * `apps/backend/<X>/main.{ts,js}`(X = `src`(`nest start` — ts-node 가 소스를 직접
+ * 실행) 또는 `dist`(`node dist/main` — 컴파일 산출물))에 있으므로 두 실행 방식 모두
+ * `__dirname` 에서 두 단계 위가 `apps/`, 그 아래 `frontend/dist`가 같은 상대 위치다.
+ * `process.cwd()`(npm 스크립트의 실행 디렉터리)에 기대지 않는다 — root `package.json`
+ * 이 `--prefix apps/backend` 로 cwd 를 옮기지만, 그 규칙이 배포 환경까지 보장하지 않는다.
+ */
+const FRONTEND_DIST_DIR = resolve(__dirname, '../../frontend/dist');
 
 /**
  * PROC-901 애플리케이션 기동·상수 검증.
@@ -51,13 +68,26 @@ async function bootstrap(): Promise<void> {
 
   const app = await NestFactory.create(AppModule.register({ config, consent }), new ExpressAdapter(expressInstance));
 
-  // FN-014/015 횡단 계층(P05) — 반드시 이 순서로, Nest 라우팅이 붙기 전에 건다(app.use() 는
-  // Nest 라우팅·전역 예외 필터보다 먼저 실행되도록 문서화된 동작이다).
+  // FN-014/015 횡단 계층(P05) + 정적 서빙 배선(P16, `#493`) — 반드시 이 순서로, Nest 라우팅이
+  // 붙기 전에 건다(app.use() 는 Nest 라우팅·전역 예외 필터보다 먼저 실행되도록 문서화된
+  // 동작이다 — 위 case-sensitive routing 주석과 같은 근거).
   // 1) 캐시 금지 헤더를 모든 응답에 먼저 건다 — 순서를 바꾸면 뒤 응답이 헤더 없이 나갈 수 있다.
   // 2) 알려진 경로(§인터페이스 카탈로그)의 메서드 불일치를 405(본문 없음)로 끝낸다. 그 밖은
-  //    next() 로 흘려 Nest 라우팅·전역 예외 필터(GlobalExceptionFilter)의 일반 404로 넘긴다.
+  //    next() 로 흘려보낸다.
+  // 3) React 정적 빌드 산출물을 서빙한다 — <INTERLOCK_ENTRY_PATH>·/api/**·<SELFCHECK_PATH>
+  //    는 정적 파일 탐색조차 하지 않고 무조건 next() 로 흘린다(static-assets.ts §파일 상단
+  //    근거 — SPA 폴백 제외 경로, spec-functions-api-user.md §처리·응답 규약 1). route-guard
+  //    보다 뒤에 두어 알려진 경로의 405 판정이 먼저 성립하게 한다.
+  // 그 밖(정적 파일도 아니고 컨트롤러도 없는 경로)은 Nest 라우팅을 거쳐 전역 예외 필터
+  // (GlobalExceptionFilter)의 본문 없는 일반 404(SEC-003-02)로 귀결된다.
   app.use(cacheControlMiddleware);
   app.use(createRouteGuardMiddleware(buildKnownRoutes(config.interlockEntryPath)));
+  app.use(
+    createStaticAssetsMiddleware(FRONTEND_DIST_DIR, {
+      interlockEntryPath: config.interlockEntryPath,
+      selfcheckPath: config.selfcheckPath,
+    }),
+  );
 
   const port = Number(process.env.PORT) || 3000;
   await app.listen(port);
