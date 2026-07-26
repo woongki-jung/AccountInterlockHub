@@ -52,6 +52,9 @@ F5. 응답 처리 → 단계 전이                          // F4 는 결번 (�
     if      (err.code == 'EX-BIZ-001')  유효성 안내 + 첫 미충족 항목 포커스 · 단계 유지
                                         // 화면 게이팅을 우회해 도달한 제출이다 (POL BIZ-003-02)
     else if (err.code == 'EX-BIZ-003')  재시도 안내 · 버튼 재활성 · 단계 유지
+                                        // 재시도가 안전한 근거는 B6 의 전달 시도 표지 검사다 —
+                                        //   발생 지점이 전달 이후여도 재제출이 중복 전달을 만들지
+                                        //   않는다 (근거는 §구현 가이드)
     else if (err.code in ['EX-AUTH-001','EX-AUTH-002'])  단계 전이 → SCR-001 (재입력 안내)
     else if (err.code == 'EX-BIZ-002')  단계 전이 → SCR-004 결과 경로 ③ (정상 종료다)
     else if (err.code in ['EX-SEC-001','EX-SEC-002'])    단계 전이 → SCR-004 결과 경로 ②
@@ -111,9 +114,32 @@ B6. 승인 확정·동의 증적 기록 — PROC-302 호출 · POL BIZ-003-04 (�
 
   BEGIN;                                         // 경계를 여는 자리는 여기다 (B3 와 별개의 경계)
     -- 같은 추적 키의 동시 승인을 직렬화한다 (ENT-002 §구현 가이드)
-    SELECT tracking_key FROM tbl_interlock_tracking
-    WHERE tracking_key = :trackingKey
-    FOR UPDATE;
+    -- B3 의 secured.record 를 재사용하지 않는다 — 그 사이 상대 요청이 결과를 확정했을 수 있다
+    locked = SELECT tracking_key, result_code, result_at, result_confirmed_at,
+                    callback_received_at, created_at
+             FROM tbl_interlock_tracking
+             WHERE tracking_key = :trackingKey
+             FOR UPDATE;                         -- 행 전체를 읽는다 (MDL-001 구성에 쓴다)
+
+    -- 전달 시도 표지 확인 — 잠금을 쥔 채로 본다 (§구현 가이드 — 중복 증적·중복 전달 차단)
+    -- 증적은 B7 전달 직전에 커밋되므로 그 존재가 곧 "이 레코드로 전달을 시도했다"는 표지다
+    -- 이번 레코드에 속한 증적만 센다 — 앞선 보관 주기의 증적은 이 레코드보다 이르다 (EXC-BIZ-04)
+    already = SELECT COUNT(*) FROM tbl_consent_proof
+              WHERE tracking_key = :trackingKey
+                AND consented_at >= :locked.created_at;
+
+    if (already > 0)                             // 이미 전달을 시도한 승인이다
+        COMMIT;                                  // 아무것도 쓰지 않고 잠금만 놓는다
+        gate.payload 를 폐기한다
+        // 증적을 만들지 않고 B7 전달도 수행하지 않는다 · B5b 이후 단계로 내려가지 않는다
+        if (locked.result_code IS NOT NULL)      // 확정 — B4 와 완전히 같은 귀결 (경로 ①·③)
+            record = MDL-001(locked)             // ENT-001 행 → MDL-001 — 변환은 B3(PROC-301)과 같다
+            resultInfo = PROC-105({ source: 'RECORD', record, isReAnnouncement: true })
+            return 200 resultInfo                // 새 EX 코드를 만들지 않는다
+        else                                     // 미확정 — 선행 요청이 아직 전달 구간에 있다
+            return 500 FN-014('EX-BIZ-003')      // 결과 미확정. 재시도는 안전하다 —
+                                                 //   다시 와도 이 검사가 증적·전달을 둘 다 막고,
+                                                 //   그사이 확정됐으면 위 갈래가 재안내한다
 
     proof = PROC-302({ trackingKey, submission: { agreedItemCodes },
                        consent, at: NOW(), exec })
@@ -168,7 +194,7 @@ B8. 결과 안내 이관·응답 — PROC-105 호출 · POL SEC-002-05 (mask)
 | 5 | BE `B3` | 추적 레코드 확보 | `trackingKey` | PROC-301 — 생성 또는 이어쓰기 | `MDL-001`·분기 |
 | 6 | BE `B4` | 확정 재안내 분기 | 분기 | `FIXED` 면 무갱신 재안내로 종료 | 응답 DTO |
 | 7 | BE `B5b` | 승인 요청 재검증 | 미확정 레코드 | 필수 동의 충족 서버 재검증 | 검증 통과 |
-| 8 | BE `B6` | 동의 증적 기록 | 검증 통과 | 행 잠금 + PROC-302 INSERT | `MDL-002` |
+| 8 | BE `B6` | 동의 증적 기록 | 검증 통과 | 행 잠금 + 전달 시도 표지 검사 → 없을 때만 PROC-302 INSERT · 있으면 확정 재안내(200) 또는 결과 미확정(500)으로 종료 | `MDL-002` |
 | 9 | BE `B7` | 연동 실행 이관 | `MDL-005` | PROC-104 전달 구간 — 전달·결과 확정 | 결과 구분 |
 | 10 | BE `B8` | 결과 안내 이관·응답 | 결과 구분 | PROC-105 경로 산출 · 200 또는 502 | 응답 DTO |
 | 11 | FE `F5` | 응답 처리·전이 | 응답 DTO | 경로별 화면 전이 또는 되돌림 · 미분류 코드는 전이 없이 `SCR-003` `Unconfirmed` | (다음 프로세스) |

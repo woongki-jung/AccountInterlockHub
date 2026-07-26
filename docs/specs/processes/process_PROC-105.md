@@ -40,13 +40,15 @@
 
 본 프로세스는 외부 표면을 갖지 않는다. **결과 또는 실패가 확정된 지점에서 상위 프로세스가 응답을 만들기 직전에 호출**한다.
 
-| 호출 지점 | 입력 출처(`source`) | 전달 값 |
-|---|---|---|
-| PROC-101 `B6` | `ENTRY_FAILURE` | 진입 단계 실패 사유(`EX-SEC-001`·`EX-SEC-004`·`EX-OPS-002`) |
-| PROC-102 `B7` | `RECORD` | 확정된 [`MDL-001`](../datas/model_MDL-001.md) + `isReAnnouncement = true` |
-| PROC-102 `B4b` · PROC-103 `B2` | `REASON_CODE` | `EX-SEC-002` 등 실패 사유 |
-| PROC-103 `B4` | `RECORD` | 확정된 `MDL-001` + `isReAnnouncement = true` |
-| PROC-103 `B8` | `RESULT_CODE` | 이번에 확정된 결과 구분 |
+| 지점 | 수행 계층 | 입력 출처(`source`) | 전달 값 |
+|---|---|---|---|
+| PROC-101 `B6` | BE(직접 호출) | `ENTRY_FAILURE` | 진입 단계 실패 사유(`EX-SEC-001`·`EX-SEC-004`·`EX-OPS-002`) |
+| PROC-102 `B7` | BE(직접 호출) | `RECORD` | 확정된 [`MDL-001`](../datas/model_MDL-001.md) + `isReAnnouncement = true` |
+| PROC-103 `B4` | BE(직접 호출) | `RECORD` | 확정된 `MDL-001` + `isReAnnouncement = true` |
+| PROC-103 `B8` | BE(직접 호출) | `RESULT_CODE` | 이번에 확정된 결과 구분 |
+| PROC-102 `B4b` · PROC-103 `B2` 의 **오류 응답을 받은 뒤** | **FE `F1`** — BE 직접 호출 아님 | `REASON_CODE` | `EX-SEC-002` 등 실패 사유 |
+
+- 🔴 **`REASON_CODE` 행은 백엔드 호출 지점이 아니다.** 두 실패 지점은 결과를 확정하지 않고 예외를 그대로 올려 `FN-014` 오류 응답 엔벨로프(`{ code, message, details? }` — `resultPath` 필드 자체가 없다)로 응답이 끝나며, **서버에서 `B1`~`B3` 을 호출하지 않는다.** 그 출처를 실제로 재현하는 자리는 **화면의 `F1`** 이고 `err.code` 에서 경로를 도출한다(§로직 실행 순서 `F1`). 백엔드에 이 호출을 배선하면 **반환값을 버리는 죽은 코드**가 되므로, 미배선을 구현 갭으로 보고하지 않는다.
 
 - **진입 조건**: **인증 없음 — `AUTH-001` 인용.** 상위 프로세스 안에서 실행되므로 자체 진입 조건이 없다.
 - **사전 검증**: 입력이 위 네 출처 중 하나여야 한다. 어느 것에도 해당하지 않으면 **경로 ②** 로 안내한다(`SVC-005` F-003).
