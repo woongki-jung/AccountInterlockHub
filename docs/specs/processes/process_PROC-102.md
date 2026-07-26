@@ -180,10 +180,11 @@ B5. 추적 키 추출 → 원문 즉시 폐기 — POL BIZ-002-06 · DATA-004-01
 
 B6. 추적 레코드 확보 — PROC-301 호출 · POL BIZ-002-01 · BIZ-002-03 (트랜잭션 시작)
 
-  BEGIN ISOLATION LEVEL READ COMMITTED;
-    secured = PROC-301({ kind: 'SECURE', trackingKey, at: NOW() })
+  BEGIN ISOLATION LEVEL READ COMMITTED;          // 경계를 여는 자리는 여기다 (하위는 참여만 한다)
+    secured = PROC-301({ kind: 'SECURE', trackingKey, at: NOW(), exec })
+        // exec = 여기서 연 커넥션·실행자를 그대로 넘긴다 — 이 전달이 참여의 성립 조건이다
         // PROC-301 B2: SELECT … FROM tbl_interlock_tracking WHERE tracking_key = :trackingKey
-        // PROC-301 B3: 없으면 INSERT (기본 키 충돌은 이어쓰기로 흡수)
+        // PROC-301 B3: 없으면 INSERT … ON CONFLICT DO NOTHING (충돌은 이어쓰기로 흡수)
         //              생성 시 PROC-303 B3 이 request_count +1 (같은 트랜잭션)
     // 실패 → ROLLBACK → 500 EX-BIZ-003 (결과 미확정 · 사용자는 다시 시도할 수 있다)
   COMMIT;
@@ -287,5 +288,6 @@ B8. 동의 항목 구성 응답 (다음 단계 이관) — POL DATA-003-01 · SE
 - **`EX-AUTH-002` 와 `EX-SEC-002` 의 경계를 코드에서 흐리지 않는다.** 전자는 재입력, 후자는 결과 확정 없는 종료 + 계수다. 두 갈래를 한 catch 로 묶으면 지표가 오염된다.
 - **추적 키를 얻은 뒤 원문을 즉시 버린다.** 요청 컨텍스트 저장소·전역 상태에 올려 두면 `DATA-001-03` 위반이다.
 - **레코드 확보와 요청 수 계수를 같은 트랜잭션에 둔다.** 경계가 갈리면 요청 수가 실제 레코드 수와 어긋난다.
+- **트랜잭션 경계를 여는 자리가 이 프로세스다.** `B6` 의 `BEGIN` 이 그 지점이고, PROC-301·PROC-303 과 그 하위 FN 은 넘겨받은 실행 문맥(`exec`)으로 **참여만 한다** — 열지도 닫지도 않는다. 하위가 열어 줄 것으로 기대해 `BEGIN` 을 빼거나 `exec` 를 넘기지 않으면 레코드 기록과 요청 수 계수가 각각 커밋돼 `SVC-014` F-008 의 원자성이 깨진다([`../functions/function_FN-007-008.md`](../functions/function_FN-007-008.md) FN-008 §시그니처).
 - **`FIXED` 분기에서 아무것도 쓰지 않는다.** 재안내에서 `result_confirmed_at` 이나 갱신 일시를 건드리면 보관 기산점이 밀린다(`BIZ-002-04`).
 - **본인확인 제출의 응답 미수신을 `EX-BIZ-003` 과 같은 자리로 보낸다.** 이 제출은 **어떤 결과도 확정하지 않아** 같은 값으로 다시 제출해도 서버가 같은 레코드를 이어 쓸 뿐이라(`BIZ-002-03` ②) 그대로 재시도하는 것이 안전하다. 반면 승인 제출(`PROC-103`)은 결과가 확정됐을 수 있어 `SCR-003` `Unconfirmed`(재진입 안내)로 간다 — 이 비대칭 때문에 두 접점의 응답 미수신을 하나로 합치지 않는다([`../screens/screen_SCR-001.md`](../screens/screen_SCR-001.md) §화면 상태 전이).

@@ -155,9 +155,9 @@ B2. 복호화 구간 호출 — PROC-104 B1·B2 (동기)
 
 B3. 추적 레코드 확보 — PROC-301 호출 · POL BIZ-002-03 (트랜잭션)
 
-  BEGIN;
-    secured = PROC-301({ kind: 'SECURE', trackingKey: gate.trackingKey, at: NOW() })
-        // 이미 있으면 이어쓰기(OPEN) — 요청 수를 다시 올리지 않는다
+  BEGIN ISOLATION LEVEL READ COMMITTED;          // 경계를 여는 자리는 여기다 — 충돌 재조회의 성립 전제
+    secured = PROC-301({ kind: 'SECURE', trackingKey: gate.trackingKey, at: NOW(), exec })
+        // exec = 여기서 연 커넥션·실행자 그대로(참여의 성립 조건) · 이미 있으면 이어쓰기(OPEN)라 요청 수는 다시 오르지 않는다
   COMMIT;                                        // 실패 → 500 EX-BIZ-003
 
 B4. 확정 결과 재안내 분기 — POL BIZ-002-04 (validate)
@@ -221,7 +221,7 @@ B8. 결과 안내 이관·응답 — PROC-105 호출 · POL SEC-002-05 (mask)
 |----------|----------|----------|----------|--------------|
 | FE→요청 | FE `F3` | `agreed`(Set) + 보유 값 | 요청 DTO | Set → 배열. 진행 의사 필드를 만들지 않는다(제출 자체가 승인 의사다) |
 | 요청→도메인 | BE `B1`·`B2` | 요청 DTO | `MDL-007` + `MDL-005` | 형상 검증 → PROC-104 재복호화로 추적 키 복원 |
-| 도메인→ENT | BE `B6` (PROC-302) | `MDL-007` + `MDL-008` | `tbl_consent_proof` 행 | 스냅샷 구성(코드 오름차순) · 동의 코드 배열 분리 저장 |
+| 도메인→ENT | BE `B6` (PROC-302) | `MDL-007` + `MDL-008` | `tbl_consent_proof` 행 | 스냅샷 구성(항목 순서는 `MDL-008` 결과 그대로) · 동의 코드 배열 분리 저장 |
 | 도메인→ENT | BE `B7` (PROC-104→PROC-301) | 결과 구분 | `tbl_interlock_tracking` UPDATE | 조건부(`result_code IS NULL`) |
 | ENT→도메인 | BE `B3` (PROC-301) | ENT-001 행 | [`MDL-001`](../datas/model_MDL-001.md) | 파생 4종 산출 |
 | 도메인→응답 | BE `B8` | 결과 구분 | `MDL-009` | PROC-105 가 경로 번호 산출 · FN-015 정제 |

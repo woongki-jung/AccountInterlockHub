@@ -32,9 +32,13 @@ function FN-009 (
   trackingKey: string,      // 확보된 레코드의 추적 키·필수
   resultCode: string,       // BIZ-001-01 의 3종 중 하나·필수
   at: datetime,             // 결과 확정 시각·필수
+  exec: TxExecutor,         // 호출측이 연 트랜잭션의 실행 문맥(커넥션·실행자)·필수
 ): MDL-001                  // 확정 후(또는 이미 확정돼 있던) 레코드
   throws RecordWriteError { code: EX-BIZ-003, http: 500 }
 ```
+
+- **실행 문맥은 호출측이 넘긴다.** 호출측 트랜잭션에 참여하려면 **같은 커넥션·실행자**를 받아야 하므로 `exec` 는 필수 인자다 — 본 기능의 모든 문(UPDATE·SELECT)과 하위 호출(FN-007·FN-013)을 이 위에서 실행한다. 스스로 커넥션을 얻으면 호출측 경계 **밖**의 별도 커넥션을 잡아 같은 경계의 변경이 보이지 않고, 요청 하나가 커넥션을 둘 점유해 풀이 마른다.
+- **본 기능은 트랜잭션을 열지도 닫지도 않는다.** `BEGIN`·`COMMIT`·`ROLLBACK` 을 수행하지 않으며 커밋·되돌림 권한이 없다([`../processes/process_PROC-301.md`](../processes/process_PROC-301.md) §실행 제약사항). **경계는 호출측이 반드시 연다** — 수신처 전달 판정의 상위 프로세스([`PROC-104`](../processes/process_PROC-104.md) `B6`)가 그 자리이고 `PROC-301` `B4` 는 그 경계에 참여만 한다. 경계 없이 호출되면 결과 확정과 결과 카운터 갱신이 각각 커밋돼 `SVC-014` F-008 의 원자성이 깨지므로, **경계 밖 호출은 사양 위반**이다.
 
 ### 입력/출력 정의
 
@@ -43,6 +47,7 @@ function FN-009 (
 | 입력 | trackingKey | string | Y | 1~255자 | 대상 레코드 |
 | 입력 | resultCode | string | Y | `SUCCESS`·`DECRYPT_FAILED`·`DELIVERY_FAILED` | 단일 열거형 **3종**(`BIZ-001-01` — 거부 값이 없다) |
 | 입력 | at | datetime | Y | 시간대 유지 | 처리 일시·지표 일자 산출 기준 |
+| 입력 | exec | TxExecutor | Y | 호출측이 연 트랜잭션의 커넥션·실행자 | 커넥션을 스스로 얻지 않는다. 커밋·되돌림을 수행하지 않는다 |
 | 출력 | record | MDL-001 | - | - | 확정 결과가 담긴 레코드 |
 
 ### 처리 흐름 (의사코드)
@@ -52,7 +57,7 @@ function FN-009 (
    if (resultCode not in ['SUCCESS','DECRYPT_FAILED','DELIVERY_FAILED'])
                                                 → throw EX-BIZ-003 (500)
 
-2. 조건부 확정 — POL BIZ-001-04 (트랜잭션 시작)
+2. 조건부 확정 — POL BIZ-001-04 (호출측 트랜잭션에 참여 — 새로 열지 않는다)
    UPDATE tbl_interlock_tracking
    SET result_code = :resultCode, result_at = :at
    WHERE tracking_key = :trackingKey AND result_code IS NULL;
@@ -60,14 +65,14 @@ function FN-009 (
 
 3. 갱신 행 수 판정
    if (갱신 행 수 == 1)
-       FN-013({ kind: 'RESULT', resultCode, at })   // POL BIZ-005-04 (같은 트랜잭션)
+       FN-013({ kind: 'RESULT', resultCode, at })   // POL BIZ-005-04 · exec 와 같은 실행 문맥
    else
-       lookup = FN-007(trackingKey)
+       lookup = FN-007(trackingKey, exec)
        if (lookup.branch == 'NONE')             → throw EX-BIZ-003 (500)
        // 이미 확정 상태 — 확정 결과를 그대로 두고 계수도 하지 않는다 (POL BIZ-001-04)
 
-4. 최신 상태 반환 (트랜잭션 종료)
-   return FN-007(trackingKey).record
+4. 최신 상태 반환 (커밋하지 않는다 — 경계를 닫는 것은 호출측이다)
+   return FN-007(trackingKey, exec).record
 ```
 
 ### API 인터페이스
@@ -88,7 +93,7 @@ function FN-009 (
 
 | HTTP status | EX 코드 | 발생 조건 | 사용자 메시지 | 개발자 노트 |
 |-------------|---------|-----------|---------------|-------------|
-| 500 | `EX-BIZ-003` | 열거형 밖의 결과 구분·저장 실패·대상 레코드 부재 | "처리 중 문제가 발생했습니다. 잠시 후 다시 시도해 주세요." | 결과 미확정으로 끝난다. 지표 갱신도 함께 되돌린다 |
+| 500 | `EX-BIZ-003` | 열거형 밖의 결과 구분·저장 실패·대상 레코드 부재 | "처리 중 문제가 발생했습니다. 잠시 후 다시 시도해 주세요." | 결과 미확정으로 끝난다. 본 기능은 되돌리지 않고 예외만 올린다 — **되돌림은 경계를 연 호출측**이 수행하며 같은 경계의 지표 갱신도 함께 취소된다 |
 
 - 이미 확정된 레코드에 다른 결과가 들어오는 것은 **오류가 아니다.** 확정 결과를 그대로 돌려주고 정상 종료한다(`BIZ-002-03` ③).
 
@@ -97,7 +102,9 @@ function FN-009 (
 | FN 코드 | 호출 시점 | 동기/비동기 | 실패 시 처리 |
 |---------|----------|------------|--------------|
 | FN-007 | 단계 3·4 | 동기 | 예외 없음 |
-| FN-013 | 단계 3 | 동기 | `EX-BIZ-003` 전파(트랜잭션 되돌림) |
+| FN-013 | 단계 3 | 동기 | `EX-BIZ-003` 전파(호출측이 경계를 되돌린다) |
+
+- 두 호출 모두 **`exec` 와 같은 실행 문맥**에서 수행한다. 하나라도 다른 커넥션에서 실행되면 단계 2~3 이 한 경계로 묶이지 않는다.
 
 ### 구현 가이드
 
@@ -129,9 +136,13 @@ function FN-009 (
 function FN-010 (
   trackingKey: string,      // 조회한 레코드의 추적 키·필수
   at: datetime,             // 결과를 담아 응답하는 시각·필수
+  exec: TxExecutor,         // 호출측이 연 트랜잭션의 실행 문맥(커넥션·실행자)·필수
 ): datetime | null          // 확정된 결과 확인 일시(표시하지 않았으면 기존 값 또는 null)
   throws RecordWriteError { code: EX-BIZ-003, http: 500 }
 ```
+
+- **실행 문맥은 호출측이 넘긴다.** 호출측 트랜잭션에 참여하려면 **같은 커넥션·실행자**를 받아야 하므로 `exec` 는 필수 인자다 — 본 기능의 모든 문(UPDATE)과 하위 호출(FN-007)을 이 위에서 실행한다. 스스로 커넥션을 얻으면 호출측 경계 **밖**의 별도 커넥션을 잡아 같은 경계의 변경이 보이지 않고, 요청 하나가 커넥션을 둘 점유해 풀이 마른다.
+- **본 기능은 트랜잭션을 열지도 닫지도 않는다.** `BEGIN`·`COMMIT`·`ROLLBACK` 을 수행하지 않으며 커밋·되돌림 권한이 없다([`../processes/process_PROC-301.md`](../processes/process_PROC-301.md) §실행 제약사항). **경계는 호출측이 반드시 연다** — 처리상태 확인 접점의 상위 프로세스([`PROC-201`](../processes/process_PROC-201.md) `B5`)가 그 자리이고 `PROC-301` `B5` 는 그 경계에 참여만 한다. 경계 없이 호출되면 표시가 응답 구성과 따로 커밋돼 "응답은 갔는데 표시가 남지 않은" 상태가 만들어지므로, **경계 밖 호출은 사양 위반**이다.
 
 ### 입력/출력 정의
 
@@ -139,12 +150,13 @@ function FN-010 (
 |------|--------|------------|------|------|------|
 | 입력 | trackingKey | string | Y | 1~255자 | 대상 레코드 |
 | 입력 | at | datetime | Y | 시간대 유지 | 응답 구성과 같은 처리 경계의 시각 |
+| 입력 | exec | TxExecutor | Y | 호출측이 연 트랜잭션의 커넥션·실행자 | 커넥션을 스스로 얻지 않는다. 커밋·되돌림을 수행하지 않는다 |
 | 출력 | resultConfirmedAt | datetime \| null | - | - | 응답에 실을 결과 확인 일시 |
 
 ### 처리 흐름 (의사코드)
 
 ```
-1. 조건부 표시 — POL DATA-002-01 ① · BR-010 (트랜잭션 시작)
+1. 조건부 표시 — POL DATA-002-01 ① · BR-010 (호출측 트랜잭션에 참여 — 새로 열지 않는다)
    UPDATE tbl_interlock_tracking
    SET result_confirmed_at = :at
    WHERE tracking_key = :trackingKey
@@ -153,9 +165,9 @@ function FN-010 (
    // 세 번째 조건이 §결과 확인 표시 판정 기준이다 — 결과를 담아 응답한 경우에만 표시한다
    // 실패 시                                   → throw EX-BIZ-003 (500)
 
-2. 반환 값 결정 (트랜잭션 종료)
+2. 반환 값 결정 (커밋하지 않는다 — 경계를 닫는 것은 호출측이다)
    if (갱신 행 수 == 1)  return at              // 이번 응답이 보관 기간 기산을 시작시켰다
-   else                  return FN-007(trackingKey).record.resultConfirmedAt
+   else                  return FN-007(trackingKey, exec).record.resultConfirmedAt
 ```
 
 ### API 인터페이스
@@ -184,9 +196,11 @@ function FN-010 (
 |---------|----------|------------|--------------|
 | FN-007 | 단계 2 | 동기 | 예외 없음 |
 
+- 이 호출도 **`exec` 와 같은 실행 문맥**에서 수행한다. 다른 커넥션에서 조회하면 같은 경계의 미커밋 변경이 보이지 않는다.
+
 ### 구현 가이드
 
-- **응답 구성과 표시를 같은 처리 경계에 둔다.** 표시가 실패하면 응답도 내보내지 않는다.
+- **응답 구성과 표시를 같은 처리 경계에 둔다.** 표시가 실패하면 응답도 내보내지 않는다. **그 경계는 호출측이 열고 닫는다** — 본 기능은 `exec` 로 받은 실행자 위에서 실행만 한다(§시그니처).
 - 인증이 없으므로 **추적 키를 아는 누구든 이 기산을 시작시킬 수 있다** — 수용 리스크이며 조회 자격 검증을 추가하지 않는다(`OPS-002-04`).
 - 생성 기산 절대 상한(`DATA-002-01` ②)이 함께 걸려 있어, 결과 확인이 영영 오지 않아도 레코드가 영구히 남지는 않는다.
 
@@ -212,9 +226,13 @@ function FN-010 (
 function FN-011 (
   trackingKey: string,      // 수신처가 통지한 추적 키·필수
   at: datetime,             // 통지 수신 시각·필수
+  exec: TxExecutor,         // 호출측이 연 트랜잭션의 실행 문맥(커넥션·실행자)·필수
 ): datetime                 // 최초 수신 일시(중복 통지도 같은 값)
   throws RecordWriteError { code: EX-BIZ-003, http: 500 }
 ```
+
+- **실행 문맥은 호출측이 넘긴다.** 호출측 트랜잭션에 참여하려면 **같은 커넥션·실행자**를 받아야 하므로 `exec` 는 필수 인자다 — 본 기능의 모든 문(UPDATE)과 하위 호출(FN-007)을 이 위에서 실행한다. 스스로 커넥션을 얻으면 호출측 경계 **밖**의 별도 커넥션을 잡아 같은 경계의 변경이 보이지 않고, 요청 하나가 커넥션을 둘 점유해 풀이 마른다.
+- **본 기능은 트랜잭션을 열지도 닫지도 않는다.** `BEGIN`·`COMMIT`·`ROLLBACK` 을 수행하지 않으며 커밋·되돌림 권한이 없다([`../processes/process_PROC-301.md`](../processes/process_PROC-301.md) §실행 제약사항). **경계는 호출측이 반드시 연다** — 완료 콜백 접점의 상위 프로세스([`PROC-203`](../processes/process_PROC-203.md) `B4`)가 그 자리이고 `PROC-301` `B6` 은 그 경계에 참여만 한다. 경계 없이 호출되면 기록이 호출측 처리와 따로 커밋돼 실패해도 되돌릴 수 없으므로, **경계 밖 호출은 사양 위반**이다.
 
 ### 입력/출력 정의
 
@@ -222,22 +240,23 @@ function FN-011 (
 |------|--------|------------|------|------|------|
 | 입력 | trackingKey | string | Y | 1~255자·대상 레코드가 존재해야 한다 | 없으면 호출측이 404 로 종료한다 |
 | 입력 | at | datetime | Y | 시간대 유지 | 수신 시각 |
+| 입력 | exec | TxExecutor | Y | 호출측이 연 트랜잭션의 커넥션·실행자 | 커넥션을 스스로 얻지 않는다. 커밋·되돌림을 수행하지 않는다 |
 | 출력 | callbackReceivedAt | datetime | - | - | 최초 수신 일시 |
 
 ### 처리 흐름 (의사코드)
 
 ```
-1. 조건부 기록 — BR-012 멱등 · POL BIZ-001-04 (BR-021 결과 구분 불변)
+1. 조건부 기록 — BR-012 멱등 · POL BIZ-001-04 · BR-021 (호출측 트랜잭션에 참여 — 새로 열지 않는다)
    UPDATE tbl_interlock_tracking
    SET callback_received_at = :at
    WHERE tracking_key = :trackingKey AND callback_received_at IS NULL;
    // result_code 를 건드리지 않는다 — 결과 확정과 완료 통지는 다른 사실이다
    // 실패 시                                   → throw EX-BIZ-003 (500)
 
-2. 반환 값 결정
+2. 반환 값 결정 (커밋하지 않는다 — 경계를 닫는 것은 호출측이다)
    if (갱신 행 수 == 1)  return at
    else
-       lookup = FN-007(trackingKey)
+       lookup = FN-007(trackingKey, exec)
        if (lookup.branch == 'NONE')             → throw EX-BIZ-003 (500)
        return lookup.record.callbackReceivedAt  // 중복 통지 — 최초 수신 시각 유지
 ```
@@ -257,6 +276,8 @@ function FN-011 (
 | FN 코드 | 호출 시점 | 동기/비동기 | 실패 시 처리 |
 |---------|----------|------------|--------------|
 | FN-007 | 단계 2 | 동기 | 예외 없음 |
+
+- 이 호출도 **`exec` 와 같은 실행 문맥**에서 수행한다. 다른 커넥션에서 조회하면 같은 경계의 미커밋 변경이 보이지 않는다.
 
 ### 구현 가이드
 

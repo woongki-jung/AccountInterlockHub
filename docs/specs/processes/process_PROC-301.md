@@ -59,6 +59,7 @@
 | 입력 | `trackingKey` | string(1~255) | Y | 대상 레코드. **변형하지 않는다** |
 | 입력 | `resultCode` | string | N | `kind = FIX_RESULT` 일 때만. 결과 구분 3종(`BIZ-001-01`) |
 | 입력 | `at` | datetime | N | 계기 발생 시각(시간대 유지). `LOOKUP` 외 전부 필수 |
+| 입력 | `exec` | TxExecutor | N | 호출측이 연 트랜잭션의 커넥션·실행자. **`LOOKUP` 외 전부 필수** — 본 프로세스의 모든 문과 하위 FN(FN-007~FN-011·FN-013)을 이 실행자 위에서 수행하며 커넥션을 스스로 얻지 않는다. `LOOKUP` 은 주면 그 경계 안에서, 없으면 단독 읽기로 조회한다 |
 | 출력 | `branch` | string | - | `NONE`·`OPEN`·`FIXED`(`LOOKUP`·`SECURE`) |
 | 출력 | `record` | [`MDL-001`](../datas/model_MDL-001.md) \| null | - | 최신 상태 |
 | 출력 | `isCreated` | boolean | - | `SECURE` 에서 이번 호출이 새로 만들었는지 |
@@ -73,7 +74,7 @@
 ### 실행 제약사항
 
 - **트랜잭션 경계**: **호출측 트랜잭션에 참여**한다. 새 트랜잭션을 열지 않고 상위가 연 경계 안에서 실행돼, 레코드 기록과 지표 계수가 함께 커밋되거나 함께 되돌려진다(`SVC-014` F-008).
-- **동시성 제어**: **모든 갱신이 조건부 UPDATE 다** — "아직 비어 있을 때만 채운다"는 같은 형태라 재요청·중복 통지·동시 요청에서 값이 덮이지 않는다. 생성은 **기본 키 충돌을 정상 경로로 흡수**한다.
+- **동시성 제어**: **모든 갱신이 조건부 UPDATE 다** — "아직 비어 있을 때만 채운다"는 같은 형태라 재요청·중복 통지·동시 요청에서 값이 덮이지 않는다. 생성은 **`ON CONFLICT (tracking_key) DO NOTHING` 으로 기본 키 충돌을 정상 경로로 흡수**한다 — **반환 행의 유무가 곧 `isCreated`** 이고, 충돌이 오류로 올라오지 않으므로 같은 경계가 살아 있는 채로 재조회가 그대로 이어진다.
 - **멱등성**: `SECURE` 는 같은 키로 여러 번 불러도 레코드 하나 · 요청 수 1회. `FIX_RESULT`·`CONFIRM_RESULT`·`RECORD_CALLBACK` 은 최초 1회만 성립하고 이후는 기존 값을 반환한다.
 - **성능 요구**: 계기당 조회 1회 + 갱신 최대 1회. 목록·범위 조회 경로를 만들지 않는다.
 - **보안 요구**: **인증 없음**(`AUTH-001`). 레코드에 사용자 정보·암호값·복호화 원문을 담지 않는다 — **담을 컬럼이 스키마에 없는 것이 1차 방어다**(`DATA-001-02`).
@@ -88,8 +89,9 @@
 C1. 기록 계기 전달 (상위 프로세스)
 
   진입 트리거: 상위 프로세스가 기록해야 할 사실을 확정한 시점
-  전달 값: { kind, trackingKey, resultCode?, at }
-  트랜잭션: 상위가 BEGIN 을 이미 열었다면 그 경계 안에서 호출한다
+  전달 값: { kind, trackingKey, resultCode?, at, exec }
+  트랜잭션: 갱신 계기는 상위가 BEGIN 으로 경계를 열고 그 커넥션·실행자를 exec 로 함께 넘긴다
+            — 넘기지 않으면 별도 커넥션에서 실행돼 참여가 성립하지 않는다 (LOOKUP 은 경계 없이도 성립한다)
             (SECURE·FIX_RESULT 는 지표 계수와 함께 커밋돼야 한다 — SVC-014 F-008)
   전달 규칙:
     trackingKey 는 복호화로 얻었거나 요청 본문으로 받은 값 그대로다 (POL DATA-004-01)
@@ -137,13 +139,18 @@ B3. 레코드 생성·이어쓰기 — FN-008 · POL BIZ-002-01 · BIZ-002-04 (�
   if (branch == 'OPEN')    return { branch: 'OPEN',  record, isCreated: false }
       // 새로고침·재진입·본인확인 재시도가 여기로 수렴한다 (POL BIZ-002-03 ②)
 
-  try  INSERT INTO tbl_interlock_tracking (tracking_key) VALUES (:trackingKey);
-       -- result_code·result_at·result_confirmed_at·callback_received_at 은 NULL
-       -- created_at 은 기본값 now()
-  catch (기본 키 충돌)                            // 같은 키의 동시 진입
-       재조회 후 return { branch: <재조회 결과>, record, isCreated: false }
-       // 오류가 아니라 이어쓰기로 수렴한다 (POL BIZ-002-03 ②)
-  catch (그 밖의 저장 실패)                       → throw EX-BIZ-003 (500)
+  INSERT INTO tbl_interlock_tracking (tracking_key)
+  VALUES (:trackingKey)
+  ON CONFLICT (tracking_key) DO NOTHING          -- 기본 키 충돌을 오류로 만들지 않는다
+  RETURNING tracking_key;                        -- 반환 행의 유무가 곧 isCreated 다
+  -- result_code·result_at·result_confirmed_at·callback_received_at 은 NULL
+  -- created_at 은 기본값 now()
+  실행 실패(충돌 외의 제약 위반·연결 오류)       → throw EX-BIZ-003 (500)
+
+  if (반환 행 수 == 0)                            // 같은 키의 동시 진입 — 충돌
+      lookup = B2 재수행                          // 충돌이 오류로 올라오지 않아 경계가 살아 있다
+      return { branch: lookup.branch, record: lookup.record, isCreated: false }
+      // 오류가 아니라 이어쓰기로 수렴한다 (POL BIZ-002-03 ②)
 
   PROC-303({ kind: 'REQUEST', at })              // 요청 수 +1 · 같은 트랜잭션
       // 실패 시 EX-BIZ-003 전파 → INSERT 와 함께 되돌린다 (POL BIZ-005-02 ①)
@@ -268,7 +275,7 @@ B7. 기록 결과 반환
 ### 구현 가이드
 
 - **네 갱신을 모두 조건부 UPDATE 로 만든다.** 조회 후 응용 코드에서 판정하면 같은 추적 키의 동시 요청에서 값이 덮인다([`../datas/data_ENT-001.md`](../datas/data_ENT-001.md) §구현 가이드).
-- **기본 키 충돌을 오류로 다루지 않는다.** 정상 재시도가 500 으로 끝나는 대표적 원인이다.
+- **기본 키 충돌을 오류로 다루지 않는다.** 정상 재시도가 500 으로 끝나는 대표적 원인이다. **예외로 포착해 같은 트랜잭션에서 재조회하는 형태는 아예 실행되지 않는다** — 문 하나가 오류로 끝나면 그 트랜잭션은 중단 상태가 되어 되감기 전에는 뒤따르는 조회가 실행되지 않기 때문이다([`../functions/function_FN-007-008.md`](../functions/function_FN-007-008.md) FN-008 §구현 가이드).
 - **새 트랜잭션을 열지 않는다.** 상위가 연 경계에 참여해야 레코드와 지표가 함께 커밋된다.
 - **`at` 을 본 프로세스에서 새로 만들지 않는다.** 호출측이 준 시각을 그대로 써야 지표 일자와 기록 일시가 갈리지 않는다.
 - **`branch = 'NONE'` 에 새 레코드를 만들지 않는다** — `SECURE` 계기만 생성 권한을 갖는다(`BIZ-002-03`).
