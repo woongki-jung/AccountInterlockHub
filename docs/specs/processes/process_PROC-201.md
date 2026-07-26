@@ -122,6 +122,8 @@ B2. 입력 검증 — FN-006 · POL DATA-004-03 (validate)
 B3. 추적 키 사전 조회 — PROC-301 호출 · POL BIZ-002-05 · DATA-002-05 (validate)
 
   lookup = PROC-301({ kind: 'LOOKUP', trackingKey: body.trackingKey })
+      // exec 를 넘기지 않는다 — 이 자리는 아직 경계를 열지 않았다(BEGIN 은 B5 다).
+      //   LOOKUP 은 단독 읽기로 성립한다 (빠뜨린 것이 아니다 — PROC-301 §입력/출력 정의)
       // PROC-301 B2 (FN-007):
       //   SELECT tracking_key, result_code, result_at, result_confirmed_at,
       //          callback_received_at, created_at
@@ -144,9 +146,10 @@ B4. 응답 값 산출 — POL BIZ-001-03 (mask)
 B5. 결과 확인 표시 — PROC-301 호출 · POL DATA-002-01 ① · BR-010 (트랜잭션)
 
   if (draft.resultCode != null)                 // §결과 확인 표시 판정 기준
-      BEGIN;
+      BEGIN;                                    // 경계를 여는 자리는 여기다
         confirmedAt = PROC-301({ kind: 'CONFIRM_RESULT',
-                                 trackingKey: body.trackingKey, at: NOW() })
+                                 trackingKey: body.trackingKey, at: NOW(), exec })
+            // exec = 여기서 연 커넥션·실행자를 그대로 넘긴다 — 이 전달이 참여의 성립 조건이다
             // PROC-301 B5 (FN-010):
             //   UPDATE tbl_interlock_tracking
             //   SET result_confirmed_at = :at
@@ -232,6 +235,7 @@ B6. 응답 송출 — POL DATA-004-01 (mask)
 ### 구현 가이드
 
 - **표시와 응답을 같은 처리 경계에 둔다.** 표시가 실패하면 응답도 내보내지 않는다 — 응답만 나가고 기산이 시작되지 않으면 보관 규칙이 어긋난다.
+- **`B5` 의 `BEGIN` 이 경계를 여는 자리다.** PROC-301 과 그 하위 FN 은 넘겨받은 실행 문맥(`exec`)으로 **참여만 한다** — `exec` 를 넘기지 않으면 하위가 경계 **밖**의 별도 커넥션을 잡아 같은 경계의 변경이 보이지 않고 요청 하나가 커넥션을 둘 점유한다([`../functions/function_FN-009-011.md`](../functions/function_FN-009-011.md) FN-010 §시그니처). **`B3` 조회(`LOOKUP`)는 그 반대다** — 아직 경계가 없는 자리라 `exec` 없이 단독 읽기로 부르는 것이 옳다.
 - **결과 미확정 레코드에는 표시하지 않는다.** 발송처가 결과를 받아 가지 못했는데 삭제 시점이 앞당겨지는 것을 막는다([`../functions/function_FN-009-011.md`](../functions/function_FN-009-011.md) §결과 확인 표시 판정 기준).
 - **400·404 로 끝난 요청에는 표시가 발생하지 않는다.** 형식 위반·대상 없음은 결과를 담아 응답한 것이 아니다.
 - **추적 키를 정규화하지 않는다.** 조회 조건과 응답 에코 모두 입력 문자열 그대로다(`DATA-004-01`).

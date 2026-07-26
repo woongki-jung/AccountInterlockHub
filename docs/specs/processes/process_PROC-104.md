@@ -126,6 +126,8 @@ B2. 복호화 판정(재복호화) — FN-004 · POL BIZ-002-06 · SEC-002-01 (v
   catch (EX-AUTH-002)  → 400 EX-AUTH-002        // 본인확인 재입력으로 되돌린다 · 결과 미확정
   catch (EX-SEC-001)   → 400 EX-SEC-001         // 결과 경로 ②
   catch (EX-SEC-002)   → PROC-303({ kind: 'UNIDENTIFIED_FAILURE', at: NOW() })
+                          // exec 를 넘기지 않는다 — 이 자리는 경계를 열지 않아 넘길 실행 문맥이
+                          //   없고, 계수 UPSERT 한 문장이 그 자체로 원자적이다 (빠뜨린 것이 아니다)
                           → 400 EX-SEC-002      // DECRYPT_FAILED 계수 · 결과 경로 ②
   trackingKey = payload.trackingKey             // 무변형
   return { trackingKey, payload }               // 메모리 전용 — 어떤 저장소에도 넣지 않는다
@@ -168,8 +170,9 @@ B5. 전달 실패 재시도 — POL BIZ-004-02 (validate)
 B6. 결과 확정·기록 — PROC-301 호출 · POL BIZ-004-03 · BIZ-001-04 (트랜잭션)
 
   resultCode = (delivery.ok ? 'SUCCESS' : 'DELIVERY_FAILED')
-  BEGIN ISOLATION LEVEL READ COMMITTED;
-    PROC-301({ kind: 'FIX_RESULT', trackingKey, resultCode, at: NOW() })
+  BEGIN ISOLATION LEVEL READ COMMITTED;          // 경계를 여는 자리는 여기다
+    PROC-301({ kind: 'FIX_RESULT', trackingKey, resultCode, at: NOW(), exec })
+        // exec = 여기서 연 커넥션·실행자를 그대로 넘긴다 — 이 전달이 참여의 성립 조건이다
         // PROC-301 B4: UPDATE tbl_interlock_tracking
         //              SET result_code = :resultCode, result_at = :at
         //              WHERE tracking_key = :trackingKey AND result_code IS NULL;
@@ -269,3 +272,4 @@ B8. 결과 안내 이관 — POL SEC-002-05 (mask)
 - **재시도 간격·횟수를 코드에 박지 않는다.** 값은 `BIZ-004-02` 가 정본이며 상수·설정으로 주입한다.
 - **회당 대기 상한 × 시도 횟수 + 간격 합이 총 상한을 넘지 않게 구성한다.** 사용자가 화면에서 기다리는 시간이다.
 - **`B2` 실패와 `B6` 실패를 같은 처리로 묶지 않는다.** 전자는 전달 전이라 결과를 확정하지 않고, 후자는 이미 전달된 뒤라 재시도가 중복 전달을 부른다.
+- **`B6` 의 `BEGIN` 이 경계를 여는 자리다.** PROC-301·PROC-303 과 그 하위 FN 은 넘겨받은 실행 문맥(`exec`)으로 **참여만 한다** — 열지도 닫지도 않는다. `exec` 를 넘기지 않으면 하위가 경계 **밖**의 별도 커넥션을 잡아 결과 확정과 결과 카운터가 각각 커밋되고 요청 하나가 커넥션을 둘 점유한다([`../functions/function_FN-009-011.md`](../functions/function_FN-009-011.md) FN-009 §시그니처). **`B2` 의 `UNIDENTIFIED_FAILURE` 계수는 그 반대다** — 경계를 열지 않는 자리라 `exec` 를 넘기지 않는 것이 옳다([`../functions/function_FN-012-013.md`](../functions/function_FN-012-013.md) FN-013 §시그니처).

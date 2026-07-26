@@ -40,6 +40,7 @@ function FN-012 (
 
 - **실행 문맥은 호출측이 넘긴다.** 호출측 트랜잭션에 참여하려면 **같은 커넥션·실행자**를 받아야 하므로 `exec` 는 필수 인자다 — 본 기능의 모든 문(INSERT)을 이 위에서 실행한다. 스스로 커넥션을 얻으면 호출측 경계 **밖**의 별도 커넥션을 잡아 같은 경계의 변경이 보이지 않고, 요청 하나가 커넥션을 둘 점유해 풀이 마른다.
 - **본 기능은 트랜잭션을 열지도 닫지도 않는다.** `BEGIN`·`COMMIT`·`ROLLBACK` 을 수행하지 않으며 커밋·되돌림 권한이 없다([`../processes/process_PROC-302.md`](../processes/process_PROC-302.md) §실행 제약사항). **경계는 호출측이 반드시 연다** — 승인 확정의 상위 프로세스([`PROC-103`](../processes/process_PROC-103.md) `B6`)가 그 자리이고 `PROC-302` 는 그 경계에 참여만 한다. 경계 없이 호출되면 증적 기록이 승인 확정과 따로 커밋돼 증적 없는 승인·승인 없는 증적이 생기므로(`BIZ-003-04`), **경계 밖 호출은 사양 위반**이다.
+- **전달 경로는 `PROC-103` `B6` → `PROC-302` → 본 기능 한 줄이다.** `B6` 이 연 커넥션·실행자를 `PROC-302` 가 `exec` 로 받아 **그대로** 본 기능에 넘긴다([`../processes/process_PROC-302.md`](../processes/process_PROC-302.md) §입력/출력 정의). 중간 어느 지점에서든 새로 커넥션을 얻으면 `B6` 이 추적 레코드 행에 건 `FOR UPDATE` 와 갈려 동시 승인 직렬화가 무너진다.
 
 ### 입력/출력 정의
 
@@ -139,7 +140,8 @@ function FN-013 (
 ```
 
 - **`REQUEST`·`RESULT` 계기는 `exec` 를 반드시 넘긴다.** 레코드 기록과 함께 커밋되거나 함께 되돌려져야 하므로 **같은 커넥션·실행자**를 받아야 한다([`../processes/process_PROC-303.md`](../processes/process_PROC-303.md) §실행 제약사항 · `SVC-014` F-008). 생략하면 별도 커넥션에서 갱신돼 **호출측이 되돌려도 계수만 남고**, 요청 하나가 커넥션을 둘 점유해 풀이 마른다.
-- **`UNIDENTIFIED_FAILURE` 만 `exec` 없이 부른다.** 그 계기의 호출 지점([`PROC-101`](../processes/process_PROC-101.md) `B5` · [`PROC-102`](../processes/process_PROC-102.md) `B4b` · [`PROC-104`](../processes/process_PROC-104.md) `B2`)은 호출측이 경계를 열지 않는 자리라 넘길 실행 문맥이 없고, 단계 4 의 UPSERT 한 문장이 그 자체로 원자적이다.
+- **`UNIDENTIFIED_FAILURE` 만 `exec` 없이 부른다.** 그 계기의 호출 지점([`PROC-101`](../processes/process_PROC-101.md) `B5` · [`PROC-102`](../processes/process_PROC-102.md) `B4b` · [`PROC-104`](../processes/process_PROC-104.md) `B2`)은 호출측이 경계를 열지 않는 자리라 넘길 실행 문맥이 없고, 단계 4 의 UPSERT 한 문장이 그 자체로 원자적이다. **세 자리의 인자 없음은 표기 누락이 아니라 사양이다** — 나중에 `exec` 를 채워 넣지 않는다([`../processes/process_PROC-303.md`](../processes/process_PROC-303.md) §진입점 및 진입 조건).
+- **`REQUEST`·`RESULT` 의 전달 경로는 경계를 연 프로세스에서 한 줄로 이어진다.** `REQUEST` 는 `PROC-102` `B6`·`PROC-103` `B3` → `PROC-301` `B3`(FN-008) → 본 기능, `RESULT` 는 `PROC-104` `B6` → `PROC-301` `B4`(FN-009) → 본 기능이며, 각 구간이 받은 `exec` 를 **그대로** 넘긴다. `PROC-303` 을 경유하는 표기도 같은 `exec` 를 전달한다([`../processes/process_PROC-303.md`](../processes/process_PROC-303.md) §입력/출력 정의).
 - **본 기능은 트랜잭션을 열지도 닫지도 않는다.** `BEGIN`·`COMMIT`·`ROLLBACK` 을 수행하지 않으며 커밋·되돌림 권한이 없다 — 경계를 여닫는 것은 호출측이다.
 
 ### 입력/출력 정의

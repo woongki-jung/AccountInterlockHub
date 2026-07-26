@@ -120,6 +120,8 @@ B2. 입력 검증 — FN-006 · POL DATA-004-03 (validate)
 B3. 추적 키 사전 조회 — PROC-301 호출 · POL BIZ-002-03 · BIZ-002-05 (validate)
 
   lookup = PROC-301({ kind: 'LOOKUP', trackingKey: body.trackingKey })
+      // exec 를 넘기지 않는다 — 이 자리는 아직 경계를 열지 않았다(BEGIN 은 B4 다).
+      //   LOOKUP 은 단독 읽기로 성립한다 (빠뜨린 것이 아니다 — PROC-301 §입력/출력 정의)
       // PROC-301 B2 (FN-007):
       //   SELECT tracking_key, result_code, result_at, result_confirmed_at,
       //          callback_received_at, created_at
@@ -130,9 +132,10 @@ B3. 추적 키 사전 조회 — PROC-301 호출 · POL BIZ-002-03 · BIZ-002-05
 
 B4. 완료 콜백 기록 — PROC-301 호출 · BR-012 · POL BIZ-001-04 (트랜잭션)
 
-  BEGIN ISOLATION LEVEL READ COMMITTED;
+  BEGIN ISOLATION LEVEL READ COMMITTED;          // 경계를 여는 자리는 여기다
     receivedAt = PROC-301({ kind: 'RECORD_CALLBACK',
-                            trackingKey: body.trackingKey, at: NOW() })
+                            trackingKey: body.trackingKey, at: NOW(), exec })
+        // exec = 여기서 연 커넥션·실행자를 그대로 넘긴다 — 이 전달이 참여의 성립 조건이다
         // PROC-301 B6 (FN-011):
         //   UPDATE tbl_interlock_tracking
         //   SET callback_received_at = :at
@@ -218,3 +221,4 @@ B5. 응답 구성 — POL DATA-004-01 (mask)
 - **결과 구분을 바꾸지 않는다.** 전달이 실패한 연동에 통지가 와도 사실만 기록하고 정합을 검사하지 않는다(BR-021).
 - **본문의 다른 필드를 저장하지 않는다.** 담을 컬럼이 스키마에 없는 것이 1차 방어다(`DATA-001-01`).
 - **위조 통지 방어를 추가하지 않는다.** 서명·출처 검증 도입은 범위 밖이며 수용 리스크로 관리한다(`OPS-002-02`·`OPS-002-05`).
+- **`B4` 의 `BEGIN` 이 경계를 여는 자리다.** PROC-301 과 그 하위 FN 은 넘겨받은 실행 문맥(`exec`)으로 **참여만 한다** — `exec` 를 넘기지 않으면 하위가 경계 **밖**의 별도 커넥션을 잡아 같은 경계의 변경이 보이지 않고 요청 하나가 커넥션을 둘 점유한다([`../functions/function_FN-009-011.md`](../functions/function_FN-009-011.md) FN-011 §시그니처). **`B3` 조회(`LOOKUP`)는 그 반대다** — 아직 경계가 없는 자리라 `exec` 없이 단독 읽기로 부르는 것이 옳다.

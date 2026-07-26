@@ -109,14 +109,16 @@ B5b. 승인 요청 재검증 — POL BIZ-003-02 (validate)      // B5a 는 결�
 
 B6. 승인 확정·동의 증적 기록 — PROC-302 호출 · POL BIZ-003-04 (트랜잭션)
 
-  BEGIN;
+  BEGIN;                                         // 경계를 여는 자리는 여기다 (B3 와 별개의 경계)
     -- 같은 추적 키의 동시 승인을 직렬화한다 (ENT-002 §구현 가이드)
     SELECT tracking_key FROM tbl_interlock_tracking
     WHERE tracking_key = :trackingKey
     FOR UPDATE;
 
     proof = PROC-302({ trackingKey, submission: { agreedItemCodes },
-                       consent, at: NOW() })
+                       consent, at: NOW(), exec })
+        // exec = 여기서 연 커넥션·실행자를 그대로 넘긴다 — 이 전달이 참여의 성립 조건이다
+        //        (행 잠금을 건 커넥션과 같아야 직렬화가 성립한다)
         // PROC-302 B4: INSERT INTO tbl_consent_proof (…) VALUES (…)
   COMMIT;
   실패 → 500 FN-014('EX-BIZ-003')

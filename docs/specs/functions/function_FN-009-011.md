@@ -65,7 +65,9 @@ function FN-009 (
 
 3. 갱신 행 수 판정
    if (갱신 행 수 == 1)
-       FN-013({ kind: 'RESULT', resultCode, at })   // POL BIZ-005-04 · exec 와 같은 실행 문맥
+       FN-013({ kind: 'RESULT', resultCode, at }, exec)  // POL BIZ-005-04 · exec 와 같은 실행 문맥
+           // 받은 exec 를 두 번째 인자로 그대로 넘긴다 — 이 전달이 참여의 성립 조건이다
+           //   (FN-013 §시그니처 — 실행 문맥은 event 객체가 아니라 두 번째 인자로 받는다)
    else
        lookup = FN-007(trackingKey, exec)
        if (lookup.branch == 'NONE')             → throw EX-BIZ-003 (500)
