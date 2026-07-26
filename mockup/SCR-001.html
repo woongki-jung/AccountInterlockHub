@@ -116,7 +116,7 @@
 
 <div class="page">
   <main class="card">
-    <h1 class="stage-title">본인 확인</h1>
+    <h1 class="stage-title" tabindex="-1">본인 확인</h1>
     <p class="stage-desc">생년월일 여섯 자리를 입력하면 연동을 계속할 수 있습니다.</p>
 
     <div class="field" id="field-wrap">
@@ -173,6 +173,10 @@
     if(!s) return;
     input.value = s.value;
     input.readOnly = s.readonly;
+    // 입력 필드 잠금 = 제출 중에만 aria-busy 를 세우고 그 밖의 상태에서는 지운다
+    // (design-system.md §상태 표현 — 로딩(제출 중) 행). 잠금 상태를 갖는 것은 submitting 하나다.
+    if (s.readonly) input.setAttribute('aria-busy', 'true');
+    else input.removeAttribute('aria-busy');
     fieldWrap.classList.toggle('has-error', s.fieldError);
     input.setAttribute('aria-invalid', s.fieldError ? 'true' : 'false');
 
