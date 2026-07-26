@@ -28,6 +28,16 @@ interface StageTitleProps {
   variant?: StageTitleVariant;
   /** 배치 축 — 미지정 시 `'card'`(기존 카드 직계 거동 그대로). */
   placement?: StageTitlePlacement;
+  /**
+   * 이 마운트에서 제목 자동 포커스를 건너뛴다 — design-system.md §접근성
+   * 기준(commit `a8058a0`) "단계 전환과 필드에 매인 안내가 겹치면
+   * 포커스는 그 필드가 가져간다". 호출측(화면 컴포넌트)이 필드·첫
+   * 미충족 항목 등으로 포커스를 직접 옮길 때만 true 로 넘긴다.
+   * `document.title` 갱신은 이 값과 무관하게 항상 수행한다
+   * (`useStageFocus`). 미지정 시 `false`(기존 거동 그대로 — SCR-003·
+   * SCR-004 는 이 prop 을 넘기지 않아 전역 규칙이 유지된다).
+   */
+  skipFocus?: boolean;
 }
 
 /**
@@ -46,9 +56,22 @@ interface StageTitleProps {
  * ="-1"`)인 이 제목은 단계 전환의 프로그램적 `.focus()` 가 포커스를 받는
  * 유일한 경로라 `:focus-visible` 하나에만 걸면 규칙이 닿지 않는다(같은
  * 문서 §접근성 기준 근거 문단).
+ *
+ * `skipFocus` — 단계 전환과 필드에 매인 안내가 겹치는 두 자리(`SCR-001`
+ * `BackToIdentity`·`SCR-002` `BackToConsent`(`EX-BIZ-001`))에서는 호출측이
+ * true 를 넘겨 이 제목이 포커스를 가져가지 않게 한다(design-system.md
+ * §접근성 기준 확정, commit `a8058a0`). React effect 실행 순서(자식이
+ * 부모보다 먼저 실행된다)에 기대어 "부모가 나중에 덮어써서 우연히
+ * 맞는다"에 의존하지 않는다 — `useStageFocus` 참고.
  */
-export function StageTitle({ title, subtitle, variant = 'default', placement = 'card' }: StageTitleProps) {
-  const headingRef = useStageFocus(title);
+export function StageTitle({
+  title,
+  subtitle,
+  variant = 'default',
+  placement = 'card',
+  skipFocus = false,
+}: StageTitleProps) {
+  const headingRef = useStageFocus(title, skipFocus);
   const sizeClassName = variant === 'result' ? styles.titleResult : styles.titleDefault;
 
   const heading = (

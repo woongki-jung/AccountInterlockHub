@@ -13,9 +13,28 @@ import { useEffect, useRef } from 'react';
  * 어긋나지 않게 한다.
  *
  * @param title 지금 보이는 제목 문구. 빈 문자열이면 아무 것도 하지 않는다.
+ * @param skipFocus design-system.md §접근성 기준(commit `a8058a0`) —
+ *   "단계 전환과 필드에 매인 안내가 겹치면 포커스는 그 필드가 가져간다."
+ *   true 면 `document.title` 갱신은 그대로 수행하되 `.focus()` 는 **아예
+ *   호출하지 않는다**. 어떤 요소가 대신 포커스를 받을지는 이 훅이
+ *   알지 못하고 알 필요도 없다 — 호출측(StageTitle → 화면 컴포넌트)이
+ *   자기 소관 요소(필드·첫 미충족 항목)로 포커스를 옮길 책임을 진다.
+ *
+ *   🔴 React effect 실행 순서(자식이 부모보다 먼저 실행된다)에 기대어
+ *   "어차피 부모 effect 가 나중에 덮어써서 우연히 맞는다"에 의존하지
+ *   않는다 — 이 훅은 `skipFocus=true` 면 애초에 `focus()` 를 부르지
+ *   않으므로, 화면 컴포넌트가 자기 effect 를 부모·자식 어느 순서로
+ *   실행하든(향후 컴포넌트 트리가 바뀌어도) 결과가 흔들리지 않는다.
  */
-export function useStageFocus(title: string) {
+export function useStageFocus(title: string, skipFocus = false) {
   const headingRef = useRef<HTMLHeadingElement>(null);
+  // 아래 effect 는 title 이 바뀔 때만 재실행돼야 한다(그렇지 않으면
+  // 사용자가 입력을 고치는 도중 알림이 해제되며 skipFocus 가 바뀌는
+  // 것만으로 제목이 포커스를 다시 가로챌 위험이 있다). 그래서 skipFocus
+  // 를 의존성 배열에 넣지 않고, 매 렌더 최신값을 ref 에 반영해 두었다가
+  // effect 가 실제로 실행되는 시점(마운트 직후)에 그 순간의 값을 읽는다.
+  const skipFocusRef = useRef(skipFocus);
+  skipFocusRef.current = skipFocus;
 
   useEffect(() => {
     if (!title) return;
@@ -23,7 +42,11 @@ export function useStageFocus(title: string) {
     // 새 단계 진입 시 스크린리더 사용자에게 변화를 알리기 위해 제목으로
     // 포커스를 옮긴다. h1 은 tabindex="-1" 로 두어 포커스만 받고 탭
     // 순서에는 끼지 않는다(design-system-components.md §StageTitle).
-    headingRef.current?.focus();
+    // 단, 필드에 매인 안내가 함께 뜨는 전환에서는 이 호출을 건너뛴다
+    // (위 skipFocus 참고).
+    if (!skipFocusRef.current) {
+      headingRef.current?.focus();
+    }
     // title 이 바뀔 때(= 화면이 바뀔 때)만 재실행한다. headingRef 는 매
     // 렌더 같은 ref 객체라 의존성에 넣을 필요가 없다.
     // eslint-disable-next-line react-hooks/exhaustive-deps

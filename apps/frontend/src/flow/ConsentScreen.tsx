@@ -47,6 +47,19 @@ export function ConsentScreen({ view, agreedCodes, onToggle, onApprove, onGated 
 
   const allRequiredMet = isAllRequiredMet(view.consent.items, agreedCodes);
 
+  /**
+   * 제목 자동 포커스를 건너뛰는가 — design-system.md §접근성 기준(commit
+   * `a8058a0`) "단계 전환과 필드에 매인 안내가 겹치면 포커스는 그 필드가
+   * 가져간다"의 두 자리 중 `BackToConsent`(`SCR-003` → `SCR-002` ·
+   * 400 `EX-BIZ-001`) 쪽 — 도착 상태 `Blocked` 는 "첫 미충족 항목으로
+   * 포커스"이므로 위 useEffect 가 그 항목으로 옮긴다. `Retryable`
+   * (`EX-BIZ-003`)·`Gated`(화면 게이팅)는 이 예외에 해당하지 않는다 —
+   * 전자는 사양이 그대로 제목으로 보내고, 후자는 이미 마운트된 화면의
+   * 갱신이라(`title` 불변) `useStageFocus` 의 effect 가 애초에 재실행되지
+   * 않아 이 값이 읽히지 않는다.
+   */
+  const skipTitleFocus = view.alert?.kind === 'blocked';
+
   function handleApproveClick() {
     if (!allRequiredMet) {
       onGated(GATED_MESSAGE);
@@ -57,7 +70,11 @@ export function ConsentScreen({ view, agreedCodes, onToggle, onApprove, onGated 
 
   return (
     <div>
-      <StageTitle title="연동 동의" subtitle="아래 내용을 확인하고 모든 항목에 동의해 주세요." />
+      <StageTitle
+        title="연동 동의"
+        subtitle="아래 내용을 확인하고 모든 항목에 동의해 주세요."
+        skipFocus={skipTitleFocus}
+      />
       <NoticeBlock notice={view.consent.notice} />
       <ConsentList ref={consentListRef} items={view.consent.items} agreedCodes={agreedCodes} onToggle={onToggle} />
       {view.alert ? (
