@@ -86,7 +86,6 @@ export class ConsentApprovalService {
     // 수신처 이중 전달을 만든다(process_PROC-103-logic.md B6 · 2026-07-26 spec 회귀 964e8d0 —
     // build tester 실측 재현, 사양 결함 5·9). B3 의 secured.record 를 재사용하지 않는다 — 그
     // 사이 상대 요청이 결과를 확정했을 수 있다.
-    const consentedAt = new Date();
     const lockOutcome = await this.db.withTransaction(async (client): Promise<ConsentProofLockOutcome> => {
       // 행 전체를 잠근 채로 읽는다(MDL-001 구성에 쓴다 — process_PROC-103-logic.md B6 "행 전체를
       // 읽는다"). tracking_key 뿐이던 이전 잠금 조회를 6컬럼 전체로 넓혔다 — result_code 를 알아야
@@ -108,7 +107,11 @@ export class ConsentApprovalService {
 
       // 전달 시도 표지 확인 — 잠금을 쥔 채로 본다. 증적은 B7 전달 직전에 커밋되므로 그 존재가
       // 곧 "이 레코드로 전달을 시도했다"는 표지다(BIZ-003-04). 이번 레코드에 속한 증적만
-      // 센다 — consented_at >= 잠근 레코드의 created_at(§구현 가이드). tracking_key 만으로
+      // 센다 — consented_at >= 잠근 레코드의 created_at(§구현 가이드). 두 시각 모두 같은 DB
+      // 시계에서 나온다 — ENT-001.created_at·ENT-002.consented_at 모두 컬럼 기본값 now() 가
+      // 쓰고 어느 쪽도 응용 시계(new Date())를 싣지 않는다. B3 트랜잭션(이 행을 만든 트랜잭션)이
+      // 이 트랜잭션(B6)보다 먼저 커밋되므로, consented_at >= created_at 은 시계 정합에 기대지
+      // 않고 구조로 성립한다(process_PROC-103-logic.md B6 127~133행). tracking_key 만으로
       // 세면 앞선 보관 주기의 증적(EXC-BIZ-04 — 증적이 추적 레코드보다 오래 남는다)에 걸려
       // 삭제 후 재수신된 정상 연동이 영구히 승인되지 않는다(매 제출이 500 으로 끝난다). 한
       // 레코드의 생애에 승인 주기는 하나뿐이라 이 조건이 "이번 레코드에 속한 증적"과 정확히
@@ -134,7 +137,6 @@ export class ConsentApprovalService {
         trackingKey: gate.trackingKey,
         submission: { agreedItemCodes: request.agreedItemCodes },
         consent: this.interlockConfig.consent,
-        at: consentedAt,
       });
       return { kind: 'PROOF_RECORDED' };
     });

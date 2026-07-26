@@ -10,7 +10,6 @@ export interface RecordConsentProofInput {
   readonly submission: ConsentSubmissionInput;
   /** PROC-901 이 기동 시 산출한 MDL-008 그대로(재계산하지 않는다 — DATA-003-03 구현 가이드). */
   readonly consent: ConsentConfig;
-  readonly at: Date;
 }
 
 /**
@@ -32,7 +31,7 @@ export interface RecordConsentProofInput {
 @Injectable()
 export class ConsentProofRecordService {
   async recordConsentProof(executor: QueryExecutor, input: RecordConsentProofInput): Promise<ConsentProofModel> {
-    const { trackingKey, submission, consent, at } = input;
+    const { trackingKey, submission, consent } = input;
 
     // 1. 계기 검증 — POL DATA-003-04·BIZ-003-01(마지막 방어. 화면 유효성 안내·서버 재검증은
     //    승인 제출 접점(PROC-103, 후속 Phase) 소관이며 이 함수에 도달하기 전에 걸러진다)
@@ -63,13 +62,18 @@ export class ConsentProofRecordService {
     };
 
     // 4. 증적 1건 기록 — 실패 시 EX-BIZ-003(승인 확정 트랜잭션과 함께 되돌린다, BIZ-003-04)
+    // 승인 확정 시각을 인자로 받지 않는다. consented_at 은 ENT-002 컬럼 기본값 now()(이
+    // 트랜잭션의 DB 시계)가 쓰며, RETURNING 이 준 실제 기록 값을 그대로 반환한다 — 응용 시계
+    // 값을 실으면 created_at 과 출처가 갈려 PROC-103 B6 의 전달 시도 표지 검사가 조용히
+    // 무력해진다(process_PROC-302.md B4 · function_FN-012-013.md §시그니처 · data_ENT-002.md
+    // §속성 정의 consented_at).
     try {
       const result = await executor.query<ConsentProofRow>(
         `INSERT INTO ${CONSENT_PROOF_TABLE}
-           (tracking_key, consented_at, consent_version, consent_snapshot, agreed_item_codes)
-         VALUES ($1, $2, $3, $4, $5)
+           (tracking_key, consent_version, consent_snapshot, agreed_item_codes)
+         VALUES ($1, $2, $3, $4)
          RETURNING consent_proof_id, tracking_key, consented_at, consent_version, consent_snapshot, agreed_item_codes`,
-        [trackingKey, at, consent.version, JSON.stringify(snapshot), JSON.stringify(submission.agreedItemCodes)],
+        [trackingKey, consent.version, JSON.stringify(snapshot), JSON.stringify(submission.agreedItemCodes)],
       );
       // 5. 도메인 변환·반환(생성 후 불변 — 갱신 경로를 만들지 않는다)
       return toConsentProofModel(result.rows[0] as ConsentProofRow);
