@@ -22,7 +22,7 @@
 	| 5 | `검증` | 검증 | 제품 프로젝트에만 활성 |
 	| 6 | `사양` | 사양 | |
 	| 7 | `작업세션` | 작업세션 | |
-	| 8 | `Report` | report | **전 프로젝트 미활성 — 현재 사용 불가**(§트래커 구성) |
+	| 8 | `Report` | report | 3개 프로젝트 전부 활성(2026-07-26). 🔴 **등록은 3단계**(§트래커 구성) |
 
 	id 3 은 결번이다(기본 트래커 삭제 흔적). 신규 프로젝트 활성 목록은 §프로젝트 생성 표준 절차 2번.
 
@@ -46,13 +46,11 @@ docker exec -e SECRET_KEY_BASE_DUMMY=1 redmine bin/rails runner /tmp/<script>.rb
 
 - `SECRET_KEY_BASE_DUMMY=1`: `docker exec` 는 이미지 entrypoint 를 우회해 secret_key_base 가 비어 부팅이 실패하므로 임시 시크릿으로 부팅한다(DB 작업엔 실제 값 불필요).
 - 스크립트는 `docker cp` 로 컨테이너에 넣고 경로를 인자로 준다. Git Bash 는 `/tmp/...` 인자를 Windows 경로로 변환하므로 `MSYS_NO_PATHCONV=1` 로 변환을 막는다.
-- 현 트래커 세트(그룹·오류·기능·사양·검증·작업세션)는 구성 완료 상태다. 새 트래커 추가 시 전 프로젝트 활성 + 기존 트래커의 워크플로 전이를 복사한다.
-- **미완 — `Report` 트래커 활성화**: 작업 보고 정책([`work-tracking.md`](work-tracking.md) §작업 보고)이 요구하는 트래커는 **생성됐다(`Report`=8)**. 그러나 **어느 프로젝트에도 활성화되지 않아 아직 쓸 수 없다** — 그 상태로 `tracker_id: 8` 을 POST 하면 Redmine 이 422 `Tracker is not included in the list` 로 거부한다(조용한 실패가 아니라 명시적 오류). 남은 작업은 셋이다.
-	1. **전 프로젝트 활성** — 실측 결과 3개 프로젝트(`ai-workgroup-ops`·`accountinterlockhub`·`smoke-test`) 모두 미포함.
-	2. **워크플로 전이 확인·보정** — 특히 **신규→완료 전이가 전 역할에 있어야 한다.** 없으면 등록 시 `status_id: 5` 가 조용히 기본 상태로 떨어지고, 열린 하위가 남아 부모(작업세션 이슈·루프 그룹 일감)를 닫을 수 없다. 워크플로는 REST 로 조회할 수 없어 실행 전 확인이 불가하다 — 아래 스크립트가 명시 생성으로 보장한다.
-	3. **문서 반영** — 완료 후 위 §요소 식별자의 "전 프로젝트 미활성" 표기와 본 항목을 제거한다.
-	- **실행본**: 위 1·2 를 수행하는 멱등 스크립트가 [`ai/scripts/redmine-create-report-tracker.rb`](../scripts/redmine-create-report-tracker.rb) 에 있다. 이미 있는 `Report`(8)를 **대소문자 무시로 찾아 재사용**하므로 중복 생성하지 않는다. 서비스 호스트(Redmine 컨테이너가 도는 장비)에서 1회 실행하며, 이 워크스페이스가 도는 PC 일 필요는 없다.
-	- 활성화 전까지 보고 주체는 등록 실패를 대상 이슈 노트로 남기고 진행한다(작업 종결을 막지 않는다).
+- 현 트래커 세트(그룹·오류·기능·사양·검증·작업세션·report)는 구성 완료 상태다. 새 트래커 추가 시 전 프로젝트 활성 + 기존 트래커의 워크플로 전이를 복사한다.
+- **`Report` 트래커 — 활성화 완료(2026-07-26)**: 작업 보고 정책([`work-tracking.md`](work-tracking.md) §작업 보고)이 요구하는 트래커(`Report`=8)가 **3개 프로젝트(`ai-workgroup-ops`·`accountinterlockhub`·`smoke-test`) 전부에 활성**이다(REST 실측). 전이도 열린 상태 6종 전면 개방으로 확인됐다.
+	- 🔴 **등록은 3단계여야 한다 — 생성 요청의 `status_id` 는 무시된다.** `tracker_id: 8` 로 POST 하면서 `status_id: 5` 를 함께 보내도 이슈가 **`Needs Feedback`(4)으로 떨어진다**(실측). 따라서 **① POST 생성 → ② PUT `status_id: 5` → ③ GET 으로 `closed_on` 실측** 순으로 닫는다. ①만 하면 **열린 하위가 남아 부모(작업세션 이슈·루프 그룹 일감)를 닫을 수 없다** — report 일감은 등록과 동시에 닫히는 것이 전제다([`work-tracking.md`](work-tracking.md) §계층·연관).
+	- **프로젝트 활성은 REST 로도 된다** — `PUT /projects/<id>.json` 에 `{"project":{"tracker_ids":[...]}}`. **치환 의미라 기존 목록을 전부 포함해** 보낸다(빠뜨린 트래커는 그 프로젝트에서 사라진다). 트래커 자체의 신규 생성·워크플로 전이 복사는 여전히 admin 전용이라 아래 스크립트를 쓴다.
+	- **실행본**: [`ai/scripts/redmine-create-report-tracker.rb`](../scripts/redmine-create-report-tracker.rb) — 멱등이며 이미 있는 `Report`(8)를 **대소문자 무시로 찾아 재사용**한다. 서비스 호스트(Redmine 컨테이너가 도는 장비)에서 실행하며, 이 워크스페이스가 도는 PC 일 필요는 없다. **위 활성화는 REST 로 처리했으므로 이 스크립트의 미실행 상태는 유지된다** — 워크플로 전이를 명시 생성해야 할 때 실행한다.
 
 ## 프로젝트 생성 표준 절차
 
