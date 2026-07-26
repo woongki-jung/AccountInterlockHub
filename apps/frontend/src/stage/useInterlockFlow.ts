@@ -94,7 +94,19 @@ export function useInterlockFlow(): InterlockFlow {
     return initial;
   });
 
-  /** lastConsent 동기화 + 단계 전이에 따른 메모리 폐기를 한 곳에 모은다. */
+  /**
+   * lastConsent 동기화 + 단계 전이에 따른 메모리 폐기를 한 곳에 모은다.
+   *
+   * **불변조건(회귀 2회차 코드리뷰 S-8)**: agreedCodes 를 비우는 판정은
+   * 이 함수 하나뿐이다. 이 함수를 거치지 않는 직접 `setView` 호출은
+   * `verify()`(형식 위반 게이팅·submitting 진입)·`approve()`(SCR-003
+   * 낙관적 전이)·`reportConsentValidationFailed()` 세 곳에 있는데, 셋
+   * 다 **SCR-001·SCR-004 를 목적지로 삼지 않는다**(각각 SCR-001 유지·
+   * SCR-003·SCR-002 유지) — 그래서 안전하다. 새 직접 `setView` 를
+   * 추가할 때 그 목적지가 SCR-001 이나 SCR-004 이면 이 함수를 거치게
+   * 하라 — 그렇지 않으면 [I-3](Retryable/Blocked 복귀 시 체크 보존)이
+   * 소리 없이 되살아난다.
+   */
   function applyNextView(next: ScreenView) {
     if (next.screen === 'SCR-002') {
       lastConsentRef.current = next.consent;

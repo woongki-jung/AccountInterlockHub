@@ -74,8 +74,19 @@ export function viewAfterVerify(outcome: ApiOutcome<VerifyResponseDto>): ScreenV
   if (code === 'EX-SEC-001' || code === 'EX-SEC-002') {
     return { screen: 'SCR-004', result: { resultPath: 2, reasonCode: code, isReAnnouncement: false } };
   }
-  // EX-BIZ-003 + 계약 밖 미상 코드에 대한 방어적 폴백.
-  return { screen: 'SCR-001', status: 'idle', alert: { kind: 'retryable', message } };
+  if (code === 'EX-BIZ-003') {
+    return { screen: 'SCR-001', status: 'idle', alert: { kind: 'retryable', message } };
+  }
+  // 회귀 2회차 I-4 동반 이탈 시정 — 위 넷에 없는 코드(process_PROC-102.md
+  // F3 else, 대표 EX-OPS-002)는 SCR-004 결과 경로 ②로 보낸다. 본인확인
+  // 제출은 어떤 결과도 확정하지 않아(같은 문서 §구현 가이드) 뒤집을 결과가
+  // 없다 — PROC-103 F5 의 같은 catch-all(승인 접점)이 SCR-003 Unconfirmed
+  // 로 가는 것과 여기가 "의도적으로 갈리는 지점"이다(아래 viewAfterApprove
+  // 주석 참고 · process_PROC-103.md §구현 가이드). reasonCode 는 화면에
+  // 그리지 않고 결과 경로 ② 설명 문구 선택에만 쓴다(`SEC-002-05` ·
+  // screen_SCR-004.md §조건부 표시 — 표에 없는 코드·코드 부재는 이미
+  // `EX-OPS-002` 문구로 수렴한다).
+  return { screen: 'SCR-004', result: { resultPath: 2, reasonCode: code, isReAnnouncement: false } };
 }
 
 /**
@@ -120,8 +131,27 @@ export function viewAfterApprove(
   if (code === 'EX-BIZ-001') {
     return backToConsentOrFallback(lastConsent, { kind: 'blocked', message });
   }
-  // EX-BIZ-003 + 계약 밖 미상 코드에 대한 방어적 폴백.
-  return backToConsentOrFallback(lastConsent, { kind: 'retryable', message });
+  if (code === 'EX-BIZ-003') {
+    return backToConsentOrFallback(lastConsent, { kind: 'retryable', message });
+  }
+  // 회귀 2회차 I-4 — 위 다섯에 없는 코드(process_PROC-103.md F5 else,
+  // 대표 EX-OPS-002)는 전이하지 않고 SCR-003 에 머문다(Unconfirmed).
+  // 이 접점은 B7(전달 실행·결과 확정) 다음에 B8(응답 구성)이 와서,
+  // 미분류 실패는 result_code 가 이미 영속화된 뒤에도 날 수 있다 —
+  // 사양이 결과 미확정을 보장하지 못한다. 그래서 결과 패널도 재시도
+  // 안내도 쓸 수 없다(§구현 가이드 "재시도 자체가 안전하지 않다 —
+  // 결과가 확정됐을 수 있어 재제출이 확정된 결과를 건드린다"). 위
+  // EX-BIZ-003 이 BackToConsent 로 승인 버튼을 되살리는 것과 갈리는
+  // 지점이 여기다 — 그쪽은 발생 지점이 레코드 확보·증적 기록·계수로
+  // 특정되고 전부 전달 이전이라 결과 미확정이 사양으로 보장된다.
+  // ⚠️ process_PROC-102.md F3 의 같은 catch-all(본인확인 접점, 위
+  // viewAfterVerify 참고)은 결과 경로 ②로 가지만 그 패턴을 여기서
+  // 복사하지 않는다 — 본인확인 제출은 어떤 결과도 확정하지 않아
+  // 뒤집을 결과가 없는 반면 이 접점은 있다(같은 §구현 가이드가 두
+  // catch-all 의 목적지가 다른 이유로 명시). agreedCodes 는
+  // applyNextView 가 SCR-003 도착에서 비우지 않으므로 회귀 2회차 I-3
+  // 결정과 충돌하지 않는다.
+  return { screen: 'SCR-003', unconfirmed: true };
 }
 
 function backToConsentOrFallback(lastConsent: ConsentConfigDto | null, alert: ConsentAlert): ScreenView {
