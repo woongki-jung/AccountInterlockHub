@@ -5,6 +5,8 @@ import { ArgumentsHost, BadRequestException, Catch, ExceptionFilter, Injectable,
 import type { Response } from 'express';
 import { InterlockConfigService } from '../../config/interlock-config.service';
 import { HARD_FALLBACK_DOCUMENT, renderEntryDocument } from '../../interlock-entry/entry-document';
+import type { EntryInitialState } from '../../interlock-entry/entry-initial-state.model';
+import { ResultInfoBuilder } from '../../interlock-entry/result-info.builder';
 import { buildErrorEnvelope } from '../errors/error-envelope';
 import { FALLBACK_EX_CODE } from '../errors/ex-catalog';
 import { isHttpMappedError } from '../errors/http-mapped.error';
@@ -80,7 +82,20 @@ export class GlobalExceptionFilter implements ExceptionFilter {
   // `classifyBodyParseFailure` 도 이제 배열이 아니라 이 맵을 직접 받는다, 아래 참고).
   private readonly methodsByPath: ReadonlyMap<string, ReadonlySet<string>>;
 
-  constructor(private readonly interlockConfig: InterlockConfigService) {
+  /**
+   * `resultInfoBuilder`(PROC-105, accountinterlockhub#487 P10 회귀 1회차) — §진입 경로 한정
+   * 폴백(`respondEntryPathFallback` 참고)이 `MDL-009` 결과 안내 정보를 리터럴로 인라인하지 않고
+   * 이 빌더를 거치게 하기 위한 주입이다("결과 구분 → 경로 번호 대응은 한 곳에만" —
+   * `process_PROC-105.md` §개요·`MDL-009` §구현 가이드). Nest DI 는 이 필터를 `APP_FILTER` 로
+   * 등록하는 애플리케이션 기동 시점에 한 번만 해석되므로(`common.module.ts` 의 provider 등록
+   * 참고) "마지막 방어선이 요청마다 남의 실패에 노출된다"는 우려는 성립하지 않는다 — 그 호출
+   * 자체가 던지는 극단적 상황까지도 `respondEntryPathFallback` 의 기존 `try/catch` +
+   * `HARD_FALLBACK_DOCUMENT` 최후 방어가 그대로 흡수한다(그 안전망은 이 변경으로 손대지 않았다).
+   */
+  constructor(
+    private readonly interlockConfig: InterlockConfigService,
+    private readonly resultInfoBuilder: ResultInfoBuilder,
+  ) {
     this.methodsByPath = buildMethodsByPath(buildKnownRoutes(interlockConfig.interlockEntryPath));
   }
 
@@ -200,10 +215,21 @@ export class GlobalExceptionFilter implements ExceptionFilter {
    *
    * 처리 대상이면 `true` 를 돌려주고 200 `text/html` + 초기 상태(`EX-OPS-002`·경로 ②)로 응답을
    * 완성한다 — 대상이 아니면 `false` 를 돌려주고 아무 응답도 만들지 않는다(호출측이 기존 경로로
-   * 계속 진행한다). 문서 조립(`renderEntryDocument`, 파일 읽기 포함)마저 실패하면
-   * `HARD_FALLBACK_DOCUMENT`(순수 문자열 리터럴 — 다시 실패할 경로가 없다)로 물러난다 —
-   * 이 필터는 애플리케이션의 마지막 방어선이라 여기서까지 예외가 새면 4xx·5xx 로 응답할
-   * 도리밖에 없다.
+   * 계속 진행한다).
+   *
+   * **초기 상태 구성은 `resultInfoBuilder`(PROC-105) 를 거친다(accountinterlockhub#487 P10 회귀
+   * 1회차 — 이전에는 여기서 `{ resultPath: 2, isReAnnouncement: false }` 를 직접 리터럴로 만들어
+   * `entry.controller.ts` `handleEntry()` B6 이 이미 하는 계산(같은 `source: 'ENTRY_FAILURE'`,
+   * 같은 `reasonCode: 'EX-OPS-002'`)을 대응표 밖에서 한 번 더 했다 — 오늘은 값이 우연히 일치해
+   * 동작 결함은 없었지만 "결과 구분 → 경로 번호 대응은 `PROC-105` 한 곳에만"(`process_PROC-105.md`
+   * §개요·`MDL-009` §구현 가이드)을 어겨 두 곳이 갈라질 표류 위험을 남겼다(독립 코드리뷰
+   * `91ba86e` 재판정 [I-1]). 지금은 `entry.controller.ts` 와 같은 호출 형태를 써서 대응이 정말
+   * 한 곳(`ResultInfoBuilder.build()`)에만 있다).** 문서 조립(`renderEntryDocument`, 파일 읽기
+   * 포함)·바로 그 빌더 호출 어느 쪽이 실패해도 `HARD_FALLBACK_DOCUMENT`(순수 문자열 리터럴 —
+   * 다시 실패할 경로가 없다)로 물러난다 — 이 필터는 애플리케이션의 마지막 방어선이라 여기서까지
+   * 예외가 새면 4xx·5xx 로 응답할 도리밖에 없다. `resultInfoBuilder.build()` 자신은 사양상
+   * 예외를 던지지 않지만(process_PROC-105.md §분기 및 예외 흐름 "본 프로세스는 예외를 던지지
+   * 않는다"), 만에 하나의 실패에도 이 폴백의 안전망이 깨지지 않도록 같은 try 안에 둔다.
    */
   private respondEntryPathFallback(request: MinimalRequest, exception: unknown, response: Response): boolean {
     const path = normalizePath(request.path ?? '');
@@ -217,12 +243,16 @@ export class GlobalExceptionFilter implements ExceptionFilter {
     response.status(200);
     response.set('Content-Type', 'text/html; charset=utf-8');
     try {
-      response.send(
-        renderEntryDocument({ stage: 'RESULT', reasonCode: 'EX-OPS-002', resultPath: 2, isReAnnouncement: false }),
-      );
+      // entry.controller.ts handleEntry() B6 과 같은 호출 형태 — 대응표는 ResultInfoBuilder
+      // 한 곳뿐이다(위 docblock 참고, accountinterlockhub#487 P10 회귀 1회차).
+      const reasonCode = 'EX-OPS-002';
+      const resultInfo = this.resultInfoBuilder.build({ source: 'ENTRY_FAILURE', reasonCode });
+      const state: EntryInitialState = { stage: 'RESULT', reasonCode, ...resultInfo };
+      response.send(renderEntryDocument(state));
     } catch (renderError) {
-      // 문서 조립(파일 읽기 포함) 자체가 실패한 경우 — OPS-003-03 처럼 기술적 실패만 로그에
-      // 남긴다(describeForLog 는 method·path·상태·예외 이름만 담고 message·stack 은 담지 않는다).
+      // 문서 조립(파일 읽기 포함)·바로 위 빌더 호출 중 어느 쪽이 실패한 경우든 — OPS-003-03
+      // 처럼 기술적 실패만 로그에 남긴다(describeForLog 는 method·path·상태·예외 이름만 담고
+      // message·stack 은 담지 않는다).
       this.logger.error(this.describeForLog(renderError, 200, request));
       response.send(HARD_FALLBACK_DOCUMENT);
     }
