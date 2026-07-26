@@ -135,3 +135,30 @@ function backToConsentOrFallback(lastConsent: ConsentConfigDto | null, alert: Co
 export function consentGatedView(consent: ConsentConfigDto, message: string): ScreenView {
   return { screen: 'SCR-002', consent, status: 'idle', alert: { kind: 'gated', message } };
 }
+
+/** screen_SCR-001.md §입력 폼 정의 — FE 검증 의사코드의 문구 정본(`AUTH-002-02`). */
+const BIRTH_DATE_FORMAT_MESSAGE = '생년월일을 여섯 자리 숫자로 입력해 주세요.';
+
+/**
+ * 생년월일 형식(6자리 숫자) 검증 — screen_SCR-001.md §입력 폼 정의
+ * "유효성 규칙(FE 검증 의사코드)" `/^\d{6}$/.test(value)` 그대로다.
+ * **달력 유효성(존재하지 않는 월·일)은 검사하지 않는다** — 같은 문서
+ * "생년월일은 인증 자격이 아니라 복호화의 나머지 키이며, 발송처가 키
+ * 원문에 쓴 값과 판정 기준이 갈리면 안 된다"(FN-005 구현 가이드 근거).
+ */
+export function isBirthDateFormatValid(value: string): boolean {
+  return /^\d{6}$/.test(value);
+}
+
+/**
+ * 형식 위반 상태에서 확인 버튼을 눌렀을 때의 화면 게이팅 — 서버를 부르지
+ * 않는 순수 클라이언트 전이다. screen_SCR-001.md §입력 폼 정의 "확인
+ * 버튼은 입력이 비어 있어도 활성이다... 제출 시 형식 안내를 보여 주는
+ * 쪽을 택했다"와 §조건부 표시 "InlineAlert(형식 안내) | 화면 검증 실패
+ * 또는 직전 응답이 EX-AUTH-001"의 **"화면 검증 실패"** 갈래를 구현한다.
+ * 문구는 서버의 `EX-AUTH-001` 기본 문구와 같은 값이다(같은 위반을 같은
+ * 문구로 알린다 — 화면이 새 문구를 만들지 않는다는 원칙과 합치).
+ */
+export function identityFormatInvalidView(): ScreenView {
+  return { screen: 'SCR-001', status: 'idle', alert: { kind: 'format', message: BIRTH_DATE_FORMAT_MESSAGE } };
+}

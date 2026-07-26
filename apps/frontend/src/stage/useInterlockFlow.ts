@@ -3,7 +3,14 @@ import { submitApproval, verifyIdentity } from '../api/client';
 import { readEncPairFromLocation, type EncPair } from '../api/entryParams';
 import { readInitialState } from '../api/hydration';
 import type { ConsentConfigDto } from '../api/types';
-import { consentGatedView, initialViewFromEntryState, viewAfterApprove, viewAfterVerify } from './transitions';
+import {
+  consentGatedView,
+  identityFormatInvalidView,
+  initialViewFromEntryState,
+  isBirthDateFormatValid,
+  viewAfterApprove,
+  viewAfterVerify,
+} from './transitions';
 import type { ScreenView } from './types';
 
 const EMPTY_ENC_PAIR: EncPair = { encX: '', encY: '' };
@@ -78,6 +85,14 @@ export function useInterlockFlow(): InterlockFlow {
 
   async function verify() {
     if (view.screen === 'SCR-001' && view.status === 'submitting') return; // 중복 제출 차단
+    // 화면 검증(사용자 편의) — screen_SCR-001.md §입력 폼 정의 "FE 검증
+    // 의사코드". 통과한 값도 서버가 다시 검증한다(AUTH-002-02) — 이
+    // 검사는 그 서버 검증을 대신하지 않고, 형식이 어긋난 값을 왕복 없이
+    // 곧바로 안내하는 사용자 편의일 뿐이다.
+    if (!isBirthDateFormatValid(birthDate)) {
+      setView(identityFormatInvalidView());
+      return;
+    }
     const enc = encRef.current ?? EMPTY_ENC_PAIR;
     setView({ screen: 'SCR-001', status: 'submitting', alert: null });
     const outcome = await verifyIdentity({ encX: enc.encX, encY: enc.encY, birthDate });

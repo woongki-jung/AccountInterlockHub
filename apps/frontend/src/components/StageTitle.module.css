@@ -29,7 +29,11 @@
 }
 
 .subtitle {
-  margin-top: var(--space-xs);
+  /* 카드 직계 자식일 때의 값 — design-system-components.md §StageTitle
+     "제목 → 보조 설명 --space-2xs"(6회차 회귀 9e6eb90 확정). SCR-001·
+     SCR-002 는 이 컴포넌트를 카드 직계로 쓰므로 이 값이 그대로 적용된다
+     (거동 무변경 — 여백을 갖는 자리 자체는 이전과 같다). */
+  margin-top: var(--space-2xs);
   font-size: var(--font-size-sm);
   color: var(--color-text-muted);
 }

@@ -30,7 +30,12 @@ interface TextFieldProps {
   invalid?: boolean;
   /** aria-describedby 에 추가로 합칠 외부 요소 id(예: 알림 영역 InlineAlert 의 id). */
   describedBy?: string;
-  /** 제출 중 잠금 — readonly 로 값은 유지한 채 편집만 막는다(design-system-components.md §TextField "상태: 잠금"). */
+  /**
+   * 제출 중 잠금 — readonly 로 값은 유지한 채 편집만 막는다
+   * (design-system-components.md §TextField "상태: 잠금"). `aria-busy="true"`
+   * 를 함께 준다 — design-system.md §상태 표현 "로딩(제출 중)" "입력 필드
+   * 잠금(aria-busy="true")"이 이 필드 자신에게 붙이는 값이다.
+   */
   readOnly?: boolean;
   ref?: Ref<TextFieldHandle>;
 }
@@ -102,6 +107,7 @@ export function TextField({
         readOnly={readOnly}
         aria-invalid={isInvalid ? 'true' : undefined}
         aria-describedby={describedBy}
+        aria-busy={readOnly ? 'true' : undefined}
       />
       {errorMessage ? (
         <p id={errorId} className={styles.error}>
