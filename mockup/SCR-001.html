@@ -148,13 +148,17 @@
 <p class="mockup-footer">정본 사양: docs/specs/screens/screen_SCR-001.md · design-system.md · design-system-components.md(TextField·Button·InlineAlert)</p>
 
 <script>
+  // 상태 정의: screen_SCR-001.md §화면 상태 전이.
+  // 두 재입력 상태(형식·불일치)는 모두 필드 오류 표현(경계 --color-danger·aria-invalid="true")과 필드 포커스를 갖고,
+  // 불일치만 값을 유지한 채 전체 선택을 더한다. 처리 오류(retryable)는 입력값 문제가 아니라 필드 오류 표현을 갖지 않는다
+  // (design-system-components.md §TextField §상태·§접근성).
   var STATES = {
-    initial:          { value:'',       readonly:false, selectAll:false, fieldError:false, alertText:'', btn:'idle' },
-    editing:          { value:'900305', readonly:false, selectAll:false, fieldError:false, alertText:'', btn:'idle' },
-    submitting:       { value:'900305', readonly:true,  selectAll:false, fieldError:false, alertText:'', btn:'loading' },
-    formatError:      { value:'9005',   readonly:false, selectAll:false, fieldError:true,  alertText:'생년월일을 여섯 자리 숫자로 입력해 주세요.', btn:'idle' },
-    reentryMismatch:  { value:'900305', readonly:false, selectAll:true,  fieldError:false, alertText:'입력하신 생년월일로 확인되지 않았습니다. 다시 확인해 주세요.', btn:'idle' },
-    retryable:        { value:'900305', readonly:false, selectAll:false, fieldError:false, alertText:'처리 중 문제가 발생했습니다. 잠시 후 다시 시도해 주세요.', btn:'idle' }
+    initial:          { value:'',       readonly:false, focusField:false, selectAll:false, fieldError:false, alertText:'', btn:'idle' },
+    editing:          { value:'900305', readonly:false, focusField:false, selectAll:false, fieldError:false, alertText:'', btn:'idle' },
+    submitting:       { value:'900305', readonly:true,  focusField:false, selectAll:false, fieldError:false, alertText:'', btn:'loading' },
+    formatError:      { value:'9005',   readonly:false, focusField:true,  selectAll:false, fieldError:true,  alertText:'생년월일을 여섯 자리 숫자로 입력해 주세요.', btn:'idle' },
+    reentryMismatch:  { value:'900305', readonly:false, focusField:true,  selectAll:true,  fieldError:true,  alertText:'입력하신 생년월일로 확인되지 않았습니다. 다시 확인해 주세요.', btn:'idle' },
+    retryable:        { value:'900305', readonly:false, focusField:false, selectAll:false, fieldError:false, alertText:'처리 중 문제가 발생했습니다. 잠시 후 다시 시도해 주세요.', btn:'idle' }
   };
 
   var input = document.getElementById('birthDate');
@@ -194,9 +198,11 @@
       b.classList.toggle('active', b.getAttribute('data-state') === key);
     });
 
-    if (s.selectAll) {
+    // 오류로 되돌아올 때만 필드로 포커스를 옮긴다(design-system-components.md §TextField — 자동 포커스 금지).
+    // 불일치 재입력은 값을 지우지 않고 전체 선택까지 준다(screen_SCR-001.md §화면 상태 전이 · §구현 가이드).
+    if (s.focusField) {
       input.focus();
-      input.select();
+      if (s.selectAll) input.select();
     }
   }
 
