@@ -28,13 +28,6 @@ import { useEffect, useRef } from 'react';
  */
 export function useStageFocus(title: string, skipFocus = false) {
   const headingRef = useRef<HTMLHeadingElement>(null);
-  // 아래 effect 는 title 이 바뀔 때만 재실행돼야 한다(그렇지 않으면
-  // 사용자가 입력을 고치는 도중 알림이 해제되며 skipFocus 가 바뀌는
-  // 것만으로 제목이 포커스를 다시 가로챌 위험이 있다). 그래서 skipFocus
-  // 를 의존성 배열에 넣지 않고, 매 렌더 최신값을 ref 에 반영해 두었다가
-  // effect 가 실제로 실행되는 시점(마운트 직후)에 그 순간의 값을 읽는다.
-  const skipFocusRef = useRef(skipFocus);
-  skipFocusRef.current = skipFocus;
 
   useEffect(() => {
     if (!title) return;
@@ -44,11 +37,20 @@ export function useStageFocus(title: string, skipFocus = false) {
     // 순서에는 끼지 않는다(design-system-components.md §StageTitle).
     // 단, 필드에 매인 안내가 함께 뜨는 전환에서는 이 호출을 건너뛴다
     // (위 skipFocus 참고).
-    if (!skipFocusRef.current) {
+    if (!skipFocus) {
       headingRef.current?.focus();
     }
-    // title 이 바뀔 때(= 화면이 바뀔 때)만 재실행한다. headingRef 는 매
-    // 렌더 같은 ref 객체라 의존성에 넣을 필요가 없다.
+    // title 이 바뀔 때(= 화면이 바뀔 때)만 재실행해야 한다 — 그렇지
+    // 않으면 사용자가 입력을 고치는 도중 알림이 해제되며 skipFocus 가
+    // 바뀌는 것만으로 제목이 포커스를 다시 가로챌 위험이 있다. 그래서
+    // skipFocus 를 의존성 배열에는 넣지 않되(회귀 1회차 재판정 S-1 —
+    // 렌더 본문에서 ref 에 최신값을 미리 반영해 두는 대신) 위에서 직접
+    // 읽는다 — deps 가 [title] 이라 이 effect 가 실행되는 시점의 클로저는
+    // 그 렌더에서 캡처된 skipFocus 값을 그대로 담고 있어, ref 경유로
+    // "실행 시점의 최신값"을 따로 확보할 필요가 없다(오히려 ref 는 여러
+    // 렌더를 거치는 동안 effect 재실행 없이 조용히 최신값으로 갱신될 수
+    // 있어 "전환 시점이 아닌 호출 시점"의 값을 읽는 셈이라 덜 정확하다).
+    // headingRef 도 매 렌더 같은 ref 객체라 의존성에 넣을 필요가 없다.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [title]);
 

@@ -51,14 +51,23 @@ export function ConsentScreen({ view, agreedCodes, onToggle, onApprove, onGated 
    * 제목 자동 포커스를 건너뛰는가 — design-system.md §접근성 기준(commit
    * `a8058a0`) "단계 전환과 필드에 매인 안내가 겹치면 포커스는 그 필드가
    * 가져간다"의 두 자리 중 `BackToConsent`(`SCR-003` → `SCR-002` ·
-   * 400 `EX-BIZ-001`) 쪽 — 도착 상태 `Blocked` 는 "첫 미충족 항목으로
-   * 포커스"이므로 위 useEffect 가 그 항목으로 옮긴다. `Retryable`
-   * (`EX-BIZ-003`)·`Gated`(화면 게이팅)는 이 예외에 해당하지 않는다 —
-   * 전자는 사양이 그대로 제목으로 보내고, 후자는 이미 마운트된 화면의
-   * 갱신이라(`title` 불변) `useStageFocus` 의 effect 가 애초에 재실행되지
-   * 않아 이 값이 읽히지 않는다.
+   * 400 `EX-BIZ-001`) 쪽. **이 예외의 전제는 "입력 요소에 매인 InlineAlert
+   * (첫 미충족 항목 안내)가 함께 뜬다"** 는 것이고, 전제가 성립할 때만
+   * 결과(그 요소로 포커스 이동)를 적용한다(회귀 1회차 재판정 I-1 —
+   * `kind === 'blocked'` 만으로 전제 성립을 단정하면 안 된다). 이 화면이
+   * 실제로 `Blocked` 로 도달하는 경로는 `handleApproveClick` 의 로컬
+   * 게이트(`allRequiredMet`)를 통과해야만 서버 응답을 받고, 되돌아올 때도
+   * 같은 `lastConsent`·비워지지 않는 `agreedCodes` 를 쓴다 — 그래서
+   * 도달 가능한 모든 경우에 미충족 항목이 이미 없다. `allRequiredMet` 로
+   * 이 전제 성립 여부를 직접 확인해, 전제가 거짓이면(= 현재 도달 가능한
+   * 전 경로) 위 useEffect 의 `focusFirstUnmet()` 이 대상을 찾지 못해
+   * 무동작이므로 예외를 적용하지 않고 기본 규칙(제목 포커스)으로
+   * 되돌린다. `Retryable`(`EX-BIZ-003`)·`Gated`(화면 게이팅)는 이 예외에
+   * 해당하지 않는다 — 전자는 사양이 그대로 제목으로 보내고, 후자는 이미
+   * 마운트된 화면의 갱신이라(`title` 불변) `useStageFocus` 의 effect 가
+   * 애초에 재실행되지 않아 이 값이 읽히지 않는다.
    */
-  const skipTitleFocus = view.alert?.kind === 'blocked';
+  const skipTitleFocus = view.alert?.kind === 'blocked' && !allRequiredMet;
 
   function handleApproveClick() {
     if (!allRequiredMet) {
