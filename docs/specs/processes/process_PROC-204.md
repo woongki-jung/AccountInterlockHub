@@ -131,7 +131,9 @@ B3. 생년월일 형식 검증 — FN-005 · POL AUTH-002-02 (validate)
 
 B4. 복호화 판정 — FN-004 · POL SEC-002-01 · SEC-003-03 (validate)
 
-  try  payload = FN-004({ encX: body.encX, encY: body.encY }, body.birthDate)
+  try  { payload } = FN-004({ encX: body.encX, encY: body.encY }, body.birthDate)
+       // rawPlaintext 를 받지 않는다 — 자가진단은 판정만 하고 전달을 하지 않는다
+       //   (FN-004 §구현 가이드 · 복호화 원문은 응답에도 담지 않는다 — SEC-003-03)
        // 연동 경로(PROC-102·PROC-104)와 같은 함수를 쓴다 —
        // 판정이 갈리면 자가진단이 통과시킨 값이 연동에서 실패한다
        conform = true · reason = null

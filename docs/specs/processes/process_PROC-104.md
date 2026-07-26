@@ -55,8 +55,8 @@
 |------|--------|------------|------|------|
 | 입력(복호화 구간) | `encX`·`encY` | string(Base64URL) | Y | [`MDL-004`](../datas/model_MDL-004-006.md) |
 | 입력(복호화 구간) | `birthDate` | string(6) | Y | 재수신 값([`MDL-006`](../datas/model_MDL-004-006.md)) |
-| 출력(복호화 구간) | `trackingKey` · `payload` | string · [`MDL-005`](../datas/model_MDL-004-006.md) | - | 메모리 전용. 저장하지 않는다 |
-| 입력(전달 구간) | `trackingKey` · `payload` | string · `MDL-005` | Y | 복호화 구간의 출력 |
+| 출력(복호화 구간) | `trackingKey` · `payload` · `rawPlaintext` | string · [`MDL-005`](../datas/model_MDL-004-006.md) · bytes | - | 메모리 전용. 저장하지 않는다. `rawPlaintext` 는 `B3` 이 쓰는 **복호화 직후 원본 바이트열**이다(재직렬화로 만들 수 없다 — `BIZ-004-05`) |
+| 입력(전달 구간) | `trackingKey` · `payload` · `rawPlaintext` | string · `MDL-005` · bytes | Y | 복호화 구간의 출력 |
 | 출력(전달 구간) | `resultCode` | string | - | `SUCCESS` 또는 `DELIVERY_FAILED`([`MDL-010`](../datas/model_MDL-007-010.md) 판정 결과) |
 
 ### 연관 데이터 및 외부 호출
@@ -122,7 +122,7 @@ B1. 입력 검증 — FN-005 · POL AUTH-002-02 (validate)
 
 B2. 복호화 판정(재복호화) — FN-004 · POL BIZ-002-06 · SEC-002-01 (validate)
 
-  try  payload = FN-004({ encX, encY }, birthDate)
+  try  { payload, rawPlaintext } = FN-004({ encX, encY }, birthDate)
   catch (EX-AUTH-002)  → 400 EX-AUTH-002        // 본인확인 재입력으로 되돌린다 · 결과 미확정
   catch (EX-SEC-001)   → 400 EX-SEC-001         // 결과 경로 ②
   catch (EX-SEC-002)   → PROC-303({ kind: 'UNIDENTIFIED_FAILURE', at: NOW() })
@@ -130,14 +130,16 @@ B2. 복호화 판정(재복호화) — FN-004 · POL BIZ-002-06 · SEC-002-01 (v
                           //   없고, 계수 UPSERT 한 문장이 그 자체로 원자적이다 (빠뜨린 것이 아니다)
                           → 400 EX-SEC-002      // DECRYPT_FAILED 계수 · 결과 경로 ②
   trackingKey = payload.trackingKey             // 무변형
-  return { trackingKey, payload }               // 메모리 전용 — 어떤 저장소에도 넣지 않는다
+  return { trackingKey, payload, rawPlaintext } // 메모리 전용 — 어떤 저장소에도 넣지 않는다
+  // rawPlaintext 를 함께 돌려주는 이유는 B3 이 재직렬화 없는 원본 바이트열을 요구하기
+  //   때문이다 (BIZ-004-05) — payload 에서 다시 만들 수 없는 값이라 여기서 이어받는다
   // 본인확인(PROC-102)에서 얻은 원문을 재사용하지 않는다 (POL BIZ-002-06)
 
 ── 전달 구간 (PROC-103 B7 이 호출 — 승인 확정·증적 기록 이후) ─────
 
 B3. 전달 페이로드 구성 — POL BIZ-004-05 (transform)
 
-  body = payload 의 UTF-8 바이트열 그대로
+  body = rawPlaintext                          // B2 가 이어받은 복호화 직후 원본 바이트열
   // 파싱한 객체를 다시 직렬화하지 않는다 — 숫자 표현·유니코드 이스케이프·필드 순서가 달라진다
   // X 내용의 업무적 유효성을 판단하지 않는다 (허브는 규약대로 중개할 뿐이다)
   headers = { 'Content-Type': 'application/json; charset=utf-8' }
@@ -184,7 +186,8 @@ B6. 결과 확정·기록 — PROC-301 호출 · POL BIZ-004-03 · BIZ-001-04 (�
 
 B7. 복호화 결과 폐기 — POL DATA-001-03 (transform)
 
-  payload · body · 복호화 중간 값을 지역 변수에서 버린다
+  payload · rawPlaintext · body · 복호화 중간 값을 지역 변수에서 버린다
+  // rawPlaintext 는 FN-004 가 버리지 않고 넘긴 값이라 폐기 책임이 이 자리에 있다
   // 요청 처리 종료와 함께 사라져야 한다. 전역 상태·요청 컨텍스트 저장소에 남기지 않는다
 
 B8. 결과 안내 이관 — POL SEC-002-05 (mask)
@@ -199,7 +202,7 @@ B8. 결과 안내 이관 — POL SEC-002-05 (mask)
 | 변환 지점 | 변환 위치 | 입력 형태 | 출력 형태 | 변환 규칙 요약 |
 |----------|----------|----------|----------|--------------|
 | 요청→도메인 | BE `B1`·`B2` | `MDL-004` + `MDL-006` | `MDL-005` 전달 데이터 X | FN-005 형식 검증 → FN-004 복호화 판정 4단계 |
-| 도메인→외부 요청 | BE `B3` | `MDL-005` | UTF-8 바이트열 | **재직렬화 없음** — 복호화 결과 바이트열 그대로 |
+| 도메인→외부 요청 | BE `B3` | `rawPlaintext`(bytes) | UTF-8 바이트열 | **재직렬화 없음** — `B2` 가 `FN-004` 에게서 이어받은 복호화 직후 바이트열을 그대로 싣는다 |
 | 외부 응답→도메인 | BE `B4` | HTTP 상태 코드 | [`MDL-010`](../datas/model_MDL-007-010.md) 전달 결과 | 200~299 = 성공 / 그 밖·연결 실패·시간 초과 = 실패. **본문 미사용** |
 | 도메인→ENT | BE `B6` (PROC-301) | 결과 구분 | `tbl_interlock_tracking` UPDATE | 조건부(`result_code IS NULL`) · `result_at` 동시 기록 |
 | 도메인→응답 | BE `B8` | 결과 구분 | `{ resultCode }` | 상위 프로세스에 값만 넘긴다 · FN-015 정제 |

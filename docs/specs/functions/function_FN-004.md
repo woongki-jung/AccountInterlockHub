@@ -31,7 +31,9 @@
 function FN-004 (
   encPair: MDL-004,         // 암호값 쌍·필수
   birthDate: string(6),     // 생년월일 `yyMMdd`·필수·FN-005 로 형식을 먼저 통과시킨다
-): MDL-005                  // 복원된 전달 데이터 X
+): { payload: MDL-005, rawPlaintext: bytes }
+                            // payload      = 복원·파싱된 전달 데이터 X
+                            // rawPlaintext = 그 X 의 **복호화 직후 원본 바이트열**
   throws ProtocolFormatError    { code: EX-SEC-001,  http: 400 }
        | IdentityMismatchError  { code: EX-AUTH-002, http: 400 }
        | ProtocolViolationError { code: EX-SEC-002,  http: 400 }
@@ -44,6 +46,7 @@ function FN-004 (
 | 입력 | encPair | MDL-004 | Y | FN-003 판정을 통과해야 한다 | 발송처가 만든 암호값 쌍 |
 | 입력 | birthDate | string(6) | Y | `^\d{6}$` (`AUTH-002-02`) | 복호화의 나머지 키. 인증 자격이 아니다 |
 | 출력 | payload | MDL-005 | - | `trackingKey` 필드를 갖는 JSON 객체 | 복원된 전달 데이터. 호출 처리 종료와 함께 폐기한다 |
+| 출력 | rawPlaintext | bytes | - | 단계 4 가 얻은 평문 바이트열 **그대로**(재정규화·재직렬화 없음) | 수신처 전달 본문의 원본이다. **`PROC-104` `B3` 이 이 값을 쓴다** — 파싱한 객체를 다시 직렬화하면 숫자 표현·유니코드 이스케이프·필드 순서가 달라져 수신처의 서명·해시 검증이 깨진다(`BIZ-004-05`). **필요 없는 호출자는 받지 않는다**(§구현 가이드) |
 
 ### 처리 흐름 (의사코드)
 
@@ -75,10 +78,13 @@ function FN-004 (
    if (!FN-006(payload.trackingKey))              → throw EX-SEC-002 (400)
 
 7. 중간 값 폐기 — POL DATA-001-03 (transform)
-   keyY · keyXBytes · ivX · plain 을 지역 값으로만 두고 호출 처리 종료와 함께 버린다
+   keyY · keyXBytes · ivX 를 지역 값으로만 두고 호출 처리 종료와 함께 버린다
+   // plain 은 rawPlaintext 로 반환하므로 여기서 버리지 않는다 — 폐기 책임은 호출측이며
+   //   PROC-104 B7 이 payload·body·중간 값을 함께 버린다 (POL DATA-001-03)
 
 8. 반환
-   return payload
+   return { payload, rawPlaintext: plain }
+   // 두 값은 같은 X 의 두 표현이다 — rawPlaintext 를 payload 에서 다시 만들지 않는다
 ```
 
 ### API 인터페이스
@@ -95,6 +101,8 @@ function FN-004 (
 
 - **응답에는 EX 코드만 싣는다.** 어느 단계에서 실패했는지의 단계 번호는 내부 사유로만 유지하고 응답·로그에 담지 않는다(`SEC-002-05`).
 - **복호화 원문·키·초기화 벡터·중간 값을 어떤 응답에도 담지 않는다**(`DATA-001-04`). 자가진단 응답에도 담지 않는다(`SEC-003-03`).
+- 🔴 **`rawPlaintext` 는 민감 원문이다 — 필요한 호출자만 받는다.** 실제로 쓰는 곳은 **`PROC-104` `B3`(수신처 전달 본문)** 하나뿐이다. 본인확인(`PROC-102` `B3`)·자가진단(`PROC-204` `B4`)은 파싱 결과만 있으면 되므로 **받지 않는다**(받아 두고 쓰지 않는 것도 유출 면을 넓힌다). 응답 정제(`FN-015`)가 바이트열을 걸러 내는 것은 **2차 방어**이며, 1차 방어는 **애초에 갖지 않는 것**이다.
+- **`rawPlaintext` 를 저장소·큐·파일·전역 상태에 두지 않는다**(`DATA-001-03`). 전달 재시도 중에도 메모리에만 둔다.
 
 ### 판정 경계에 대한 확정 사항
 

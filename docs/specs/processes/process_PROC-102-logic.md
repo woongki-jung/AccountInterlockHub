@@ -80,7 +80,9 @@ B2. 입력 검증 — FN-005 · POL AUTH-002-02 (validate)
 
 B3. 복호화 판정 — FN-004 · POL SEC-002-01 (validate)
 
-  try  payload = FN-004({ encX: body.encX, encY: body.encY }, body.birthDate)
+  try  { payload } = FN-004({ encX: body.encX, encY: body.encY }, body.birthDate)
+       // rawPlaintext 를 받지 않는다 — 이 접점은 전달을 하지 않아 원본 바이트열이 필요 없다
+       //   (FN-004 §구현 가이드 — 받아 두고 쓰지 않는 것도 유출 면을 넓힌다)
        // 내부: FN-003 구조 판정 → FN-001 키 정규화 → encY 복호화 → encX 복호화
        //       → UTF-8 JSON 파싱 → FN-006 trackingKey 형식 판정
   catch (EX-SEC-001)   → B4b (구조 위반 — 진입 단계 실패와 같은 취급)
