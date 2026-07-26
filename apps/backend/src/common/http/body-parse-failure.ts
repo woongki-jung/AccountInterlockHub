@@ -6,9 +6,6 @@
 // 전역 예외 필터에 도달한다). **컨트롤러 쪽에서 해결할 수 없는 구조적 위치라 이 횡단 계층이
 // 접점(경로)별로 판정한다**(spec-functions-api.md §경로·메서드 규약 "요청 본문을 JSON 으로
 // 해석할 수 없으면 그 접점의 입력 부재와 같이 다룬다").
-import type { KnownRoute } from './known-routes';
-import { buildMethodsByPath } from './known-routes';
-
 export type BodyParseFailureClassification =
   | { readonly kind: 'EX_CODE'; readonly exCode: 'EX-DATA-002' | 'EX-SEC-003' | 'EX-AUTH-001' | 'EX-BIZ-001' }
   | { readonly kind: 'METHOD_NOT_ALLOWED'; readonly allowedMethods: readonly string[] }
@@ -55,7 +52,10 @@ const USER_SUBMIT_EX_BY_SUFFIX: ReadonlyMap<string, 'EX-AUTH-001' | 'EX-BIZ-001'
 
 /**
  * `path`·`method` 로 판정한다(`path` 는 호출측이 `known-routes.ts` `normalizePath()` 로 이미
- * 정규화했다고 가정한다 — route-guard 와 같은 규칙).
+ * 정규화했다고 가정한다 — route-guard 와 같은 규칙). `methodsByPath` 는 호출측(현재는
+ * `GlobalExceptionFilter` 뿐)이 `known-routes.ts` `buildMethodsByPath()` 로 한 번만 만들어
+ * 넘긴다 — 이 함수가 요청마다 다시 만들지 않는다(회귀 3회차 S-1, `GlobalExceptionFilter` 가
+ * 이미 캐시해 둔 것과 같은 맵을 그대로 재사용한다).
  *
  * **판정 원칙 — "본문 파싱 실패가, 본문이 멀쩡했을 때보다 더 나쁜(더 많이 드러내는) 결과를
  * 만들지 않는다."** 즉 같은 경로·메서드로 **본문이 멀쩡했다면** 어떤 결과가 났을지를 먼저
@@ -72,7 +72,7 @@ const USER_SUBMIT_EX_BY_SUFFIX: ReadonlyMap<string, 'EX-AUTH-001' | 'EX-BIZ-001'
 export function classifyBodyParseFailure(
   path: string,
   method: string,
-  knownRoutes: readonly KnownRoute[],
+  methodsByPath: ReadonlyMap<string, ReadonlySet<string>>,
   selfcheckPath: string,
   entryPath: string,
 ): BodyParseFailureClassification {
@@ -80,7 +80,6 @@ export function classifyBodyParseFailure(
     return method === 'POST' ? { kind: 'EX_CODE', exCode: 'EX-SEC-003' } : { kind: 'NOT_FOUND' };
   }
 
-  const methodsByPath = buildMethodsByPath(knownRoutes);
   const allowedMethods = methodsByPath.get(path);
 
   if (!allowedMethods) {
@@ -92,10 +91,14 @@ export function classifyBodyParseFailure(
   if (TRACKING_KEY_INPUT_PATHS.has(path)) {
     return { kind: 'EX_CODE', exCode: 'EX-DATA-002' };
   }
-  for (const [suffix, exCode] of USER_SUBMIT_EX_BY_SUFFIX) {
-    if (path === `${entryPath}${suffix}`) {
-      return { kind: 'EX_CODE', exCode };
-    }
+  // 회귀 3회차 S-2 — 위 allowedMethods 조회를 통과했다는 것은 path 가 methodsByPath 의 키,
+  // 즉 known-routes.ts 6경로 중 하나(그리고 TRACKING_KEY_INPUT_PATHS 3종은 방금 배제)와 정확히
+  // 일치한다는 뜻이다. 남는 후보는 `entryPath` 자신·`${entryPath}/verify`·`${entryPath}/approve`
+  // 셋뿐이고 셋 다 실제로 `entryPath` 로 시작하므로(known-routes.ts 조립 그대로), 접두사 검사
+  // 없이 슬라이스해 조회해도 안전하다 — TRACKING_KEY_INPUT_PATHS.has(path) 와 대칭인 단일 조회.
+  const exCode = USER_SUBMIT_EX_BY_SUFFIX.get(path.slice(entryPath.length));
+  if (exCode) {
+    return { kind: 'EX_CODE', exCode };
   }
   return { kind: 'UNCLASSIFIED' }; // 연동 요청 진입(GET) — 요청 본문이 없어 해당하지 않는다.
 }
