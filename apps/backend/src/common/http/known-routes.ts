@@ -27,7 +27,9 @@ export interface KnownRoute {
  * 메서드가 달라도 항상 일반 404 여야 한다(`SEC-003-02` · spec-functions-api.md §경로·메서드
  * 규약 "자가진단 경로는 메서드가 달라도 일반 404"). 이 표에서 빠진 경로는 route-guard
  * 미들웨어를 그대로 통과해(next()) 전역 예외 필터의 "본문 없는 일반 404" 로 귀결되므로, 이
- * 제외 하나만으로 그 요구가 성립한다 — 별도 특례 분기를 두지 않는다.
+ * 제외 하나만으로 그 요구가 성립한다 — 별도 특례 분기를 두지 않는다. 본문 파싱 실패 재분류
+ * (`body-parse-failure.ts`, 회귀 1회차 I-3)는 자가진단 경로를 **별도 인자로** 받아 같은
+ * 원칙(메서드가 달라도 항상 404)을 유지한다 — 이 표에는 여전히 추가하지 않는다.
  *
  * **컨트롤러 미배선 상태에서도 성립하는 이유** — 이 표는 "실제로 등록된 Nest 라우트 목록"이
  * 아니라 "사양이 정의한 경로 목록"이다. 아직 컨트롤러가 없는 경로는 메서드가 맞아도(next()
@@ -45,4 +47,42 @@ export function buildKnownRoutes(interlockEntryPath: string): KnownRoute[] {
     { path: '/api/interlock/completion', method: 'POST' },
     { path: '/api/interlock/callback', method: 'POST' },
   ];
+}
+
+/**
+ * `knownRoutes` 를 "경로 → 허용 메서드 집합" 조회 표로 변환한다(회귀 1회차 S-5 — `route-guard`
+ * 와 `body-parse-failure.ts` 가 같은 표·같은 규칙을 공유하도록 분리했다).
+ *
+ * **`GET` 이 등록된 경로에는 `HEAD` 도 자동으로 함께 허용한다** — HTTP 관례상 GET 을 지원하는
+ * 자원은 HEAD 도 지원해야 하고, Express 는 실제 컨트롤러가 있으면 이를 자동 처리한다(GET
+ * 핸들러가 HEAD 요청에도 응답하되 본문만 비운다). route-guard 는 Nest 라우팅보다 먼저 걸려
+ * 이 자동 처리보다 앞서 판정하므로, 이 표가 `HEAD` 를 모르면 route-guard 가 그 관례를 스스로
+ * 깨 버린다(실측 — 표 안의 GET 경로에 HEAD 를 보내면 405, 표에 없는 임의의 GET 전용 경로는
+ * Express 기본 동작으로 200). 표의 GET 경로에도 같은 대우를 준다.
+ */
+export function buildMethodsByPath(knownRoutes: readonly KnownRoute[]): Map<string, Set<string>> {
+  const methodsByPath = new Map<string, Set<string>>();
+  for (const route of knownRoutes) {
+    if (!methodsByPath.has(route.path)) {
+      methodsByPath.set(route.path, new Set());
+    }
+    const methods = methodsByPath.get(route.path)!;
+    methods.add(route.method);
+    if (route.method === 'GET') {
+      methods.add('HEAD');
+    }
+  }
+  return methodsByPath;
+}
+
+/**
+ * 경로 비교 정규화 — 끝의 슬래시 하나만 관대하게 같은 경로로 본다(Express 라우팅 자체가
+ * 기본으로 느슨한 라우팅(`strict routing` 비활성)을 쓰므로, 이 표를 참조하는 곳들도 같은
+ * 관용을 따르지 않으면 "Nest 는 매치하는데 표만 못 찾는" 불일치가 생긴다). 그 밖의 정규화
+ * (중복 슬래시 축약·대소문자 변환 등)는 하지 않는다 — **대소문자는 정규화가 아니라
+ * `main.ts` 의 어댑터 설정(`case sensitive routing: true`, 회귀 1회차 S-3)으로 Nest 라우팅
+ * 자체를 이 표와 같은 기준(대소문자 구분)으로 맞춘다.**
+ */
+export function normalizePath(path: string): string {
+  return path.length > 1 && path.endsWith('/') ? path.slice(0, -1) : path;
 }

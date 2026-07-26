@@ -38,7 +38,10 @@ export function buildErrorEnvelope(code: string, details: readonly FieldReason[]
   const resolvedCode: string = isMappedExCode(code) ? code : FALLBACK_EX_CODE;
   const entry = EX_CODE_CATALOG[resolvedCode as keyof typeof EX_CODE_CATALOG];
 
-  const safeDetails = sanitizeDetails(details);
+  // 회귀 1회차 S-2 — "throws 없음" 계약을 실제로 지킨다. details 가 배열이 아닌 값(예: 호출측
+  // 실수로 단일 객체·null 을 넘김)으로 오면 `for...of` 가 TypeError 를 던지므로, 여기서 먼저
+  // 방어해 항상 안전하게 빈 배열로 대체한다.
+  const safeDetails = sanitizeDetails(Array.isArray(details) ? details : []);
 
   const body: ErrorResponseBody =
     safeDetails.length > 0
@@ -56,6 +59,7 @@ function sanitizeDetails(details: readonly FieldReason[]): FieldReason[] {
     whitelisted.push({ field: d.field, reason: d.reason }); // 값·길이·내부 사유는 버린다.
   }
   // FN-015 2차 방어 — 위 화이트리스트 재구성이 이미 field·reason 만 남기지만, 의존 기능표
-  // (FN-014 §의존 기능 "FN-015 | 단계 3 | 동기")를 그대로 호출 관계로 반영한다.
-  return sanitizeValue(whitelisted);
+  // (FN-014 §의존 기능 "FN-015 | 단계 3 | 동기")를 그대로 호출 관계로 반영한다. sanitizeValue
+  // 가 T|undefined 를 반환하므로(회귀 1회차 S-6) 안전한 빈 배열로 대체한다.
+  return sanitizeValue(whitelisted) ?? [];
 }

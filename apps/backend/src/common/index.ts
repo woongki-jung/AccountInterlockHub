@@ -4,4 +4,5 @@ export * from './errors';
 export * from './security';
 export * from './http';
 export * from './filters';
+export * from './interceptors';
 export * from './common.module';

@@ -1,5 +1,6 @@
 // 405(메서드 불일치, 본문 없음) 판정 미들웨어(spec-functions-api.md §경로·메서드 규약).
 import type { NextFunction, Request, RequestHandler, Response } from 'express';
+import { buildMethodsByPath, normalizePath } from './known-routes';
 import type { KnownRoute } from './known-routes';
 
 /**
@@ -10,22 +11,17 @@ import type { KnownRoute } from './known-routes';
  * (책임 분리, `GlobalExceptionFilter` 참고).
  *
  * 경로 비교는 정확히 일치하는 문자열만 인정한다(대소문자 구분 — spec-functions-api.md 의
- * `encX`·`encY` 대소문자 구분 관례와 같은 태도). 끝의 슬래시 하나는 관대하게 같은 경로로
- * 본다(Express 라우팅 자체가 기본으로 느슨한 라우팅(`strict routing` 비활성)을 쓰므로, 이
- * 미들웨어도 같은 관용을 따르지 않으면 "Nest 는 매치하는데 이 미들웨어만 못 찾는" 불일치가
- * 생긴다) — 그 밖의 정규화(중복 슬래시 축약 등)는 하지 않는다.
+ * `encX`·`encY` 대소문자 구분 관례와 같은 태도. 회귀 1회차 S-3 — 이 미들웨어는 원래부터
+ * 대소문자를 구분했으나, Nest 라우팅 자신은 Express 기본값(대소문자 무시)이라 대문자로 바꿔
+ * 보낸 요청은 이 미들웨어를 통과(`next()`)한 뒤 Nest 쪽에서 여전히 매치돼 혼선이 났다 —
+ * `main.ts` 가 어댑터 설정으로 그 쪽도 대소문자를 구분하도록 맞췄다). 끝의 슬래시 하나는
+ * `known-routes.ts` `normalizePath()` 로 관대하게 같은 경로로 본다.
  */
 export function createRouteGuardMiddleware(knownRoutes: readonly KnownRoute[]): RequestHandler {
-  const methodsByPath = new Map<string, Set<string>>();
-  for (const route of knownRoutes) {
-    if (!methodsByPath.has(route.path)) {
-      methodsByPath.set(route.path, new Set());
-    }
-    methodsByPath.get(route.path)!.add(route.method);
-  }
+  const methodsByPath = buildMethodsByPath(knownRoutes);
 
   return (req: Request, res: Response, next: NextFunction): void => {
-    const path = normalizeTrailingSlash(req.path);
+    const path = normalizePath(req.path);
     const allowedMethods = methodsByPath.get(path);
 
     if (!allowedMethods || allowedMethods.has(req.method)) {
@@ -33,10 +29,10 @@ export function createRouteGuardMiddleware(knownRoutes: readonly KnownRoute[]): 
       return;
     }
 
+    // 회귀 1회차 S-4 — RFC 9110 §15.5.6 은 405 응답에 Allow 헤더를 MUST 로 요구한다. 이
+    // 경로는 이미 405 자체로 "경로가 존재한다"는 사실을 드러낸 상태라(자가진단 경로는 애초에
+    // 이 표에 없어 이 분기에 도달하지 않는다) Allow 헤더가 추가 정보를 새로 누출하지 않는다.
+    res.set('Allow', [...allowedMethods].join(', '));
     res.status(405).end(); // 본문 없음 — 캐시 금지 헤더는 앞선 cacheControlMiddleware 가 이미 걸었다.
   };
-}
-
-function normalizeTrailingSlash(path: string): string {
-  return path.length > 1 && path.endsWith('/') ? path.slice(0, -1) : path;
 }
