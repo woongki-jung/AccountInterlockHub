@@ -1,7 +1,7 @@
 // PROC-103 동의·승인 제출(process_PROC-103.md) — POST <INTERLOCK_ENTRY_PATH>/approve 의
 // 오케스트레이션 지점. 재복호화·증적 기록·수신처 전달·결과 확정을 차례로 발화시킨다.
 import { Injectable } from '@nestjs/common';
-import { INTERLOCK_TRACKING_TABLE } from '../entities';
+import { CONSENT_PROOF_TABLE, INTERLOCK_TRACKING_TABLE, InterlockTrackingModel, InterlockTrackingRow, toInterlockTrackingModel } from '../entities';
 import { InterlockConfigService } from '../config/interlock-config.service';
 import { DatabaseService } from '../database/database.service';
 import { ConsentProofRecordService } from '../records/consent-proof-record.service';
@@ -9,8 +9,18 @@ import { TrackingRecordProcessService } from '../records/tracking-record.process
 import { ResultInfoBuilder } from '../interlock-entry/result-info.builder';
 import type { ResultInfo } from '../interlock-entry/entry-initial-state.model';
 import type { ApproveRequestBody } from './approve-request.dto';
-import { ConsentValidationError, DeliveryFailedError } from './approve.errors';
+import { ConsentValidationError, DeliveryFailedError, DeliveryInProgressError, LockTargetMissingError } from './approve.errors';
 import { InterlockDeliveryService } from './interlock-delivery.service';
+
+/**
+ * `B6` 전달 시도 표지 검사의 트랜잭션 내부 귀결 — `withTransaction()` 밖(트랜잭션 COMMIT 후)에서
+ * 200 재안내·500 `EX-BIZ-003` 여부를 가른다(process_PROC-103-logic.md B6 "COMMIT; // 아무것도
+ * 쓰지 않고 잠금만 놓는다"가 분기 **이전**에 COMMIT 하므로, 예외 던지기로 트랜잭션을 되돌리지
+ * 않고 정상 반환값으로 결과를 밖으로 전달한다).
+ */
+type ConsentProofLockOutcome =
+  | { readonly kind: 'PROOF_RECORDED' }
+  | { readonly kind: 'ALREADY_ATTEMPTED'; readonly locked: InterlockTrackingModel };
 
 @Injectable()
 export class ConsentApprovalService {
@@ -70,25 +80,83 @@ export class ConsentApprovalService {
     this.revalidateConsent(request.agreedItemCodes);
 
     // B6 — 승인 확정·동의 증적 기록(PROC-302 호출·POL BIZ-003-04, 트랜잭션 2 — B3 와 별개의
-    // 경계). 같은 추적 키의 동시 승인을 추적 레코드 행을 잠근 상태에서 직렬화한다(중복 증적
-    // 방지 — FOR UPDATE 는 추적 레코드 행에만 건다, 증적 테이블에는 유일 제약이 없다).
+    // 경계). 같은 추적 키의 동시 승인을 추적 레코드 행을 잠근 상태에서 직렬화하고, **그 잠금
+    // 안에서 이번 레코드의 전달 시도 표지(기존 증적) 유무를 확인한다** — 잠금은 두 요청의
+    // 순서만 세울 뿐 뒤선 요청을 멈추지 않으므로, 존재 검사 없이는 동시 승인 2건이 증적 2행·
+    // 수신처 이중 전달을 만든다(process_PROC-103-logic.md B6 · 2026-07-26 spec 회귀 964e8d0 —
+    // build tester 실측 재현, 사양 결함 5·9). B3 의 secured.record 를 재사용하지 않는다 — 그
+    // 사이 상대 요청이 결과를 확정했을 수 있다.
     const consentedAt = new Date();
-    await this.db.withTransaction(async (client) => {
-      await client.query(`SELECT tracking_key FROM ${INTERLOCK_TRACKING_TABLE} WHERE tracking_key = $1 FOR UPDATE`, [
-        gate.trackingKey,
-      ]);
+    const lockOutcome = await this.db.withTransaction(async (client): Promise<ConsentProofLockOutcome> => {
+      // 행 전체를 잠근 채로 읽는다(MDL-001 구성에 쓴다 — process_PROC-103-logic.md B6 "행 전체를
+      // 읽는다"). tracking_key 뿐이던 이전 잠금 조회를 6컬럼 전체로 넓혔다 — result_code 를 알아야
+      // 아래 ALREADY_ATTEMPTED 분기에서 확정 재안내와 결과 미확정을 가를 수 있다.
+      const lockResult = await client.query<InterlockTrackingRow>(
+        `SELECT tracking_key, result_code, result_at, result_confirmed_at, callback_received_at, created_at
+         FROM ${INTERLOCK_TRACKING_TABLE}
+         WHERE tracking_key = $1
+         FOR UPDATE`,
+        [gate.trackingKey],
+      );
+      const lockedRow = lockResult.rows[0];
+      if (lockedRow === undefined) {
+        // 방어적 분기 — B3(PROC-301 SECURE)가 이 요청 안에서 이미 행을 확보했으므로 정상
+        // 호출에서는 도달하지 않는다(LockTargetMissingError 문서 주석 참고).
+        throw new LockTargetMissingError();
+      }
+      const locked = toInterlockTrackingModel(lockedRow);
+
+      // 전달 시도 표지 확인 — 잠금을 쥔 채로 본다. 증적은 B7 전달 직전에 커밋되므로 그 존재가
+      // 곧 "이 레코드로 전달을 시도했다"는 표지다(BIZ-003-04). 이번 레코드에 속한 증적만
+      // 센다 — consented_at >= 잠근 레코드의 created_at(§구현 가이드). tracking_key 만으로
+      // 세면 앞선 보관 주기의 증적(EXC-BIZ-04 — 증적이 추적 레코드보다 오래 남는다)에 걸려
+      // 삭제 후 재수신된 정상 연동이 영구히 승인되지 않는다(매 제출이 500 으로 끝난다). 한
+      // 레코드의 생애에 승인 주기는 하나뿐이라 이 조건이 "이번 레코드에 속한 증적"과 정확히
+      // 같다. tbl_consent_proof(tracking_key) 유일 제약으로 대신하지 않는다 — 같은 키의 증적이
+      // 보관 주기를 넘어 공존하는 것이 정상이라(DATA-002-02) 제약 자체가 성립하지 않는다.
+      const markerResult = await client.query<{ count: string }>(
+        `SELECT COUNT(*) AS count FROM ${CONSENT_PROOF_TABLE} WHERE tracking_key = $1 AND consented_at >= $2`,
+        [gate.trackingKey, locked.createdAt],
+      );
+      const existingProofCount = Number(markerResult.rows[0]?.count ?? '0');
+
+      if (existingProofCount > 0) {
+        // 이미 전달을 시도한 승인이다 — 증적을 만들지 않고 B7 전달도 수행하지 않으며 B5b 이후
+        // 단계로 내려가지 않는다. 트랜잭션은 그대로 COMMIT 한다(아무것도 쓰지 않고 잠금만
+        // 놓는다 — process_PROC-103-logic.md B6). 200/500 분기는 COMMIT 뒤 트랜잭션 밖에서 한다.
+        return { kind: 'ALREADY_ATTEMPTED', locked };
+      }
+
       // exec = 여기서 연 커넥션·실행자를 그대로 넘긴다 — 행 잠금을 건 커넥션과 같아야 직렬화가
       // 성립한다(이 전달이 참여의 성립 조건이다 — ConsentProofRecordService.recordConsentProof
       // 의 시그니처는 executor 를 첫 인자로 받는다. PROC-302 는 트랜잭션을 새로 열지 않는다).
-      return this.consentProofRecord.recordConsentProof(client, {
+      await this.consentProofRecord.recordConsentProof(client, {
         trackingKey: gate.trackingKey,
         submission: { agreedItemCodes: request.agreedItemCodes },
         consent: this.interlockConfig.consent,
         at: consentedAt,
       });
+      return { kind: 'PROOF_RECORDED' };
     });
-    // 실패(EX-BIZ-003)는 ConsentProofRecordService 가 던지고 withTransaction() 이 ROLLBACK 후
-    // 그대로 재전파한다 — 결과를 확정하지 않고 전달도 수행하지 않는다(이 함수가 여기서 끝난다).
+    // 실패(EX-BIZ-003)는 ConsentProofRecordService 나 위 방어적 분기가 던지고 withTransaction()
+    // 이 ROLLBACK 후 그대로 재전파한다 — 결과를 확정하지 않고 전달도 수행하지 않는다(이 함수가
+    // 여기서 끝난다).
+
+    if (lockOutcome.kind === 'ALREADY_ATTEMPTED') {
+      // gate.payload · gate.rawPlaintext 를 폐기한다 — 아래로 넘기지 않는다(B7 를 호출하지
+      // 않고 이 분기에서 함수가 끝나 지역 스코프를 벗어나며 자연히 폐기된다).
+      if (lockOutcome.locked.resultCode !== null) {
+        // 확정 — B4 와 완전히 같은 귀결(경로 ①·③). 새 EX 코드를 만들지 않는다.
+        return this.resultInfoBuilder.build({
+          source: 'RECORD',
+          resultCode: lockOutcome.locked.resultCode,
+          isReAnnouncement: true,
+        });
+      }
+      // 미확정 — 선행 요청이 아직 PROC-104 전달 구간에 있다. 재시도는 안전하다 — 이 검사가
+      // 다시 증적·전달을 막고, 그사이 확정됐으면 위 분기가 대신 재안내한다.
+      throw new DeliveryInProgressError();
+    }
 
     // B7 — 연동 실행 이관(PROC-104 전달 구간 호출, 동기). B3 전달 페이로드 구성 → B4 수신처
     // 전달 호출 → B5 재시도 → B6 결과 확정(PROC-301+PROC-303) → B7 원문 폐기.
