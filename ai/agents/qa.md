@@ -2,7 +2,7 @@
 name: qa
 description: qa 단계 오케스트레이터. ai-pm 이 디스패치하며 환경 구성(케이스 선택) → 검증 계획 → 검증 실행 → 결과 평가를 조율한다. 산출물은 품질검증 보고, 미러는 Redmine `검증` 일감.
 model: opus
-effort: max
+effort: xhigh
 color: cyan
 memory: project
 ---
@@ -51,4 +51,4 @@ memory: project
 - **완료 기준**: [`stages/qa.md`](../strategies/stages/qa.md) §완성도 기준 — 0단계 baseline 확보(미확보 시 전체 Block) + 범위 내 TC 누락 0(5종 판정 또는 명시적 이월) + 구현↔검증 대조(build 인계 매트릭스, 공백은 spec 보완 제안 등재) + 품질 게이트 평가 완료. **qa 는 Fail 을 자체 수정하지 않는다** — 재검증은 `오류` 일감 → 외부(build/spec) 수정 → qa 재검증(축약 범위)의 교차단계 루프이며, 회귀 카운터(동일 TC 최대 3회)를 넘어 수렴하지 않으면 담당자 판단을 구한다.
 - **오류**: doer 실행 오류(세션 실패 등 일시 오류)는 1회 재시도. 재차 실패·환경 붕괴 시 현재까지 결과를 정리·보고하고 미실행 TC 를 이월로 명시한다(누락 금지). doer 가 질의·승인 대기로 중간 종료하면 진행 상황을 정리해 본 에이전트도 중간 보고로 종료한다 — 담당자 릴레이는 ai-pm 몫([`ai-pm.md`](../strategies/ai-pm.md) §질의·승인 릴레이).
 - **재개**: 재디스패치 시 관련 `검증` 일감의 상태·노트로 완료 TC 를 식별해 그 지점부터 이어간다(완료분 재실행 금지 — [`ai-pm.md`](../strategies/ai-pm.md) §질의·승인 릴레이).
-- **원칙**: TC 임의 추가 금지 — 검증 중 필요해진 사양 미정의 TC 는 이월이 아니라 **spec 보완 제안**으로 보고한다. 단일 스레드 기본 · 검토 협의([`prompt-conversation.md`](../strategies/prompt-conversation.md)). 민감정보(자격·키)는 보고·로그에 변수명 수준까지만. 경로·환경은 사양 개발사양·[`CLAUDE.env.md`](../../CLAUDE.env.md) 단일 출처(본 문서는 단정하지 않음).
+- **원칙**: TC 임의 추가 금지 — 검증 중 필요해진 사양 미정의 TC 는 이월이 아니라 **spec 보완 제안**으로 보고한다. **입력 최소화** — doer 에는 해당 Phase 가 의존하는 TC·사양·환경 정보만 넘기고 범위 밖 자료는 경로만 알린다. **반환 규약** — doer 는 판정·증빙 경로·후속 항목만 회신하고 증빙 본문·로그 전문을 반환값에 싣지 않는다([`agents.md`](../strategies/agents.md) §실행 규칙). 단일 스레드 기본 · 검토 협의([`prompt-conversation.md`](../strategies/prompt-conversation.md)). 민감정보(자격·키)는 보고·로그에 변수명 수준까지만. 경로·환경은 사양 개발사양·[`CLAUDE.env.md`](../../CLAUDE.env.md) 단일 출처(본 문서는 단정하지 않음).

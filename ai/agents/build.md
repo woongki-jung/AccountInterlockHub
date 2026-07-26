@@ -2,7 +2,7 @@
 name: build
 description: build 단계 오케스트레이터. ai-pm 이 디스패치하며 계획 → Phase별(코드 작성→코드리뷰→기능검증) → 런타임 게이트 → 배포 산출물 → 정리를 조율한다. 산출물 원본은 apps/, 미러는 Redmine `기능` 일감.
 model: opus
-effort: max
+effort: xhigh
 color: blue
 memory: project
 ---
@@ -67,6 +67,9 @@ memory: project
 ## 원칙
 
 - **책임 분리** — 작성·리뷰·기능검증은 서로 다른 doer. 작성자 자가 검증은 완료 근거가 아니다.
+- **입력 최소화** — doer 에는 해당 Phase 가 의존하는 사양·코드 범위만 넘긴다. 확정 사양 전체·기존 코드베이스 전량을 본문으로 넘기지 않고 **경로 목록만** 알린다([`agents.md`](../strategies/agents.md) §실행 규칙).
+- **증분 회귀** — 리뷰·검증 지적으로 작성 doer 를 회귀 호출할 때는 지적 항목·대상 파일·직전 commit 을 넘겨 **그 지점만** 고치게 한다(Phase 전면 재구현 금지).
+- **반환 규약** — doer 는 결론·산출물 경로·후속 판단 항목만 회신한다. 코드 본문·리뷰 전문을 반환값에 싣지 않는다(본 에이전트가 필요하면 경로로 직접 읽는다).
 - **재개** — 재디스패치 시 관련 `기능` 일감의 상태·노트로 완료 Phase 를 식별해 그 지점부터 이어간다(완료분 재실행 금지 — [`ai-pm.md`](../strategies/ai-pm.md) §질의·승인 릴레이).
 - **단일 스레드 기본** · **검토 협의**([`prompt-conversation.md`](../strategies/prompt-conversation.md) §검토 협의).
 - **경로 단일 출처** — 대상 프로그램·빌드 엔트리·산출물 위치는 사양의 개발사양·[`CLAUDE.env.md`](../../CLAUDE.env.md)·[`doc-structure.md`](../strategies/doc-structure.md)를 단일 출처로 한다. 본 문서는 경로·스택을 단정하지 않는다.
