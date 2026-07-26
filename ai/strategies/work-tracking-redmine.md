@@ -26,9 +26,10 @@
 
 	id 3 은 결번이다(기본 트래커 삭제 흔적). 신규 프로젝트 활성 목록은 §프로젝트 생성 표준 절차 2번.
 
-- **상태** (Redmine 표시명 = id → 정책 이름): `New`=1(신규) · `In Progress`=2(진행) · `Resolved`=3(해결) · `Needs Feedback`=4 · `Closed`=5(**완료**·닫힘) · `Rejected`=6(**거절**·닫힘) · `Confirmed`=8 · `Assigned`=9.
-	- **⚠️ `보류` 상태가 인스턴스에 없다** — id 7 은 결번이다. 정책([`work-tracking.md`](work-tracking.md))은 보류를 게이트 결함·회귀 소진·Block 처리에 쓰는데 매핑할 상태가 없다. `status_id: 7` 을 보내면 REST 는 422, MCP `update_issue` 는 **실패를 성공으로 삼켜** 상태가 조용히 그대로 남는다(§도구 함정). 보류 전환이 필요한 상황에서는 **상태를 바꾸지 말고 사유를 노트로 남기고** 담당자 판단을 구한다 — 대체 정의(상태 신설 또는 `Needs Feedback`=4 재사용)가 확정되면 본 절과 정책을 함께 갱신한다.
-	- `Needs Feedback`=4 · `Confirmed`=8 · `Assigned`=9 는 현 정책 미사용이다(Redmine 기본 잔존).
+- **상태** (Redmine 표시명 = id → 정책 이름): `New`=1(신규) · `In Progress`=2(진행) · `Resolved`=3(해결) · **`Needs Feedback`=4(보류)** · `Closed`=5(완료·닫힘) · `Rejected`=6(거절·닫힘). 정책 상태 어휘 6종([`work-tracking.md`](work-tracking.md) §상태 어휘)이 여기에 1:1 로 대응한다.
+	- **`보류` → `Needs Feedback`=4** — 인스턴스에 `보류` 라는 이름의 상태는 없고 id 7 은 결번이다. 정책의 보류(외부 응답 대기·Block·명시적 이월)를 **`Needs Feedback`(4)에 맨다** — "응답을 기다린다"는 뜻이 정책 용법과 같고, 열린 상태라 응답 후 `진행` 복귀도 성립한다(담당자 결정 2026-07-26). **`status_id: 7` 은 절대 보내지 않는다** — REST 는 422, MCP `update_issue` 는 실패를 성공으로 삼켜 상태가 조용히 그대로 남는다(§도구 함정).
+	- `Confirmed`=8 · `Assigned`=9 는 정책 미사용이다(Redmine 기본 잔존). 정책 어휘를 이 둘로 확장하지 않는다.
+	- 전이 가능성은 2026-07-26 실측으로 확인했다 — 표본 트래커(작업세션·사양·기능·오류·그룹) 전부에서 열린 상태끼리 6종 전면 전이가 허용된다. 개별 건의 실제 허용 목록은 아래 §전이 사전 확인으로 조회한다.
 - **역할**: 관리자=3, 개발자=4, 보고자=5, 뷰어=6.
 - **우선순위**: 낮음=1, 보통=2(기본), 높음=3, 긴급=4, 즉시=5.
 - **프로젝트**: `ai-workgroup-ops`=4(워크스페이스 운영·메타) · `accountinterlockhub`=5(제품, 범주 18건) · `smoke-test`=3(점검용). 제품 프로젝트 식별자 정본은 [`CLAUDE.env.md`](../../CLAUDE.env.md) `<REDMINE_PROJECT>`.
@@ -71,6 +72,14 @@ docker exec -e SECRET_KEY_BASE_DUMMY=1 redmine bin/rails runner /tmp/<script>.rb
 - **생성**: 정확한 트래커·상태 제어가 필요하므로 `redmine_request` POST `/issues.json` 본문 `{"issue":{"project_id","tracker_id","status_id","assigned_to_id","category_id","fixed_version_id","parent_issue_id"(하위 이슈),"description",...}}` 를 쓴다(MCP `create_issue` 는 트래커·상태를 무시 — §도구 함정).
 - **연관 추가**: POST `/issues/<id>/relations.json` `{"relation":{"issue_to_id":<대상 이슈>,"relation_type":"relates"}}` — build·qa 일감 → 참조 `사양` 일감.
 - **노트·상태·담당자 변경**: MCP `update_issue`(`notes`·`status_id`·`assigned_to_id`) 또는 `redmine_request` PUT `/issues/<id>.json`.
+
+### 전이 사전 확인 (`allowed_statuses`)
+
+상태를 바꾸기 전에 **그 전이가 지금 가능한지 읽기 전용으로 확인**할 수 있다 — `GET /issues/<id>.json?include=allowed_statuses` 는 그 이슈에 **현재 실제로 적용 가능한 상태 목록**을 준다(호출 계정 역할·워크플로·하위 일감 상태를 모두 반영한 결과).
+
+- **닫으려는데 `Closed` 가 목록에 없으면 열린 하위 일감이 있다는 뜻이다.** Redmine 이 열린 하위를 가진 부모에서 닫힘 상태를 후보에서 빼기 때문이다(§도구 함정 "열린 하위"). 하위를 먼저 닫고 다시 조회한다.
+- 목록에 없는 상태를 그대로 PUT 하면 조용히 무시된다(§도구 함정). **닫기·보류 전환 전에는 먼저 이 조회로 확인하는 것을 기본 순서로 삼는다** — 실패 후 되돌리는 것보다 싸다.
+- 조회 결과에 `allowed_statuses` 키가 아예 없으면 구버전 인스턴스다 — 그때만 종전 방식(전이 후 `GET` 으로 `status`·`closed_on` 실측)으로 폴백한다.
 - **첨부(업로드·삭제)**: 2단계 REST — ① `POST /uploads.json?filename=<이름>`(Content-Type `application/octet-stream`, 파일 바이너리 본문) → 반환 `token`, ② `PUT /issues/<id>.json` 본문 `{"issue":{"uploads":[{"token":<토큰>,"filename":<이름>,"content_type":<MIME>}]}}`. 기존 첨부 삭제는 `DELETE /attachments/<id>.json`. MCP `redmine_request` 는 JSON 본문만 보내므로 바이너리 업로드는 REST(curl 등) 직접 호출로 수행한다.
 
 ## 저장 쿼리 (보드 뷰)
@@ -81,7 +90,7 @@ docker exec -e SECRET_KEY_BASE_DUMMY=1 redmine bin/rails runner /tmp/<script>.rb
 
 - **`create_issue` 가 `tracker_id`·`status_id` 무시**(priority·assignee 는 반영) → `redmine_request` 로 생성하거나 생성 후 PUT 으로 교정.
 - **`update_issue` 가 부분 실패를 성공으로 삼킴** — `notes`+`status_id` 를 함께 보냈는데 Redmine 이 상태 전이만 거부해도 응답은 `{"ok":true}` 다(노트만 남고 상태는 그대로). → **상태 전이는 응답을 믿지 말고 `GET /issues/<id>.json` 의 `status`·`closed_on` 으로 실측 검증**한다. 특히 `해결`→`완료`(닫힘).
-- **열린 하위가 있으면 부모 close 가 거부된다** → 종결은 **하위 먼저, 부모 나중** 순서로 수행한다(위 함정과 겹치면 부모가 안 닫힌 채 성공으로 보인다).
+- **열린 하위가 있으면 부모 close 가 거부된다** → 종결은 **하위 먼저, 부모 나중** 순서로 수행한다(위 함정과 겹치면 부모가 안 닫힌 채 성공으로 보인다). 닫기 전에 §전이 사전 확인으로 `Closed` 가 후보에 있는지 보면 이 상황을 미리 잡을 수 있다.
 - **`create_project` 는 기본 트래커만 활성** → §프로젝트 생성 표준 절차 2번으로 보완.
 - **admin 화면 전용(REST 생성 불가)**: 커스텀 필드·트래커·상태·워크플로 전이·역할·우선순위 → 이 객체들에 의존하지 않는 설계를 유지한다.
 - PUT/DELETE 성공 시 응답 본문이 비어 있다(HTTP 204).
