@@ -88,11 +88,19 @@ function main() {
     process.exit(2);
   }
 
+  // [회귀 2회차 S-c — 리뷰어 지적] 원문 추출 개수가 케이스 수와 다르면(벡터 파일 저작
+  // 방식이 extractRawPayloadTexts 의 "한 줄 압축 JSON" 전제를 벗어난 경우) 예전에는 바이트
+  // 비교를 조용히 건너뛰면서도 성공 줄에는 여전히 "(구조 일치 + 바이트 일치)"를 찍고 exit 0
+  // 이 나올 수 있었다 — S-4 가 준 보증을 실제로는 검사하지 않고 참칭하는 상태였다. 이제는
+  // 실행 자체를 실패(exit 2)시킨다 — "바이트 비교를 건너뛴 통과"를 아예 만들지 않는다.
   const rawPayloads = extractRawPayloadTexts(vectorsRaw);
   if (rawPayloads.length !== cases.length) {
     console.error(
       '벡터 파일에서 추출한 input.payload 원문 개수(' + rawPayloads.length +
-      ')가 케이스 수(' + cases.length + ')와 다릅니다 — 바이트 동일성 보조 검증을 건너뜁니다.');
+      ')가 케이스 수(' + cases.length + ')와 다릅니다 — extractRawPayloadTexts 의 전제(각 ' +
+      'payload 가 한 줄 압축 JSON)가 깨졌을 수 있습니다. 바이트 동일성 보조 검증을 신뢰할 ' +
+      '수 없으므로 실행을 중단합니다(구조 비교만으로 통과를 참칭하지 않기 위함).');
+    process.exit(2);
   }
 
   const results = [];
@@ -101,7 +109,7 @@ function main() {
     const caseId = testCase.caseId;
     const reasons = [];
     let structuralMatch = false;
-    let byteMatch = null; // null = 이 케이스에서 시도하지 않음(원문 추출 실패 등)
+    let byteMatch = false;
 
     try {
       const encPair = { encX: testCase.expected.encX, encY: testCase.expected.encY };
@@ -112,12 +120,10 @@ function main() {
       structuralMatch = deepEqual(recovered, expectedPayload);
       if (!structuralMatch) reasons.push('구조 비교(judgeDecryption) 불일치');
 
-      if (rawPayloads.length === cases.length) {
-        const plainBytes = decryptPlainBytesViaHubPrimitives(hubCrypto, encPair, birthDate);
-        const expectedBytes = Buffer.from(rawPayloads[i], 'utf8');
-        byteMatch = plainBytes.equals(expectedBytes);
-        if (!byteMatch) reasons.push('바이트 비교(복호화 평문 vs 벡터 원문) 불일치');
-      }
+      const plainBytes = decryptPlainBytesViaHubPrimitives(hubCrypto, encPair, birthDate);
+      const expectedBytes = Buffer.from(rawPayloads[i], 'utf8');
+      byteMatch = plainBytes.equals(expectedBytes);
+      if (!byteMatch) reasons.push('바이트 비교(복호화 평문 vs 벡터 원문) 불일치');
     } catch (err) {
       const exCode = err && err.exCode ? err.exCode : '';
       const reason = err && err.name ? err.name : 'Error';

@@ -4,7 +4,7 @@ using System.Runtime.InteropServices;
 using System.Runtime.Versioning;
 
 [assembly: AssemblyTitle("AccountInterlockHub.SenderSdk")]
-[assembly: AssemblyDescription("AccountInterlockHub 연동 라이브러리 — 발송처(서비스 A) 배포용. 데이터 암호화(LIB-01)와 연동 요청 URL 생성(LIB-02)을 제공한다.")]
+[assembly: AssemblyDescription("AccountInterlockHub 연동 라이브러리 — 발송처(서비스 A) 배포용. 전달 데이터 암호화와 연동 요청 URL 생성을 제공한다.")]
 [assembly: AssemblyConfiguration("")]
 [assembly: AssemblyCompany("")]
 [assembly: AssemblyProduct("AccountInterlockHub.SenderSdk")]

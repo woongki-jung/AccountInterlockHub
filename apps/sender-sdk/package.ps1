@@ -77,6 +77,43 @@ if (-not (Test-Path $envFile)) {
     exit 1
 }
 
+# ---- PackageDate 결정 (fail-fast — [회귀 2회차 S-a]) ----
+# [회귀 1회차 S-1] -PackageDate 를 안 받았으면 오늘 날짜(Get-Date)로 채우지 않는다 — 그러면
+# 실행할 때마다 usage-guide.md 바이트가 달라져 SHA256SUMS.txt 도 매일 흔들린다(process_PROC
+# -403.md:75 "같은 산출물에서 같은 패키지·같은 체크섬"과 어긋남 — S-b 결정성 취지 훼손).
+# 대신 패키지가 실제로 담는 소스(라이브러리·하네스·벡터·사용 안내 템플릿·CLAUDE.env.md)에
+# 영향을 준 마지막 git 커밋 날짜를 쓴다 — 소스가 그대로면 언제 조립하든 같은 날짜가 나온다.
+#
+# [회귀 2회차 S-a] 이 결정·형식 검증을 dist-package\ 생성보다 앞으로 옮겼다 — 예전 위치
+# (조립 중간, 사용 안내 절)에서 실패하면 그때까지 조립된 dist-package\ 가 반쯤 남은 채
+# 스크립트가 죽었다. 무엇도 만들기 전에 먼저 실패하게 한다.
+#
+# [회귀 2회차 S-b — 리뷰어 지적] git pathspec 에 CLAUDE.env.md 가 빠져 있었다 — §4 URL
+# 값의 실제 입력원인데 그 파일만 바뀌면 PackageDate 가 전진하지 않아, 안내문이 "조립
+# 시점에 확정된 값"이라 주장하면서 실은 더 새로운 URL 값을 담는 모순이 생겼다. ':/경로'
+# 매직 pathspec(저장소 루트 기준 절대 경로, 현재 위치와 무관)으로 CLAUDE.env.md 를 추가한다.
+if ([string]::IsNullOrWhiteSpace($PackageDate)) {
+    Push-Location $root
+    try {
+        $gitDate = & git log -1 --format=%cs -- `
+            'AccountInterlockHub.SenderSdk' `
+            'AccountInterlockHub.SenderSdk.Harness' `
+            'protocol-test-vectors.json' `
+            'packaging/usage-guide.template.md' `
+            ':/CLAUDE.env.md' 2>$null
+    } finally {
+        Pop-Location
+    }
+    if ([string]::IsNullOrWhiteSpace($gitDate)) {
+        throw ("PackageDate 를 결정하지 못했습니다 — git 이력을 찾지 못했습니다(git 미설치 " +
+               "또는 해당 경로에 커밋 없음). -PackageDate yyyy-MM-dd 인자로 명시적으로 지정하세요.")
+    }
+    $PackageDate = $gitDate.Trim()
+}
+if ($PackageDate -notmatch '^\d{4}-\d{2}-\d{2}$') {
+    throw "PackageDate 형식이 올바르지 않습니다(yyyy-MM-dd 이어야 함): $PackageDate"
+}
+
 # ---- 정리 후 새로 생성 ----
 if (Test-Path $packageDir) {
     Remove-Item -Recurse -Force $packageDir
@@ -166,6 +203,100 @@ $originalTargetFrameworkDecl = @(
     '[assembly: TargetFramework(".NETFramework,Version=v4.8", FrameworkDisplayName = ".NET Framework 4.8")]'
 ) -join "`n"
 
+# [회귀 2회차 S-e] 위에서 TargetFramework 선언을 걷어내면 그 특성에만 쓰던
+# System.Runtime.Versioning using 이 스테이징 사본에서 무의미해진다 — 함께 제거한다.
+$originalVersioningUsing = @(
+    'using System.Runtime.InteropServices;'
+    'using System.Runtime.Versioning;'
+) -join "`n"
+$replacementVersioningUsing = 'using System.Runtime.InteropServices;'
+
+$originalHarnessAssemblyDescription =
+    '[assembly: AssemblyDescription("AccountInterlockHub.SenderSdk 규약 테스트 벡터 검증 하네스(C# 콘솔) — spec-functions-lib.md §검증 하네스")]'
+$replacementHarnessAssemblyDescription =
+    '[assembly: AssemblyDescription("AccountInterlockHub.SenderSdk 연동 라이브러리 호출 샘플 겸 규약 테스트 벡터 검증 하네스(C# 콘솔)")]'
+
+# [회귀 2회차 I-1(가)] 리뷰어·tester 독립 재현 — 샘플 zip 안 .cs 주석에 허브 내부 사정
+# (이 PC 의 타게팅 팩 부재·저장소 개행 규약·P17/P18 Phase 번호)과 내부 문서 참조
+# (spec-functions-lib.md·LIB-04·MDL-019)가 그대로 남아 있었다. 그중 ".gitattributes 가
+# 없고"·"P18 로 이월"은 회귀 1회차 커밋(.gitattributes 도입)으로 이미 사실이 아니게 됐다
+# — 발송처가 자신이 갖지 않은 저장소의, 틀린 상태 설명을 읽게 되는 상태였다. 기술적 사실만
+# 남기고 내부 문서 참조는 "함께 받은 usage-guide.md §6" 로 치환한다. 원본
+# apps/sender-sdk/AccountInterlockHub.SenderSdk.Harness/** 는 손대지 않는다.
+$csRedactions = @(
+    [PSCustomObject]@{
+        RelativePath = 'Json\MiniJsonParser.cs'
+        Original = @(
+            '    /// <summary>'
+            '    /// 검증 하네스 전용 최소 JSON 파서다. 규약 테스트 벡터 파일(LIB-04 형식,'
+            '    /// spec-functions-lib.md §규약 테스트 벡터)을 읽는 용도로만 필요한 만큼 구현했다.'
+            '    ///'
+            '    /// 하네스는 라이브러리 산출물이 아니므로 라이브러리의 "JSON 직렬화기를 쓰지 않는다"'
+            '    /// 제약과는 별개다 — 다만 대상 런타임 밖의 외부 패키지 의존을 새로 만들지 않기 위해'
+            '    /// 프레임워크 내장 파서 대신 이 최소 구현을 골랐다(빌드 환경에 타게팅 팩이 없어'
+            '    /// System.Web.Extensions 같은 GAC 전용 어셈블리 참조 확보가 불확실하기도 하다).'
+            '    ///'
+            '    /// <see cref="Parse"/> 는 진입 시 입력의 개행을 LF 로 정규화한다(체크아웃 개행 규약과 무관하게'
+            '    /// 결정적인 결과를 내기 위함 — 아래 <see cref="Parse"/> 주석 참고) · 중첩 깊이 상한을 둔다'
+            '    /// (<see cref="MaxNestingDepth"/>).'
+            '    /// </summary>'
+        ) -join "`n"
+        Replacement = @(
+            '    /// <summary>'
+            '    /// 규약 테스트 벡터 파일을 읽는 최소 JSON 파서다(함께 받은 usage-guide.md §6 규약'
+            '    /// 적합성 확인 절차 참고).'
+            '    ///'
+            '    /// 대상 런타임(.NET Framework 4.8) 밖의 외부 패키지 의존을 새로 만들지 않기 위해'
+            '    /// 프레임워크 내장 파서 대신 이 최소 구현을 썼다.'
+            '    ///'
+            '    /// <see cref="Parse"/> 는 진입 시 입력의 개행을 LF 로 정규화한다(체크아웃 환경과 무관하게'
+            '    /// 결정적인 결과를 내기 위함 — 아래 <see cref="Parse"/> 주석 참고) · 중첩 깊이 상한을 둔다'
+            '    /// (<see cref="MaxNestingDepth"/>).'
+            '    /// </summary>'
+        ) -join "`n"
+    }
+    [PSCustomObject]@{
+        RelativePath = 'Json\MiniJsonParser.cs'
+        Original = @(
+            '            // 개행 정규화 계약(P17 코드리뷰 S-1) — 이 파서가 만드는 JsonValue.RawText 는 원본'
+            '            // 문자열의 부분 문자열 그대로다(예: VectorFile 이 input.payload 원문을 재직렬화 없이'
+            '            // Encrypt 인자로 쓴다). 저장소에 .gitattributes 가 없고 이 PC 는 core.autocrlf = true 라'
+            '            // 벡터 파일(protocol-test-vectors.json)이 여러 줄이면 체크아웃 OS 에 따라 파일의 개행이'
+            '            // CRLF/LF 로 갈릴 수 있고, 그 차이가 RawText 의 바이트열을 바꿔 같은 벡터가 다른 encX 를'
+            '            // 내게 된다. 파싱 전 모든 개행을 LF 하나로 정규화해 체크아웃 개행 규약과 무관하게 항상'
+            '            // 같은 결과가 나오도록 고정한다 — 이 하네스가 만드는 모든 RawText·문자열 값에 적용되는'
+            '            // 계약이다. (.gitattributes 도입은 P18 로 이월 — 이 정규화는 그와 무관하게 항상 유효하다.)'
+        ) -join "`n"
+        Replacement = @(
+            '            // 개행 정규화 계약 — 이 파서가 만드는 JsonValue.RawText 는 원본 문자열의 부분'
+            '            // 문자열 그대로다(예: VectorFile 이 input.payload 원문을 재직렬화 없이 Encrypt'
+            '            // 인자로 쓴다). 벡터 파일의 개행이 CRLF·LF 어느 쪽이든 같은 encX 가 나오도록,'
+            '            // 파싱 전 모든 개행을 LF 하나로 정규화한다 — 이 하네스가 만드는 모든 RawText·'
+            '            // 문자열 값에 적용되는 계약이다.'
+        ) -join "`n"
+    }
+    [PSCustomObject]@{
+        RelativePath = 'Program.cs'
+        Original = '    /// C# 콘솔 검증 하네스다(spec-functions-lib.md §검증 하네스).'
+        Replacement = '    /// C# 콘솔 검증 하네스다(함께 받은 usage-guide.md §6 규약 적합성 확인 절차 참고).'
+    }
+    [PSCustomObject]@{
+        RelativePath = 'VectorFile.cs'
+        Original = '    /// <summary>규약 테스트 벡터 파일의 항목 하나(MDL-019).</summary>'
+        Replacement = '    /// <summary>규약 테스트 벡터 파일의 항목 하나(함께 받은 usage-guide.md §6 참고).</summary>'
+    }
+    [PSCustomObject]@{
+        RelativePath = 'VectorFile.cs'
+        Original = '    /// 규약 테스트 벡터 파일 전체(spec-functions-lib.md §규약 테스트 벡터 형식).'
+        Replacement = '    /// 규약 테스트 벡터 파일 전체(함께 받은 usage-guide.md §6 참고).'
+    }
+    [PSCustomObject]@{
+        RelativePath = 'VectorFile.cs'
+        Original = '                // 벡터 규약(spec-functions-lib.md §규약 테스트 벡터)의 payload 는 항상 JSON 객체다.'
+        Replacement = '                // 벡터 규약의 payload 는 항상 JSON 객체다.'
+    }
+)
+
 Get-ChildItem -Path $harnessDir -Recurse -File | Where-Object {
     $_.Extension -eq '.cs' -or $_.Extension -eq '.csproj'
 } | ForEach-Object {
@@ -191,6 +322,23 @@ Get-ChildItem -Path $harnessDir -Recurse -File | Where-Object {
             throw "AssemblyInfo.cs 의 TargetFramework 선언 블록을 찾지 못했습니다 — 원본이 바뀌었을 수 있습니다: $($_.FullName)"
         }
         $text = $text.Replace($originalTargetFrameworkDecl, '')
+
+        if (-not $text.Contains($originalVersioningUsing)) {
+            throw "AssemblyInfo.cs 의 using 블록을 찾지 못했습니다 — 원본이 바뀌었을 수 있습니다: $($_.FullName)"
+        }
+        $text = $text.Replace($originalVersioningUsing, $replacementVersioningUsing)
+
+        if (-not $text.Contains($originalHarnessAssemblyDescription)) {
+            throw "AssemblyInfo.cs 의 AssemblyDescription 을 찾지 못했습니다 — 원본이 바뀌었을 수 있습니다: $($_.FullName)"
+        }
+        $text = $text.Replace($originalHarnessAssemblyDescription, $replacementHarnessAssemblyDescription)
+    }
+    foreach ($rule in $csRedactions) {
+        if ($rule.RelativePath -ne $relative) { continue }
+        if (-not $text.Contains($rule.Original)) {
+            throw "내부 사정 주석 치환 대상을 찾지 못했습니다 — 원본이 바뀌었을 수 있습니다: $($_.FullName) / $($rule.Original.Substring(0, [Math]::Min(40, $rule.Original.Length)))..."
+        }
+        $text = $text.Replace($rule.Original, $rule.Replacement)
     }
     Write-NormalizedFile $destPath $text
 }
@@ -221,32 +369,6 @@ Compress-Archive -Path (Join-Path $sampleStage '*') -DestinationPath $sampleZip 
 Remove-Item -Recurse -Force $sampleStage
 
 # ---- ③ 사용 안내 — 템플릿 + CLAUDE.env.md 값 치환 (그 시점 확정 값을 가져와 채운다) ----
-
-# [회귀 1회차 S-1] -PackageDate 를 안 받았으면 오늘 날짜(Get-Date)로 채우지 않는다 — 그러면
-# 실행할 때마다 usage-guide.md 바이트가 달라져 SHA256SUMS.txt 도 매일 흔들린다(process_PROC
-# -403.md:75 "같은 산출물에서 같은 패키지·같은 체크섬"과 어긋남 — S-b 결정성 취지 훼손).
-# 대신 패키지가 실제로 담는 소스(라이브러리·하네스·벡터·사용 안내 템플릿)에 영향을 준 마지막
-# git 커밋 날짜를 쓴다 — 소스가 그대로면 언제 조립하든 같은 날짜가 나온다.
-if ([string]::IsNullOrWhiteSpace($PackageDate)) {
-    Push-Location $root
-    try {
-        $gitDate = & git log -1 --format=%cs -- `
-            'AccountInterlockHub.SenderSdk' `
-            'AccountInterlockHub.SenderSdk.Harness' `
-            'protocol-test-vectors.json' `
-            'packaging/usage-guide.template.md' 2>$null
-    } finally {
-        Pop-Location
-    }
-    if ([string]::IsNullOrWhiteSpace($gitDate)) {
-        throw ("PackageDate 를 결정하지 못했습니다 — git 이력을 찾지 못했습니다(git 미설치 " +
-               "또는 해당 경로에 커밋 없음). -PackageDate yyyy-MM-dd 인자로 명시적으로 지정하세요.")
-    }
-    $PackageDate = $gitDate.Trim()
-}
-if ($PackageDate -notmatch '^\d{4}-\d{2}-\d{2}$') {
-    throw "PackageDate 형식이 올바르지 않습니다(yyyy-MM-dd 이어야 함): $PackageDate"
-}
 
 function Get-EnvConstant([string]$envText, [string]$key) {
     # `<KEY>` | `값` (**잠정**) | ... 형태의 상수표 행에서 두 번째 칸을 뽑는다.
@@ -305,6 +427,154 @@ Get-ChildItem -Path $packageDir -File | Sort-Object Name | ForEach-Object {
 }
 $checksumText = ($checksumEntries -join "`n") + "`n"
 Write-NormalizedFile (Join-Path $packageDir 'SHA256SUMS.txt') $checksumText
+
+# ---- [회귀 2회차 I-1 조치 3] 내부 용어 denylist — 조립 산출물 전체 자동 차단 게이트 ----
+# 이번 회귀에서 발견된 I-1(허브 내부 사정·Phase 코드가 패키지에 남아 있던 결함)이 다시 새지
+# 않도록, 조립을 마친 산출물 전체(패키지 5파일 + zip 내부 전 항목 + DLL 이진)에서 내부
+# 용어가 하나라도 검출되면 패키지 조립 자체를 실패시킨다. DLL 은 .NET 메타데이터가 문자열을
+# UTF-16LE 로 담으므로 ASCII·UTF-8·UTF-16LE 세 인코딩 모두로 디코딩해 검사한다.
+$denylistPatterns = @(
+    'P\d\d'            # Phase 코드(P17·P18 등)
+    '\.gitattributes'
+    'autocrlf'
+    '타게팅 팩'
+    'spec-[\w-]*\.md'
+    'LIB-0\d'
+    'MDL-0\d\d'
+    '저장소'
+    'selfcheck'        # SEC-003-02 자가진단 경로 — 같은 스캔 인프라로 함께 확인(대소문자 무시)
+)
+
+function Get-DenylistHits([string]$text, [string]$sourceLabel) {
+    $found = @()
+    foreach ($p in $denylistPatterns) {
+        $ms = [regex]::Matches($text, $p, [System.Text.RegularExpressions.RegexOptions]::IgnoreCase)
+        foreach ($m in $ms) {
+            $found += "$sourceLabel : 패턴 '$p' 일치 '$($m.Value)' (위치 $($m.Index))"
+        }
+    }
+    return $found
+}
+
+# 1차 시도(원문 그대로 스캔)는 실측 중 실패했다 — protocol-test-vectors.json 의 encX/encY/
+# requestUrl 은 Base64URL 의사난수 문자열이라 'P\d\d' 같은 짧은 패턴이 우연히도 여러 번
+# 걸렸다(예: "...P91...", "...p58..." — 전부 암호값 안의 우연 일치, 실제 내부 용어 아님).
+# DLL 이진도 같은 이유로 위험하다 — IL·메타데이터를 통째로 디코딩해 훑으면 무작위 바이트가
+# 우연히 짧은 패턴을 만든다. 두 경우 모두 "사람이 쓴 문자열"만 골라 스캔하도록 좁힌다.
+
+# protocol-test-vectors.json — 사람이 쓴 필드(protocolVersion·hubBaseUrl·caseId·boundaryNote·
+# senderKey·birthDate·payload)만 스캔하고, 알고리즘이 만든 암호값(encX·encY·requestUrl)은
+# 제외한다. payload 는 합성 테스트 데이터일 뿐 실사용자 정보가 아니므로(DATA-001-02) 그대로
+# 문자열화해도 안전하다.
+function Get-VectorsHumanAuthoredText($vectorsObj) {
+    $parts = New-Object System.Collections.Generic.List[string]
+    $parts.Add([string]$vectorsObj.protocolVersion)
+    $parts.Add([string]$vectorsObj.hubBaseUrl)
+    foreach ($c in $vectorsObj.cases) {
+        $parts.Add([string]$c.caseId)
+        $parts.Add([string]$c.boundaryNote)
+        $parts.Add([string]$c.input.senderKey)
+        $parts.Add([string]$c.input.birthDate)
+        $parts.Add(($c.input.payload | ConvertTo-Json -Compress -Depth 10))
+    }
+    return ($parts -join "`n")
+}
+
+# 이진(DLL) — 무작위 바이트 노이즈에서 우연히 패턴이 맞는 것을 피하기 위해, 먼저 "사람이
+# 읽을 수 있는 연속 구간"(strings 유틸과 같은 발상)만 추출한 뒤 그 구간에만 denylist 를
+# 적용한다. ASCII 인쇄 가능 범위(0x20~0x7E)는 ASCII·UTF-8 인코딩 관점에서 공통으로 쓰고,
+# UTF-16LE 는 2바이트 코드유닛 기준으로 ASCII 범위 + 한글 완성형 범위(가~힣, 0xAC00~0xD7A3)
+# 를 인쇄 가능으로 본다 — denylist 의 한글 용어("타게팅 팩"·"저장소")를 UTF-16LE 로 저장된
+# .NET 메타데이터 문자열에서도 잡아내기 위함이다.
+function Get-PrintableRunsAscii([byte[]]$bytes, [int]$minLength = 6) {
+    $runs = New-Object System.Collections.Generic.List[string]
+    $sb = New-Object System.Text.StringBuilder
+    foreach ($b in $bytes) {
+        if ($b -ge 0x20 -and $b -le 0x7E) {
+            [void]$sb.Append([char]$b)
+        } else {
+            if ($sb.Length -ge $minLength) { $runs.Add($sb.ToString()) }
+            [void]$sb.Clear()
+        }
+    }
+    if ($sb.Length -ge $minLength) { $runs.Add($sb.ToString()) }
+    return $runs
+}
+function Get-PrintableRunsUtf16LE([byte[]]$bytes, [int]$minLength = 4) {
+    $runs = New-Object System.Collections.Generic.List[string]
+    $sb = New-Object System.Text.StringBuilder
+    $unitCount = [Math]::Floor($bytes.Length / 2)
+    for ($i = 0; $i -lt $unitCount; $i++) {
+        $code = $bytes[$i * 2] + ($bytes[$i * 2 + 1] * 256)
+        $isPrintable = (($code -ge 0x20) -and ($code -le 0x7E)) -or (($code -ge 0xAC00) -and ($code -le 0xD7A3))
+        if ($isPrintable) {
+            [void]$sb.Append([char]$code)
+        } else {
+            if ($sb.Length -ge $minLength) { $runs.Add($sb.ToString()) }
+            [void]$sb.Clear()
+        }
+    }
+    if ($sb.Length -ge $minLength) { $runs.Add($sb.ToString()) }
+    return $runs
+}
+function Get-DenylistHitsFromBinary([byte[]]$bytes, [string]$sourceLabel) {
+    $found = @()
+    $asciiRuns = Get-PrintableRunsAscii $bytes
+    foreach ($run in $asciiRuns) {
+        $found += Get-DenylistHits $run "$sourceLabel(ASCII/UTF-8 인쇄가능구간)"
+    }
+    $utf16Runs = Get-PrintableRunsUtf16LE $bytes
+    foreach ($run in $utf16Runs) {
+        $found += Get-DenylistHits $run "$sourceLabel(UTF-16LE 인쇄가능구간)"
+    }
+    return $found
+}
+
+$denylistHits = @()
+
+# 최상위 텍스트 파일 3종(라이브러리 DLL 은 아래서 별도로 이진 검사)
+$denylistHits += Get-DenylistHits $guideText 'usage-guide.md'
+$denylistHits += Get-DenylistHits (Get-VectorsHumanAuthoredText $vectorsForVersion) 'protocol-test-vectors.json(사람이 쓴 필드만)'
+$denylistHits += Get-DenylistHits $checksumText 'SHA256SUMS.txt'
+
+# 최상위 라이브러리 DLL(이진 — 인쇄가능구간 추출 후 3중 인코딩 관점으로 검사)
+$denylistHits += Get-DenylistHitsFromBinary ([System.IO.File]::ReadAllBytes((Join-Path $packageDir 'AccountInterlockHub.SenderSdk.dll'))) 'AccountInterlockHub.SenderSdk.dll(최상위)'
+
+# zip 내부 전 항목 — 동봉 DLL 은 이진 검사, 나머지(소스)는 사람이 쓴 텍스트라 그대로 UTF-8 스캔
+Add-Type -AssemblyName System.IO.Compression.FileSystem
+$zipForScan = [System.IO.Compression.ZipFile]::OpenRead($sampleZip)
+$zipEntryCount = 0
+try {
+    foreach ($entry in $zipForScan.Entries) {
+        $zipEntryCount++
+        $entryStream = $entry.Open()
+        $entryMs = New-Object System.IO.MemoryStream
+        try {
+            $entryStream.CopyTo($entryMs)
+            $entryBytes = $entryMs.ToArray()
+        } finally {
+            $entryStream.Dispose()
+            $entryMs.Dispose()
+        }
+        $entryLabel = "zip:$($entry.FullName)"
+        if ($entry.FullName -like '*.dll') {
+            $denylistHits += Get-DenylistHitsFromBinary $entryBytes $entryLabel
+        } else {
+            $denylistHits += Get-DenylistHits ([System.Text.Encoding]::UTF8.GetString($entryBytes)) $entryLabel
+        }
+    }
+} finally {
+    $zipForScan.Dispose()
+}
+
+if ($denylistHits.Count -gt 0) {
+    Write-Host ""
+    Write-Host "내부 용어 denylist 위반 발견 — 패키지 조립을 중단합니다:"
+    $denylistHits | ForEach-Object { Write-Host "  - $_" }
+    throw "조립 산출물에 허브 내부 용어가 남아 있습니다(위반 $($denylistHits.Count)건). 위 목록의 위치를 확인해 원인을 걷어내십시오."
+}
+Write-Host ""
+Write-Host ("내부 용어 denylist 검사 통과: 위반 0건 (최상위 4파일 + zip 내부 " + $zipEntryCount + "항목 + DLL 3중 인코딩)")
 
 Write-Host ""
 Write-Host "패키지 조립 완료: $packageDir"
