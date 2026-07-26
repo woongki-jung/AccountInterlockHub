@@ -53,7 +53,7 @@
 |---|---|---|
 | 초기 | Initial | 빈 입력, 알림 없음 |
 | 입력 중 | Editing | 샘플 값 입력됨(보너스 — §3 필수 항목 아님) |
-| 확인 중(로딩) | Submitting | 버튼 Spinner+"확인 중", 필드 잠금(readonly) |
+| 확인 중(로딩) | Submitting | 버튼 Spinner+"확인 중", 입력 필드 잠금(`readonly`+`aria-busy="true"` — 이 상태에서만 서고 나머지에서 해제) |
 | 입력 오류(형식) | ReEntry(형식) | `EX-AUTH-001` 기본 문구, 필드 경계 danger |
 | 재입력 안내(불일치) | ReEntry(불일치) | `EX-AUTH-002` 기본 문구, **값 유지 + 전체 선택**(실제 `input.select()` 호출), 시도 횟수 미표시 |
 | 처리 오류 | Retryable | `EX-BIZ-003` 기본 문구, 버튼 재활성 |
@@ -77,8 +77,8 @@
 
 | 상태 | 사양 대응 | 비고 |
 |---|---|---|
-| 대기·진행 표시 | Waiting | Spinner(32px)+제목+보조 문구, `role="status"`·`aria-busy="true"`, 조작 요소 0 |
-| 응답 미수신(Unconfirmed) | Unconfirmed | 위 표시에 InlineAlert 추가(재진입 안내), **네 번째** 결과 경로 아님 |
+| 대기·진행 표시 | Waiting | Spinner(32px)+제목+보조 문구, `role="status"`·`aria-live="polite"`·`aria-busy="true"`, 조작 요소 0 |
+| 응답 미수신(Unconfirmed) | Unconfirmed | 위 표시에 InlineAlert 추가(재진입 안내) — 대기가 끝났으므로 **`aria-busy` 는 해제**(`role="status"`·`aria-live="polite"` 는 유지), **네 번째** 결과 경로 아님 |
 
 §3 요구 2항목(대기·진행 표시 · Unconfirmed) 전건 구현. 이 화면은 사양대로 버튼이 전혀 없다.
 
