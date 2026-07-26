@@ -34,11 +34,12 @@ export function initialViewFromEntryState(initial: EntryInitialStateDto): Screen
 /** 본인확인 제출(POST .../verify) 응답 → 다음 화면. */
 export function viewAfterVerify(outcome: ApiOutcome<VerifyResponseDto>): ScreenView {
   if (outcome.kind === 'network-error') {
-    // SCR-001 에는 SCR-003 의 `Unconfirmed` 같은 전용 상태가 사양에 없다
-    // — 승인 요청과 달리 본인확인 요청은 카드가 아직 바뀌지 않은
-    // 상태라 사용자가 같은 화면에서 바로 다시 시도할 수 있다. 재시도
-    // 가능한 처리 오류(EX-BIZ-003)와 같은 방식으로 안내한다(방어적
-    // 폴백 — 완료 보고 WARN 참고).
+    // screen_SCR-001.md §화면 상태 전이 `Retryable` — "500 EX-BIZ-003,
+    // 또는 본인확인 제출의 응답 미수신(전송 계층 단절)"을 이 상태의
+    // 진입 조건으로 명시한다(같은 문서 70·75행 — 회귀 1회차 S-2, 이전
+    // 주석의 "사양에 없다"는 낡은 서술이었다). 승인 요청과 달리 본인확인
+    // 요청은 어떤 결과도 확정하지 않아(`BIZ-002-03` ②) 카드가 아직
+    // 바뀌지 않은 이 화면에서 같은 값 그대로 다시 제출하는 것이 안전하다.
     return { screen: 'SCR-001', status: 'idle', alert: { kind: 'retryable', message: defaultMessageFor('EX-BIZ-003') } };
   }
 
@@ -136,9 +137,6 @@ export function consentGatedView(consent: ConsentConfigDto, message: string): Sc
   return { screen: 'SCR-002', consent, status: 'idle', alert: { kind: 'gated', message } };
 }
 
-/** screen_SCR-001.md §입력 폼 정의 — FE 검증 의사코드의 문구 정본(`AUTH-002-02`). */
-const BIRTH_DATE_FORMAT_MESSAGE = '생년월일을 여섯 자리 숫자로 입력해 주세요.';
-
 /**
  * 생년월일 형식(6자리 숫자) 검증 — screen_SCR-001.md §입력 폼 정의
  * "유효성 규칙(FE 검증 의사코드)" `/^\d{6}$/.test(value)` 그대로다.
@@ -156,9 +154,12 @@ export function isBirthDateFormatValid(value: string): boolean {
  * 버튼은 입력이 비어 있어도 활성이다... 제출 시 형식 안내를 보여 주는
  * 쪽을 택했다"와 §조건부 표시 "InlineAlert(형식 안내) | 화면 검증 실패
  * 또는 직전 응답이 EX-AUTH-001"의 **"화면 검증 실패"** 갈래를 구현한다.
- * 문구는 서버의 `EX-AUTH-001` 기본 문구와 같은 값이다(같은 위반을 같은
- * 문구로 알린다 — 화면이 새 문구를 만들지 않는다는 원칙과 합치).
+ * 문구는 `defaultMessageFor('EX-AUTH-001')` 하나로 단일화한다(회귀
+ * 1회차 S-1) — 화면 검증이 잡아낸 위반과 서버가 돌려준 EX-AUTH-001 은
+ * 같은 실패이므로, 문구 출처가 리터럴과 카탈로그 둘로 갈리면 나중에
+ * 한쪽만 고쳐 어긋날 위험이 있다(screen_SCR-001.md §입력 폼 정의
+ * "화면이 문구를 새로 만들면 같은 실패가 자리마다 달리 읽힌다").
  */
 export function identityFormatInvalidView(): ScreenView {
-  return { screen: 'SCR-001', status: 'idle', alert: { kind: 'format', message: BIRTH_DATE_FORMAT_MESSAGE } };
+  return { screen: 'SCR-001', status: 'idle', alert: { kind: 'format', message: defaultMessageFor('EX-AUTH-001') } };
 }

@@ -30,6 +30,11 @@ export interface InterlockFlow {
    * 승인 버튼을 눌렀을 때 호출한다. 서버를 부르지 않는다.
    */
   reportConsentValidationFailed: (message: string) => void;
+  /**
+   * SCR-002 필수 항목이 전부 충족된 시점에 호출 — Gated 알림만 해제한다
+   * (회귀 1회차 I-2). 서버를 부르지 않는다.
+   */
+  clearConsentGatedAlert: () => void;
 }
 
 /**
@@ -56,7 +61,7 @@ export function useInterlockFlow(): InterlockFlow {
   // 항목이 없다 — 마지막으로 받은 구성을 별도로 기억해 둔다.
   const lastConsentRef = useRef<ConsentConfigDto | null>(null);
 
-  const [birthDate, setBirthDate] = useState('');
+  const [birthDate, setBirthDateRaw] = useState('');
   const [view, setView] = useState<ScreenView>(() => {
     const initial = initialViewFromEntryState(readInitialState());
     if (initial.screen === 'SCR-004') {
@@ -78,9 +83,24 @@ export function useInterlockFlow(): InterlockFlow {
     }
     if (next.screen === 'SCR-004') {
       encRef.current = EMPTY_ENC_PAIR;
-      setBirthDate('');
+      setBirthDateRaw('');
     }
     setView(next);
+  }
+
+  /**
+   * SCR-001 생년월일 변경 — 값 반영과 함께 떠 있는 오류 알림을 해제한다
+   * (screen_SCR-001.md §사용자 인터랙션 55행 "입력 값 반영·오류 알림
+   * 해제" · 회귀 1회차 I-1). 형식·재입력(불일치)·재시도 알림 어느
+   * 종류든 사용자가 값을 고치기 시작하면 더는 그 알림의 근거인 "직전
+   * 제출 시점의 값"이 아니므로 kind 를 가리지 않고 지운다. `setState`
+   * updater 안에 부수효과를 넣지 않도록 값 반영과 알림 해제를 별개의
+   * 순차 호출로 둔다 — `prev.alert` 가 이미 없으면 같은 참조를 그대로
+   * 돌려주어 불필요한 리렌더를 만들지 않는다.
+   */
+  function changeBirthDate(value: string) {
+    setBirthDateRaw(value);
+    setView((prev) => (prev.screen === 'SCR-001' && prev.alert ? { ...prev, alert: null } : prev));
   }
 
   async function verify() {
@@ -113,5 +133,24 @@ export function useInterlockFlow(): InterlockFlow {
     setView((prev) => (prev.screen === 'SCR-002' ? consentGatedView(prev.consent, message) : prev));
   }
 
-  return { view, birthDate, setBirthDate, verify, approve, reportConsentValidationFailed };
+  /**
+   * SCR-002 필수 항목이 전부 충족된 시점 — Gated 알림만 해제한다(BR-004
+   * 1차 방어의 해제). 서버 재검증 결과인 Blocked 는 사양이 해제를
+   * 요구하지 않으므로 kind 를 가려 지운다(screen_SCR-002.md §조건부
+   * 표시 106행 "안내가 뜬 뒤 필수 항목을 모두 체크하면 안내를 지우고
+   * 버튼을 활성으로 바꾼다" · 회귀 1회차 I-2). 서버를 부르지 않는다.
+   */
+  function clearConsentGatedAlert() {
+    setView((prev) => (prev.screen === 'SCR-002' && prev.alert?.kind === 'gated' ? { ...prev, alert: null } : prev));
+  }
+
+  return {
+    view,
+    birthDate,
+    setBirthDate: changeBirthDate,
+    verify,
+    approve,
+    reportConsentValidationFailed,
+    clearConsentGatedAlert,
+  };
 }
