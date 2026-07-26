@@ -1,8 +1,13 @@
-# report 트래커 생성 (Redmine admin 1회 작업)
+# report 트래커 준비 (Redmine admin 1회 작업)
 #
-# 용도 : ai/strategies/work-tracking.md §작업 보고 가 요구하는 `report` 트래커를 생성한다.
-#        트래커는 admin 전용이라 REST 로 만들 수 없어 서비스 호스트에서 rails runner 로 실행한다
+# 용도 : ai/strategies/work-tracking.md §작업 보고 가 요구하는 report 트래커를 사용 가능 상태로 만든다.
+#        ①없으면 생성 ②전 프로젝트 활성 ③워크플로 전이 복사 ④신규→완료 전이 보장.
+#        트래커·워크플로는 admin 전용이라 REST 로 다룰 수 없어 서비스 호스트에서 rails runner 로 실행한다
 #        (ai/strategies/work-tracking-redmine.md §트래커 구성).
+#
+# 현황 : 2026-07-26 실측 — 트래커 `Report`(id=8) 는 이미 생성돼 있으나 **어느 프로젝트에도 미활성**이라
+#        아직 쓸 수 없다. 이 스크립트는 기존 트래커를 대소문자 무시로 찾아 재사용하므로 중복을
+#        만들지 않고, 남은 ②③④ 만 채운다.
 #
 # 실행 : Redmine 서비스 호스트(Docker) 에서
 #          docker cp redmine-create-report-tracker.rb redmine:/tmp/
@@ -18,10 +23,12 @@ CLOSED_STATUS  = 5            # 완료(닫힘)
 
 log = ->(msg) { puts "[report-tracker] #{msg}" }
 
-# --- 1. 트래커 생성 --------------------------------------------------------
-tracker = Tracker.find_by(name: TRACKER_NAME)
+# --- 1. 트래커 확보 (없으면 생성) ------------------------------------------
+# 대소문자 무시로 찾는다 — 실 인스턴스의 이름은 `Report` 인데 정책 표기는 `report` 라,
+# 정확 일치로 찾으면 못 찾고 같은 뜻의 트래커를 하나 더 만들어 버린다.
+tracker = Tracker.where('LOWER(name) = ?', TRACKER_NAME.downcase).first
 if tracker
-  log.("이미 존재 — id=#{tracker.id} (생성 생략, 누락분만 보정)")
+  log.("이미 존재 — id=#{tracker.id}, 이름 '#{tracker.name}' (생성 생략, 누락분만 보정)")
 else
   tracker = Tracker.new(
     name:              TRACKER_NAME,
@@ -98,9 +105,15 @@ log.("결과: 트래커 '#{TRACKER_NAME}' id=#{tracker.id}")
 log.("      전 프로젝트 활성 #{Project.count}개 · 전이 #{WorkflowTransition.where(tracker_id: tracker.id).count}건")
 log.("      신규→완료 전이 전 역할 보장: #{ok ? 'OK' : '실패 — 확인 필요'}")
 puts ''
-log.('후속 (워크스페이스 문서 기입 — 담당자):')
-log.("  1) ai/strategies/work-tracking-redmine.md §요소 식별자 → `report=#{tracker.id}`")
-log.("  2) 같은 문서 §프로젝트 생성 표준 절차 2번 tracker_ids 배열에 #{tracker.id} 추가")
-log.('  3) 같은 문서 §트래커 구성 의 "미완 — `report` 트래커" 항목 제거')
-log.('  4) 기존 프로젝트는 위 2단계에서 이미 활성화됐다 (PUT 재실행 불요)')
+log.('후속 (담당자):')
+if tracker.id == 8
+  log.('  1) id=8 로 문서 기입값과 일치한다 — §요소 식별자 수정 불요')
+else
+  log.("  1) ⚠️ id=#{tracker.id} 로 문서 기입값(8)과 다르다 — ai/strategies/work-tracking-redmine.md")
+  log.("     §요소 식별자와 §프로젝트 생성 표준 절차 2번 tracker_ids 를 #{tracker.id} 로 고칠 것")
+end
+log.('  2) work-tracking-redmine.md §요소 식별자 트래커 표의 "전 프로젝트 미활성 — 현재 사용 불가" 표기 제거')
+log.('  3) 같은 문서 §트래커 구성 의 "미완 — `Report` 트래커 활성화" 항목 제거')
+log.('  4) 기존 프로젝트는 위 2단계에서 활성화됐다 (PUT 재실행 불요)')
+log.('  5) 실동작 확인 — report 일감 1건을 status_id=5 로 등록해 GET 으로 Closed 인지 실측할 것')
 puts '=' * 68

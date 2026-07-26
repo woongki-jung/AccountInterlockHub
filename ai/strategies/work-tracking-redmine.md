@@ -10,13 +10,28 @@
 
 ## 요소 식별자 레퍼런스
 
-인스턴스 현재값(재구축·변경 시 본 절 갱신). 트래커·상태의 정책 이름은 [`work-tracking.md`](work-tracking.md) 가 정본.
+인스턴스 **실측값**(2026-07-26 REST 조회 기준. 재구축·변경 시 본 절 갱신). 정책 이름은 [`work-tracking.md`](work-tracking.md) 가 정본이며, **Redmine 표시명이 정책 이름과 다르다** — 아래 대응표대로 읽는다(응답에 영어 이름이 오는 것은 정상).
 
-- **트래커**: 오류=1, 기능=2, 그룹=4, 검증=5, 사양=6, 작업세션=7, **report=미생성**(§트래커 구성 — 생성 후 이 자리에 id 기입).
-- **상태**: 신규=1, 진행=2, 해결=3, 의견=4, 완료=5(닫힘), 거절=6(닫힘), 보류=7. (의견=4 는 정책 미사용 레거시 — 상태 어휘 정본은 [`work-tracking.md`](work-tracking.md) 6종.)
+- **트래커** (Redmine 표시명 = id → 정책 이름):
+
+	| id | Redmine 표시명 | 정책 이름 | 비고 |
+	|---|---|---|---|
+	| 1 | `Defect` | 오류 | |
+	| 2 | `Feature` | 기능 | |
+	| 4 | `Common` | 그룹 | |
+	| 5 | `검증` | 검증 | 제품 프로젝트에만 활성 |
+	| 6 | `사양` | 사양 | |
+	| 7 | `작업세션` | 작업세션 | |
+	| 8 | `Report` | report | **전 프로젝트 미활성 — 현재 사용 불가**(§트래커 구성) |
+
+	id 3 은 결번이다(기본 트래커 삭제 흔적). 신규 프로젝트 활성 목록은 §프로젝트 생성 표준 절차 2번.
+
+- **상태** (Redmine 표시명 = id → 정책 이름): `New`=1(신규) · `In Progress`=2(진행) · `Resolved`=3(해결) · `Needs Feedback`=4 · `Closed`=5(**완료**·닫힘) · `Rejected`=6(**거절**·닫힘) · `Confirmed`=8 · `Assigned`=9.
+	- **⚠️ `보류` 상태가 인스턴스에 없다** — id 7 은 결번이다. 정책([`work-tracking.md`](work-tracking.md))은 보류를 게이트 결함·회귀 소진·Block 처리에 쓰는데 매핑할 상태가 없다. `status_id: 7` 을 보내면 REST 는 422, MCP `update_issue` 는 **실패를 성공으로 삼켜** 상태가 조용히 그대로 남는다(§도구 함정). 보류 전환이 필요한 상황에서는 **상태를 바꾸지 말고 사유를 노트로 남기고** 담당자 판단을 구한다 — 대체 정의(상태 신설 또는 `Needs Feedback`=4 재사용)가 확정되면 본 절과 정책을 함께 갱신한다.
+	- `Needs Feedback`=4 · `Confirmed`=8 · `Assigned`=9 는 현 정책 미사용이다(Redmine 기본 잔존).
 - **역할**: 관리자=3, 개발자=4, 보고자=5, 뷰어=6.
 - **우선순위**: 낮음=1, 보통=2(기본), 높음=3, 긴급=4, 즉시=5.
-- **운영 프로젝트**: `ai-workgroup-ops`(워크스페이스 운영·메타). 제품 프로젝트 식별자는 [`CLAUDE.env.md`](../../CLAUDE.env.md) `<REDMINE_PROJECT>`.
+- **프로젝트**: `ai-workgroup-ops`=4(워크스페이스 운영·메타) · `accountinterlockhub`=5(제품, 범주 18건) · `smoke-test`=3(점검용). 제품 프로젝트 식별자 정본은 [`CLAUDE.env.md`](../../CLAUDE.env.md) `<REDMINE_PROJECT>`.
 - **범주(카테고리)·배포버전(버전)**: 프로젝트별 객체라 고정 id 가 없다 — 생애주기 내내 REST 로 지속 추가한다(카테고리 = IA 노드(leaf), [`work-tracking.md`](work-tracking.md); 버전 = 배포 로드맵).
 - **이슈 커스텀 필드** `Sprint`=1(문자형)이 인스턴스에 존재하나, 현 모델은 단계·묶음을 트래커·상위 이슈·메타 머리말로 표현하므로 필수가 아니다.
 
@@ -31,15 +46,19 @@ docker exec -e SECRET_KEY_BASE_DUMMY=1 redmine bin/rails runner /tmp/<script>.rb
 - `SECRET_KEY_BASE_DUMMY=1`: `docker exec` 는 이미지 entrypoint 를 우회해 secret_key_base 가 비어 부팅이 실패하므로 임시 시크릿으로 부팅한다(DB 작업엔 실제 값 불필요).
 - 스크립트는 `docker cp` 로 컨테이너에 넣고 경로를 인자로 준다. Git Bash 는 `/tmp/...` 인자를 Windows 경로로 변환하므로 `MSYS_NO_PATHCONV=1` 로 변환을 막는다.
 - 현 트래커 세트(그룹·오류·기능·사양·검증·작업세션)는 구성 완료 상태다. 새 트래커 추가 시 전 프로젝트 활성 + 기존 트래커의 워크플로 전이를 복사한다.
-- **미완 — `report` 트래커**: 작업 보고 정책([`work-tracking.md`](work-tracking.md) §작업 보고)이 요구하지만 **아직 생성되지 않았다.** 담당자가 위 `rails runner` 로 1회 생성해야 보고가 동작한다. 생성 시 ① 이름 `report` ② 전 프로젝트 활성 ③ 기존 트래커의 워크플로 전이 복사(**등록 즉시 `완료` 전이가 가능해야 한다** — 없으면 REST 로 `status_id=5` 를 보내도 조용히 기본 상태로 떨어지고, 열린 하위가 남아 부모를 닫을 수 없다) ④ 부여된 id 를 §요소 식별자와 §프로젝트 생성 표준 절차 2번 `tracker_ids` 에 기입. 생성 전까지 보고 주체는 등록 실패를 대상 이슈 노트로 남기고 진행한다(작업 종결을 막지 않는다).
-	- **실행본**: 위 ①~③ 을 구현한 멱등 스크립트가 [`ai/scripts/redmine-create-report-tracker.rb`](../scripts/redmine-create-report-tracker.rb) 에 있다(④ 는 문서 기입이라 수동). 실행 방법·후속 안내는 스크립트 머리말과 실행 출력이 갖는다. 서비스 호스트에서 1회 실행하며, 이 워크스페이스가 도는 PC 일 필요는 없다.
+- **미완 — `Report` 트래커 활성화**: 작업 보고 정책([`work-tracking.md`](work-tracking.md) §작업 보고)이 요구하는 트래커는 **생성됐다(`Report`=8)**. 그러나 **어느 프로젝트에도 활성화되지 않아 아직 쓸 수 없다** — 그 상태로 `tracker_id: 8` 을 POST 하면 Redmine 이 422 `Tracker is not included in the list` 로 거부한다(조용한 실패가 아니라 명시적 오류). 남은 작업은 셋이다.
+	1. **전 프로젝트 활성** — 실측 결과 3개 프로젝트(`ai-workgroup-ops`·`accountinterlockhub`·`smoke-test`) 모두 미포함.
+	2. **워크플로 전이 확인·보정** — 특히 **신규→완료 전이가 전 역할에 있어야 한다.** 없으면 등록 시 `status_id: 5` 가 조용히 기본 상태로 떨어지고, 열린 하위가 남아 부모(작업세션 이슈·루프 그룹 일감)를 닫을 수 없다. 워크플로는 REST 로 조회할 수 없어 실행 전 확인이 불가하다 — 아래 스크립트가 명시 생성으로 보장한다.
+	3. **문서 반영** — 완료 후 위 §요소 식별자의 "전 프로젝트 미활성" 표기와 본 항목을 제거한다.
+	- **실행본**: 위 1·2 를 수행하는 멱등 스크립트가 [`ai/scripts/redmine-create-report-tracker.rb`](../scripts/redmine-create-report-tracker.rb) 에 있다. 이미 있는 `Report`(8)를 **대소문자 무시로 찾아 재사용**하므로 중복 생성하지 않는다. 서비스 호스트(Redmine 컨테이너가 도는 장비)에서 1회 실행하며, 이 워크스페이스가 도는 PC 일 필요는 없다.
+	- 활성화 전까지 보고 주체는 등록 실패를 대상 이슈 노트로 남기고 진행한다(작업 종결을 막지 않는다).
 
 ## 프로젝트 생성 표준 절차
 
 프로젝트 부트스트랩([`project-bootstrap.md`](project-bootstrap.md))에서 제품 Redmine 프로젝트를 1회 생성한다. 도구 함정 때문에 순서가 중요하다:
 
 1. **프로젝트 생성** — `create_project`(name·identifier·is_public=false).
-2. **트래커 한정** — `redmine_request` PUT `/projects/<id>.json` 본문 `{"project":{"tracker_ids":[4,6,2,1,5,7]}}`(그룹·사양·기능·오류·검증·작업세션). create_project 는 기본 트래커만 켜므로 명시한다. `report` 트래커 생성 후에는 그 id 를 이 배열에 함께 넣는다(§트래커 구성).
+2. **트래커 한정** — `redmine_request` PUT `/projects/<id>.json` 본문 `{"project":{"tracker_ids":[4,6,2,1,5,7,8]}}`(그룹·사양·기능·오류·검증·작업세션·report). create_project 는 기본 트래커만 켜므로 명시한다.
 3. **멤버십** — 작업 정체성(또는 admin)을 멤버로 추가. POST `/projects/<id>/memberships.json` `{"membership":{"user_id":<id>,"role_ids":[3]}}`(관리자 역할). admin 키 운영 시 생략 가능.
 4. **범주(카테고리)** — IA leaf(노드)가 확정되는 대로 추가(카테고리 = IA 노드). POST `/projects/<id>/issue_categories.json` `{"issue_category":{"name":"<IA 노드>"}}`.
 5. **배포버전(버전)** — 최초 배포 로드맵 버전 1개 이상. POST `/projects/<id>/versions.json` `{"version":{"name":"<배포버전>"}}`. 이슈 `fixed_version_id` 지정 시 Redmine 로드맵에 잡힌다.
