@@ -28,6 +28,14 @@ const RESULT_CODE_METRIC_COLUMN: Record<ResultCode, MetricColumn> = {
  * 트랜잭션을 열지 않는 자리라 넘길 실행 문맥이 없고, 단계 4 의 UPSERT 한 문장이 그 자체로
  * 원자적이다. 생략 시 커넥션 풀(`DatabaseService`)에서 단독 갱신한다 — `lookup()`(FN-007)과 같은
  * "생략하면 풀에서 단독 실행" 관례다.
+ *
+ * **P06(accountinterlockhub#483) 확인** — `recordEvent()` 는 FN-013 뿐 아니라 **PROC-303 의
+ * `B1`~`B4` 전체**다. process_PROC-303.md 의 진입 계기(`kind` = `REQUEST`·`UNIDENTIFIED_FAILURE`·
+ * `RESULT`)가 이미 이 메서드의 `event.kind` 판별 유니온과 그대로 같고, `B1`(계수 계기 수신 —
+ * 열거형 재검증)·`B2`(일자 확정)·`B3`~`B4`(대상 컬럼 결정 + 원자적 UPSERT)가 순서대로 아래
+ * 1~4단계와 1:1 이라 별도 kind 디스패처가 필요 없다(`PROC-301` 과 달리 하나의 함수 시그니처
+ * 안에서 이미 계기별로 분기한다). `B5`(지표 산출)는 조회 API·화면이 없는 저장분 직접 확인
+ * 절차라(SVC-016 사용자 정의) 애플리케이션 코드로 구현하지 않는다.
  */
 @Injectable()
 export class MetricCounterService {

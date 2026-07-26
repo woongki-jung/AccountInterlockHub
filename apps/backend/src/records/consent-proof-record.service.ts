@@ -21,6 +21,13 @@ export interface RecordConsentProofInput {
  * 후속 Phase)가 추적 레코드 행을 FOR UPDATE 로 잠근 상태에서 열어 둔 트랜잭션에 참여해야 한다.
  * 이 Phase 는 그 상위 배선을 만들지 않으므로, 자가 검증에서는 db.withTransaction() 으로 직접
  * 트랜잭션을 열어 그 client 를 건네는 방식으로 미래 호출부를 흉내 낸다.
+ *
+ * **P06(accountinterlockhub#483) 확인** — `recordConsentProof()` 는 FN-012 뿐 아니라 **PROC-302 의
+ * `B1`~`B5` 전체**다. PROC-302 의 진입 계기가 PROC-103 `B6` 하나뿐이라(kind 분기가 없다) 별도
+ * 디스패처가 필요 없다 — process_PROC-302.md 의 `B1`(계기 검증)·`B2`(버전 식별자 확보)·`B3`(스냅샷
+ * 구성)·`B4`(증적 기록)가 순서대로 이 메서드의 1~4단계와 1:1 이고, `B5`(반환)는 5단계다. 후속
+ * Phase(PROC-103 을 구현하는 Phase)는 "PROC-302"라는 별도 이름의 함수를 찾을 필요 없이 이 메서드를
+ * 그대로 호출하면 된다.
  */
 @Injectable()
 export class ConsentProofRecordService {

@@ -23,7 +23,10 @@ export type RecordWriteErrorReason =
   // FN-013 지표 카운터 갱신 — function_FN-012-013.md 시그니처의 `MetricWriteError` 와 같은 의미
   | 'METRIC_INVALID_EVENT_KIND'
   | 'METRIC_INVALID_RESULT_CODE'
-  | 'METRIC_UPSERT_FAILED';
+  | 'METRIC_UPSERT_FAILED'
+  // PROC-301 kind 디스패처(B1 기록 계기 수신 — process_PROC-301.md B1 입력 재검증)
+  | 'TRACKING_RECORD_INVALID_KIND'
+  | 'TRACKING_RECORD_MISSING_EXEC';
 
 /**
  * `EX-BIZ-003`(500) — FN-007~013 이 공유하는 저장 실패 예외. function_FN-007-008.md 의
