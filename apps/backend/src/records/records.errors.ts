@@ -26,15 +26,20 @@ export type RecordWriteErrorReason =
   | 'METRIC_UPSERT_FAILED'
   // PROC-301 kind 디스패처(B1 기록 계기 수신 — process_PROC-301.md B1 입력 재검증)
   | 'TRACKING_RECORD_INVALID_KIND'
-  | 'TRACKING_RECORD_MISSING_EXEC';
+  | 'TRACKING_RECORD_MISSING_EXEC'
+  // DatabaseService.withTransaction 트랜잭션 경계 자체의 실패(FN-007~013 밖 — pool.connect()·
+  // BEGIN·COMMIT 자체, 또는 work() 안에서 분류되지 않은 원시 쿼리 실패. 횡단 결함 시정 [C-2])
+  | 'TX_BOUNDARY_FAILED';
 
 /**
  * `EX-BIZ-003`(500) — FN-007~013 이 공유하는 저장 실패 예외. function_FN-007-008.md 의
  * `RecordWriteError`·function_FN-009-011.md 의 `RecordWriteError`·function_FN-012-013.md 의
  * `ConsentProofWriteError`/`MetricWriteError` 는 이름만 다를 뿐 EX 코드·HTTP 상태·사용자 메시지가
  * 전부 같다(각 함수의 §에러 처리 표 참조) — 하나의 클래스로 통일하고 `reason` 으로 발생 지점만
- * 구분한다. 트랜잭션에 참여 중이면 호출측(DatabaseService.withTransaction)이 이 예외를 받아
- * 롤백한다.
+ * 구분한다. `DatabaseService.withTransaction` 은 이 예외를 두 가지 방식으로 다룬다 — work() 가
+ * 이미 이 클래스로 던진 실패는 그대로 받아 롤백 후 재전파하고, `TX_BOUNDARY_FAILED`(트랜잭션
+ * 경계 자체 — `pool.connect()`·`BEGIN`·`COMMIT`의 실패)는 그 함수 자신이 새로 만들어 던진다
+ * (횡단 결함 시정 [C-2] — `database/database.service.ts` 참고).
  *
  * **사용자 노출 문구를 이 클래스가 들지 않는다** — `apps/backend/src/common/errors/ex-catalog.ts`
  * (FN-014)의 `EX_CODE_CATALOG['EX-BIZ-003'].message` 가 그 문구의 단일 출처이며, 전역 예외 필터
