@@ -32,11 +32,12 @@ function FN-012 (
   trackingKey: string,      // 확보된 레코드의 추적 키·필수
   submission: MDL-007,      // 동의·승인 제출·필수(속성은 agreedItemCodes 하나뿐)
   consent: MDL-008,         // 기동 시 파싱한 동의 항목 구성·필수
-  at: datetime,             // 승인 확정 시각·필수
   exec: TxExecutor,         // 호출측이 연 트랜잭션의 실행 문맥(커넥션·실행자)·필수
 ): MDL-002
   throws ConsentProofWriteError { code: EX-BIZ-003, http: 500 }
 ```
+
+- **승인 확정 시각을 인자로 받지 않는다.** `consented_at` 은 `ENT-002` 의 **컬럼 기본값 `now()`**(= 이 트랜잭션의 DB 시계)로 기록하고, 반환값은 `RETURNING` 으로 받은 **실제 기록 값**을 쓴다. 응용 시계에서 얻은 값을 실으면 `tbl_interlock_tracking.created_at`(같은 DB 기본값 `now()`)과 **출처가 다른 두 시계를 비교**하게 되어, `PROC-103` `B6` 의 전달 시도 표지 검사(`consented_at >= 대상 레코드의 created_at`)가 **응용 시계가 조금만 뒤져도 자기 증적을 세지 못하고 통과**한다 — 증적 2행·수신처 이중 전달이 조용히 되살아난다([`../processes/process_PROC-103.md`](../processes/process_PROC-103.md) §구현 가이드). **두 값이 같은 DB 시계에서 나오면 그 비교가 시계 정합이 아니라 구조로 성립한다** — `B3` 이 레코드를 만든 트랜잭션은 `B6` 트랜잭션보다 반드시 먼저 커밋되기 때문이다.
 
 - **실행 문맥은 호출측이 넘긴다.** 호출측 트랜잭션에 참여하려면 **같은 커넥션·실행자**를 받아야 하므로 `exec` 는 필수 인자다 — 본 기능의 모든 문(INSERT)을 이 위에서 실행한다. 스스로 커넥션을 얻으면 호출측 경계 **밖**의 별도 커넥션을 잡아 같은 경계의 변경이 보이지 않고, 요청 하나가 커넥션을 둘 점유해 풀이 마른다.
 - **본 기능은 트랜잭션을 열지도 닫지도 않는다.** `BEGIN`·`COMMIT`·`ROLLBACK` 을 수행하지 않으며 커밋·되돌림 권한이 없다([`../processes/process_PROC-302.md`](../processes/process_PROC-302.md) §실행 제약사항). **경계는 호출측이 반드시 연다** — 승인 확정의 상위 프로세스([`PROC-103`](../processes/process_PROC-103.md) `B6`)가 그 자리이고 `PROC-302` 는 그 경계에 참여만 한다. 경계 없이 호출되면 증적 기록이 승인 확정과 따로 커밋돼 증적 없는 승인·승인 없는 증적이 생기므로(`BIZ-003-04`), **경계 밖 호출은 사양 위반**이다.
@@ -76,13 +77,18 @@ function FN-012 (
 
 4. 증적 1건 기록 — POL DATA-003-04 (호출측 트랜잭션에 참여 — 새로 열지 않는다)
    INSERT INTO tbl_consent_proof
-       (tracking_key, consented_at, consent_version, consent_snapshot, agreed_item_codes)
+       (tracking_key, consent_version, consent_snapshot, agreed_item_codes)
    VALUES
-       (:trackingKey, :at, :consent.version, :snapshot, :submission.agreedItemCodes);
+       (:trackingKey, :consent.version, :snapshot, :submission.agreedItemCodes)
+   RETURNING consent_proof_id, consented_at;
+   // consented_at 을 컬럼 목록에 싣지 않는다 — ENT-002 의 기본값 now()(이 트랜잭션의
+   //   DB 시계)로 기록한다. 응용 시계 값을 실으면 created_at 과 출처가 갈려
+   //   PROC-103 B6 의 표지 검사가 조용히 무력해진다 (§시그니처)
    // 실패 시                                            → throw EX-BIZ-003 (500)
 
 5. 도메인 변환·반환 — ENT-002 행 → MDL-002 (커밋하지 않는다 — 경계를 닫는 것은 호출측이다)
-   return { consentProofId: 생성된 행.consent_proof_id, trackingKey, consentedAt: at,
+   return { consentProofId: 생성된 행.consent_proof_id, trackingKey,
+            consentedAt: 생성된 행.consented_at,   // RETURNING 이 준 실제 기록 값
             consentVersion: consent.version, consentSnapshot: snapshot,
             agreedItemCodes: submission.agreedItemCodes }
 ```

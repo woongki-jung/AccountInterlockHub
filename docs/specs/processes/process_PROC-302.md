@@ -41,7 +41,7 @@
 - **진입점**: PROC-103 `B6`(승인 확정) 이 **유일한 호출 지점**이다. 다른 계기에서 부르지 않는다.
 - **진입 조건**: **인증 없음 — `AUTH-001` 인용.** 상위 프로세스 안에서 실행된다.
 - **사전 검증**: ① 호출 계기가 **승인 확정**일 것(호출 지점이 하나뿐이라는 사실로 성립한다 — 진행 의사 값을 따로 받아 확인하지 않는다) ② 동의한 항목 코드가 모두 상수 항목에 실재할 것. **필수 동의 충족 여부는 이 프로세스에 도달하기 전에 걸러진다**(PROC-103 `B5b` — 400 `EX-BIZ-001`).
-- **미동의 제출·본인확인 실패·진입 단계 실패에는 호출되지 않는다**(`DATA-003-04`·BR-022). 미동의 제출은 화면 게이팅(BR-004)과 서버 재검증(BR-005)에서 먼저 끝난다.
+- **미동의 제출·본인확인 실패·진입 단계 실패, 그리고 이미 증적이 있는 재제출에는 호출되지 않는다**(`DATA-003-04`·BR-022). 미동의 제출은 화면 게이팅(BR-004)과 서버 재검증(BR-005)에서 먼저 끝나고, **이미 증적이 있는 재제출은 `PROC-103` `B6` 의 전달 시도 표지 검사가 본 프로세스에 이르기 전에 끝낸다**(확정 결과 재안내 또는 500 `EX-BIZ-003`).
 
 ### 입력/출력 정의
 
@@ -50,7 +50,6 @@
 | 입력 | `trackingKey` | string(1~255) | Y | 증적과 사용자를 잇는 유일한 값 |
 | 입력 | `submission.agreedItemCodes` | string[] | Y | 사용자가 동의한 항목 코드([`MDL-007`](../datas/model_MDL-007-010.md)) |
 | 입력 | `consent` | [`MDL-008`](../datas/model_MDL-007-010.md) | Y | 기동 시 파싱한 항목 구성 — `version`·`notice`·`items` |
-| 입력 | `at` | datetime | Y | 승인 확정 시각(동의 일시·보존 기간 기산점) |
 | 입력 | `exec` | TxExecutor | Y | 호출측(PROC-103 `B6`)이 연 트랜잭션의 커넥션·실행자. **항상 필수** — 본 프로세스의 모든 문과 하위 FN(FN-012)을 이 실행자 위에서 수행하며 커넥션을 스스로 얻지 않는다. 호출 지점이 하나뿐이고 그 자리가 늘 경계를 열므로 예외가 없다 |
 | 출력 | `proof` | [`MDL-002`](../datas/model_MDL-002.md) | - | 기록된 증적(생성 후 불변) |
 
@@ -84,7 +83,8 @@ C1. 승인 확정 계기 전달 (PROC-103 B6)
   트랜잭션: BEGIN 후 추적 레코드 행을 FOR UPDATE 로 잠근 상태에서 호출하고,
             그 커넥션·실행자를 exec 로 함께 넘긴다 — 넘기지 않으면 별도 커넥션에서 실행돼
             참여가 성립하지 않고 행 잠금과도 갈린다 (이 전달이 참여의 성립 조건이다)
-  전달 값: { trackingKey, submission, consent, at, exec }
+  전달 값: { trackingKey, submission, consent, exec }
+           승인 확정 시각을 넘기지 않는다 — consented_at 은 DB 시계(기본값 now())가 쓴다 (B4)
            consent 는 PROC-901 이 기동 시 산출한 MDL-008 그대로다 (재파싱하지 않는다)
 
 C2. 결과 수령
@@ -133,10 +133,14 @@ B3. 스냅샷 구성 — POL DATA-003-02 · DATA-003-05 (transform)
 B4. 동의 증적 기록 — FN-012 · POL DATA-003-04 · BIZ-003-04 (트랜잭션 참여)
 
   INSERT INTO tbl_consent_proof
-      (tracking_key, consented_at, consent_version, consent_snapshot, agreed_item_codes)
+      (tracking_key, consent_version, consent_snapshot, agreed_item_codes)
   VALUES
-      (:trackingKey, :at, :version, :snapshot, :submission.agreedItemCodes);
+      (:trackingKey, :version, :snapshot, :submission.agreedItemCodes)
+  RETURNING consent_proof_id, consented_at;
   -- consent_proof_id 는 기본값 gen_random_uuid()
+  -- consented_at 은 컬럼 목록에 싣지 않는다 — 기본값 now()(이 트랜잭션의 DB 시계)로
+  --   기록해야 tbl_interlock_tracking.created_at 과 같은 시계가 된다. 응용 시계 값을
+  --   실으면 PROC-103 B6 의 전달 시도 표지 검사가 조용히 무력해진다 (FN-012 §시그니처)
   -- WHERE 절 없음(INSERT) · 유일 제약 없음(같은 키의 증적이 시간차로 여럿 존재할 수 있다)
   -- tracking_key 를 변형하지 않는다 (POL DATA-004-01)
   -- exec 로 받은 실행자 위에서 수행한다 (호출측 경계와 함께 커밋·되돌림된다)
@@ -146,7 +150,8 @@ B4. 동의 증적 기록 — FN-012 · POL DATA-003-04 · BIZ-003-04 (트랜잭�
 B5. 기록 결과 반환
 
   return { consentProofId: 생성된 행.consent_proof_id, trackingKey,
-           consentedAt: at, consentVersion: version,
+           consentedAt: 생성된 행.consented_at,    // RETURNING 이 준 실제 기록 값
+           consentVersion: version,
            consentSnapshot: snapshot, agreedItemCodes: submission.agreedItemCodes }
   // MDL-002 · 생성 후 불변 — 갱신 경로를 만들지 않는다
   마스킹: FN-015 — 로그·오류 메시지에 스냅샷 원문·추적 키를 함께 흘리지 않는다
@@ -192,7 +197,7 @@ B5. 기록 결과 반환
 
 | 코드 | 발생 조건 | 처리 방향 | 결과 |
 |------|----------|----------|------|
-| BR-022 | `B1` 증적 생성 조건 | 승인 확정 → 1건 생성 / 미동의·실패 → 호출되지 않는다 | 승인 1건당 증적 1건 |
+| BR-022 | `B1` 증적 생성 조건 | 승인이 확정되고 **이번 레코드의 증적이 아직 없을 때만** 1건 생성 / 미동의·실패, 그리고 **이미 증적이 있는 재제출**에는 호출되지 않는다 | 레코드 1건당 증적 1건 |
 | BR-004 | (호출측 판정) 필수 동의 충족 여부 — 화면 게이팅 | 충족된 제출만 본 프로세스로 온다 | 미동의는 증적 없음 |
 | `EX-BIZ-003` | 계기가 승인이 아님 · 항목 코드 정합 위반 · INSERT 실패 | 호출측 트랜잭션과 함께 되돌린다. **전달도 수행되지 않는다** | 500 (상위가 응답) |
 

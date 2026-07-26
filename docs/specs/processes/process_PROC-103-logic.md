@@ -124,6 +124,10 @@ B6. 승인 확정·동의 증적 기록 — PROC-302 호출 · POL BIZ-003-04 (�
     -- 전달 시도 표지 확인 — 잠금을 쥔 채로 본다 (§구현 가이드 — 중복 증적·중복 전달 차단)
     -- 증적은 B7 전달 직전에 커밋되므로 그 존재가 곧 "이 레코드로 전달을 시도했다"는 표지다
     -- 이번 레코드에 속한 증적만 센다 — 앞선 보관 주기의 증적은 이 레코드보다 이르다 (EXC-BIZ-04)
+    -- 두 시각은 반드시 같은 DB 시계여야 한다 — created_at·consented_at 모두 컬럼 기본값
+    --   now() 로 기록한다(어느 한쪽을 응용 시계로 실으면 이 검사가 조용히 무력해진다 —
+    --   §구현 가이드 · FN-012 §시그니처). B3 트랜잭션이 B6 보다 먼저 커밋되므로
+    --   같은 시계에서는 consented_at >= created_at 이 구조로 성립한다
     already = SELECT COUNT(*) FROM tbl_consent_proof
               WHERE tracking_key = :trackingKey
                 AND consented_at >= :locked.created_at;
@@ -133,7 +137,11 @@ B6. 승인 확정·동의 증적 기록 — PROC-302 호출 · POL BIZ-003-04 (�
         gate.payload 를 폐기한다
         // 증적을 만들지 않고 B7 전달도 수행하지 않는다 · B5b 이후 단계로 내려가지 않는다
         if (locked.result_code IS NOT NULL)      // 확정 — B4 와 완전히 같은 귀결 (경로 ①·③)
-            record = MDL-001(locked)             // ENT-001 행 → MDL-001 — 변환은 B3(PROC-301)과 같다
+            record = FN-007 의 ENT-001 행 → MDL-001 변환을 재사용한다
+                                                 // 파생 4종 산출 규칙의 정본은 FN-007 하나다
+                                                 //   (function_FN-007-008.md §처리 흐름) —
+                                                 //   여기서 다시 만들지 않는다. B3(PROC-301)이
+                                                 //   쓰는 것과 같은 변환이다
             resultInfo = PROC-105({ source: 'RECORD', record, isReAnnouncement: true })
             return 200 resultInfo                // 새 EX 코드를 만들지 않는다
         else                                     // 미확정 — 선행 요청이 아직 전달 구간에 있다
@@ -142,7 +150,9 @@ B6. 승인 확정·동의 증적 기록 — PROC-302 호출 · POL BIZ-003-04 (�
                                                  //   그사이 확정됐으면 위 갈래가 재안내한다
 
     proof = PROC-302({ trackingKey, submission: { agreedItemCodes },
-                       consent, at: NOW(), exec })
+                       consent, exec })
+        // 승인 확정 시각을 인자로 넘기지 않는다 — consented_at 은 ENT-002 컬럼 기본값
+        //   now() 가 쓴다(위 표지 검사가 시계 정합에 기대지 않게 하는 조건이다)
         // exec = 여기서 연 커넥션·실행자를 그대로 넘긴다 — 이 전달이 참여의 성립 조건이다
         //        (행 잠금을 건 커넥션과 같아야 직렬화가 성립한다)
         // PROC-302 B4: INSERT INTO tbl_consent_proof (…) VALUES (…)
