@@ -31,7 +31,8 @@ docker exec -e SECRET_KEY_BASE_DUMMY=1 redmine bin/rails runner /tmp/<script>.rb
 - `SECRET_KEY_BASE_DUMMY=1`: `docker exec` 는 이미지 entrypoint 를 우회해 secret_key_base 가 비어 부팅이 실패하므로 임시 시크릿으로 부팅한다(DB 작업엔 실제 값 불필요).
 - 스크립트는 `docker cp` 로 컨테이너에 넣고 경로를 인자로 준다. Git Bash 는 `/tmp/...` 인자를 Windows 경로로 변환하므로 `MSYS_NO_PATHCONV=1` 로 변환을 막는다.
 - 현 트래커 세트(그룹·오류·기능·사양·검증·작업세션)는 구성 완료 상태다. 새 트래커 추가 시 전 프로젝트 활성 + 기존 트래커의 워크플로 전이를 복사한다.
-- **미완 — `report` 트래커**: 작업 보고 정책([`work-tracking.md`](work-tracking.md) §작업 보고)이 요구하지만 **아직 생성되지 않았다.** 담당자가 위 `rails runner` 로 1회 생성해야 보고가 동작한다. 생성 시 ① 이름 `report` ② 전 프로젝트 활성 ③ 기존 트래커의 워크플로 전이 복사(등록 즉시 `완료` 전이가 가능해야 한다) ④ 부여된 id 를 §요소 식별자와 §프로젝트 생성 표준 절차 2번 `tracker_ids` 에 기입. 생성 전까지 보고 주체는 등록 실패를 대상 이슈 노트로 남기고 진행한다(작업 종결을 막지 않는다).
+- **미완 — `report` 트래커**: 작업 보고 정책([`work-tracking.md`](work-tracking.md) §작업 보고)이 요구하지만 **아직 생성되지 않았다.** 담당자가 위 `rails runner` 로 1회 생성해야 보고가 동작한다. 생성 시 ① 이름 `report` ② 전 프로젝트 활성 ③ 기존 트래커의 워크플로 전이 복사(**등록 즉시 `완료` 전이가 가능해야 한다** — 없으면 REST 로 `status_id=5` 를 보내도 조용히 기본 상태로 떨어지고, 열린 하위가 남아 부모를 닫을 수 없다) ④ 부여된 id 를 §요소 식별자와 §프로젝트 생성 표준 절차 2번 `tracker_ids` 에 기입. 생성 전까지 보고 주체는 등록 실패를 대상 이슈 노트로 남기고 진행한다(작업 종결을 막지 않는다).
+	- **실행본**: 위 ①~③ 을 구현한 멱등 스크립트가 [`ai/scripts/redmine-create-report-tracker.rb`](../scripts/redmine-create-report-tracker.rb) 에 있다(④ 는 문서 기입이라 수동). 실행 방법·후속 안내는 스크립트 머리말과 실행 출력이 갖는다. 서비스 호스트에서 1회 실행하며, 이 워크스페이스가 도는 PC 일 필요는 없다.
 
 ## 프로젝트 생성 표준 절차
 
