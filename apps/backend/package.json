@@ -9,12 +9,14 @@
     "start:dev": "nest start --watch",
     "start:prod": "node dist/main",
     "migration:run": "node dist/database/migrate.js up",
-    "migration:revert": "node dist/database/migrate.js down"
+    "migration:revert": "node dist/database/migrate.js down",
+    "retention:run": "node dist/cli/retention.js"
   },
   "dependencies": {
     "@nestjs/common": "^11.0.1",
     "@nestjs/core": "^11.0.1",
     "@nestjs/platform-express": "^11.0.1",
+    "@nestjs/schedule": "^6.1.3",
     "dotenv": "^17.2.0",
     "express": "5.2.1",
     "pg": "^8.22.0",

@@ -9,6 +9,7 @@ import { ApproveModule } from './interlock-approve/approve.module';
 import { VerifyModule } from './interlock-verify/verify.module';
 import { ServerApiModule } from './interlock-server-api/server-api.module';
 import { SelfcheckModule } from './interlock-selfcheck/selfcheck.module';
+import { RetentionScheduleModule } from './retention/retention-schedule.module';
 
 export interface AppBootstrapConfig {
   config: InterlockConfig;
@@ -50,6 +51,11 @@ export class AppModule {
         // PROC-204 연동 규약 자가진단 API(POST <SELFCHECK_PATH>, accountinterlockhub#489 P12).
         // 경로가 런타임 상수(비공개 경로)라 동적 모듈로 받는다 — VerifyModule 과 같은 결이다.
         SelfcheckModule.forRoot(bootstrapConfig.config.selfcheckPath),
+        // PROC-304 보관정책 배치 — 애플리케이션 안의 일 단위 스케줄(C1, accountinterlockhub#490
+        // P13). 리터럴 경로가 없어(HTTP 표면 자체가 없다 — AUTH-001-01) 동적 모듈이 아니다.
+        // 수동 실행(C2)은 이 모듈이 아니라 별도 CLI 컨텍스트(cli/retention-cli.module.ts)가
+        // 담당한다 — 둘 다 같은 RetentionService.run() 을 부른다(BR-015).
+        RetentionScheduleModule,
       ],
     };
   }
