@@ -10,7 +10,7 @@ import type { KnownRoute } from './known-routes';
 import { buildMethodsByPath } from './known-routes';
 
 export type BodyParseFailureClassification =
-  | { readonly kind: 'EX_CODE'; readonly exCode: 'EX-DATA-002' | 'EX-SEC-003' }
+  | { readonly kind: 'EX_CODE'; readonly exCode: 'EX-DATA-002' | 'EX-SEC-003' | 'EX-AUTH-001' | 'EX-BIZ-001' }
   | { readonly kind: 'METHOD_NOT_ALLOWED'; readonly allowedMethods: readonly string[] }
   | { readonly kind: 'NOT_FOUND' }
   | { readonly kind: 'UNCLASSIFIED' };
@@ -26,6 +26,34 @@ const TRACKING_KEY_INPUT_PATHS: ReadonlySet<string> = new Set([
 ]);
 
 /**
+ * 사용자 제출 표면 2종의 접미사 → EX 코드(회귀 2회차 I-A). `<INTERLOCK_ENTRY_PATH>` 뒤에 붙는
+ * 리터럴 접미사이므로 `entryPath` 와 문자열로 합성한다(경로 자체는 사양이 고정한 리터럴이라
+ * `known-routes.ts` 와 같은 근거로 상수 주입 대상이 아니다).
+ *
+ * **근거 — 회귀 1회차 때는 "접점마다 다른 값을 요구하는데 그 구체 값은 각 접점의 실제 입력
+ * 검증 순서(컨트롤러 부재)에 달려 있어 단정할 수 없다"며 이 둘을 의도적으로 `UNCLASSIFIED` 로
+ * 남겼으나, 그 판단은 두 근거 앞에서 성립하지 않는다.**
+ * 1. `spec-functions-api.md` §경로·메서드 규약이 접점별 값을 **이미 명시로 확정**했다 —
+ *    "본인확인 제출 → `EX-AUTH-001`, 동의·승인 제출 → `EX-BIZ-001`"(연동 요청 진입은 GET 이라
+ *    요청 본문이 없어 해당하지 않는다고 같은 문장이 명시한다 — 그래서 진입 경로는 이 표에
+ *    없다).
+ * 2. `docs/specs/qa/USR/tc_USR-04.md` `USR-04_005` ④가 승인 접점의 거동을 검증 케이스로
+ *    이미 못박고 있다 — "본문 자체를 해석할 수 없게 보낸다 → 400 `EX-BIZ-001`". 컨트롤러가
+ *    없어 접점별 검증 순서를 알 수 없다는 사유로도 이 TC 앞에서는 불확실성이 없다 — 검증
+ *    순서와 무관하게 **요청 본문 자체가 해석 불가능하면** 그 접점의 입력이 없는 것과 같이
+ *    다루는 것이 사양 값이다.
+ *
+ * 남은 사용자 진입 표면(연동 요청 진입, GET)은 이 표에 없다 — 요청 본문이 없어 판정할 사양
+ * 값 자체가 없다(위 1 과 같은 문장). 그 경로에서 본문 파싱이 실패하는 가상의 경우는 계속
+ * `UNCLASSIFIED` 로 남아 기존 마지막 방어(`EX-OPS-002`/500)로 수렴한다 — 그 잔여를 200 으로
+ * 바꾸는 것은 `#484`(P07) S-7 진입 접점 200 폴백의 몫이라 이 Phase 가 만들지 않는다.
+ */
+const USER_SUBMIT_EX_BY_SUFFIX: ReadonlyMap<string, 'EX-AUTH-001' | 'EX-BIZ-001'> = new Map([
+  ['/verify', 'EX-AUTH-001'],
+  ['/approve', 'EX-BIZ-001'],
+]);
+
+/**
  * `path`·`method` 로 판정한다(`path` 는 호출측이 `known-routes.ts` `normalizePath()` 로 이미
  * 정규화했다고 가정한다 — route-guard 와 같은 규칙).
  *
@@ -37,17 +65,16 @@ const TRACKING_KEY_INPUT_PATHS: ReadonlySet<string> = new Set([
  * 맞아떨어지는 경우에만 "이 접점은 입력이 사실상 없는 것과 같다"는 사양 규칙을 적용해 EX
  * 코드를 낸다.
  *
- * 사용자 진입 표면(진입·본인확인 제출·동의·승인 제출)은 **의도적으로 `UNCLASSIFIED` 로
- * 둔다** — 사양 문구가 "사용자 표면 → 각 접점의 입력 검증 코드"로 접점마다 다른 값을
- * 요구하는데, 그 구체 값은 각 접점의 실제 입력 검증 순서(아직 컨트롤러가 없다)에 달려 있어
- * 이 횡단 계층이 대신 단정할 수 없다 — 지어내지 않고 호출측(`GlobalExceptionFilter`)이
- * `EX-OPS-002` 마지막 방어로 흘려보내게 한다(문서화된 확인 필요 — 완료 보고 참고).
+ * 사용자 진입 표면 중 **연동 요청 진입(GET)만** `UNCLASSIFIED` 로 남는다 — 위
+ * `USER_SUBMIT_EX_BY_SUFFIX` 문서 참고(회귀 2회차 I-A로 본인확인·동의·승인 제출은 값이
+ * 확정됐다).
  */
 export function classifyBodyParseFailure(
   path: string,
   method: string,
   knownRoutes: readonly KnownRoute[],
   selfcheckPath: string,
+  entryPath: string,
 ): BodyParseFailureClassification {
   if (path === selfcheckPath) {
     return method === 'POST' ? { kind: 'EX_CODE', exCode: 'EX-SEC-003' } : { kind: 'NOT_FOUND' };
@@ -65,5 +92,10 @@ export function classifyBodyParseFailure(
   if (TRACKING_KEY_INPUT_PATHS.has(path)) {
     return { kind: 'EX_CODE', exCode: 'EX-DATA-002' };
   }
-  return { kind: 'UNCLASSIFIED' }; // 사용자 진입 표면(진입·verify·approve) — 위 §문서 참고.
+  for (const [suffix, exCode] of USER_SUBMIT_EX_BY_SUFFIX) {
+    if (path === `${entryPath}${suffix}`) {
+      return { kind: 'EX_CODE', exCode };
+    }
+  }
+  return { kind: 'UNCLASSIFIED' }; // 연동 요청 진입(GET) — 요청 본문이 없어 해당하지 않는다.
 }

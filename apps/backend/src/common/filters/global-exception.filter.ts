@@ -9,7 +9,7 @@ import { FALLBACK_EX_CODE } from '../errors/ex-catalog';
 import { isHttpMappedError } from '../errors/http-mapped.error';
 import { applyNoStoreHeaders } from '../http/cache-control';
 import { classifyBodyParseFailure } from '../http/body-parse-failure';
-import { buildKnownRoutes, normalizePath } from '../http/known-routes';
+import { buildKnownRoutes, buildMethodsByPath, normalizePath } from '../http/known-routes';
 import type { KnownRoute } from '../http/known-routes';
 
 interface MinimalRequest {
@@ -55,9 +55,13 @@ interface MinimalRequest {
 export class GlobalExceptionFilter implements ExceptionFilter {
   private readonly logger = new Logger('GlobalExceptionFilter');
   private readonly knownRoutes: KnownRoute[];
+  // route-guard.middleware.ts 와 같은 이유로 요청마다 다시 만들지 않고 한 번만 계산해 둔다
+  // (§본문 파싱 실패 이외의 파서 오류, 회귀 2회차 I-B 에서 매 오류 응답마다 참조한다).
+  private readonly methodsByPath: ReadonlyMap<string, ReadonlySet<string>>;
 
   constructor(private readonly interlockConfig: InterlockConfigService) {
     this.knownRoutes = buildKnownRoutes(interlockConfig.interlockEntryPath);
+    this.methodsByPath = buildMethodsByPath(this.knownRoutes);
   }
 
   catch(exception: unknown, host: ArgumentsHost): void {
@@ -80,6 +84,20 @@ export class GlobalExceptionFilter implements ExceptionFilter {
     if (!mapped && exception instanceof NotFoundException) {
       // 정의되지 않은 경로 — 본문 없는 일반 404(spec-functions-api.md §경로·메서드 규약,
       // SEC-003-02 "경로의 존재를 드러내지 않는 일반 404"). EX 코드를 담지 않는다.
+      response.status(404).end();
+      return;
+    }
+
+    // 회귀 2회차 I-B — 정의되지 않은 경로는 "어떤 예외 클래스가 왔는가"와 무관하게 EX 코드
+    // 본문을 절대 만들지 않는다(SEC-003-02, 경로 기준 불변식). `SyntaxError` 는 위
+    // `BadRequestException` 분기 → `classifyBodyParseFailure` 의 `NOT_FOUND` 로 이미 걸리지만,
+    // Nest 의 `mapExternalException()` 은 `SyntaxError` **만** `BadRequestException` 으로
+    // 바꾼다 — `PayloadTooLargeError`(413)·gzip 해제 실패 등 그 밖의 본문 파서 오류는 원형
+    // 그대로 이 지점까지 흘러 들어와 위 두 분기 어디에도 걸리지 않고 곧장 아래 마지막 방어로
+    // 떨어졌었다(실측 확인 — 미정의 경로 + 대형 본문 · 미정의 경로 + 깨진 gzip 모두
+    // `EX-OPS-002`/500 **본문**이 나갔다). 오류 클래스를 나열해 대응하는 대신 "이 경로가
+    // 알려진 경로인가"만 판정해 막는다 — 현재·미래의 모든 파서 오류 클래스를 함께 덮는다.
+    if (!mapped && !this.isKnownRequestPath(request)) {
       response.status(404).end();
       return;
     }
@@ -108,7 +126,13 @@ export class GlobalExceptionFilter implements ExceptionFilter {
   private tryHandleBodyParseFailure(request: MinimalRequest, response: Response): boolean {
     const path = normalizePath(request.path ?? '');
     const method = request.method ?? '';
-    const classification = classifyBodyParseFailure(path, method, this.knownRoutes, this.interlockConfig.selfcheckPath);
+    const classification = classifyBodyParseFailure(
+      path,
+      method,
+      this.knownRoutes,
+      this.interlockConfig.selfcheckPath,
+      this.interlockConfig.interlockEntryPath,
+    );
 
     switch (classification.kind) {
       case 'NOT_FOUND':
@@ -128,6 +152,17 @@ export class GlobalExceptionFilter implements ExceptionFilter {
       case 'UNCLASSIFIED':
         return false;
     }
+  }
+
+  /**
+   * `path` 가 사양이 정의한 경로 목록(§인터페이스 카탈로그 6종 + 자가진단 경로)에 있는지
+   * 판정한다(회귀 2회차 I-B). `methodsByPath` 는 메서드를 묻지 않고 "경로 자체가 알려졌는가"만
+   * 본다 — 메서드 불일치는 이미 앞선 분기(route-guard 미들웨어 · `tryHandleBodyParseFailure`
+   * 의 `METHOD_NOT_ALLOWED`)가 405 로 먼저 걸러내므로 이 시점엔 관여하지 않는다.
+   */
+  private isKnownRequestPath(request: MinimalRequest): boolean {
+    const path = normalizePath(request.path ?? '');
+    return this.methodsByPath.has(path) || path === this.interlockConfig.selfcheckPath;
   }
 
   private describeForLog(exception: unknown, httpStatus: number, request: MinimalRequest): string {
