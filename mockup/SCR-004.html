@@ -70,6 +70,10 @@
   .path-warning .result-icon{color:var(--color-warning);}
 
   .result-panel h1{font-size:var(--font-size-2xl);line-height:var(--line-height-tight);font-weight:var(--font-weight-bold);margin:0;color:var(--color-text);}
+  /* 결과 제목(StageTitle 결과 변형)의 포커스 링 — design-system.md §접근성 기준(포커스 표시).
+     조작 요소와 같은 한 벌의 링이며, 탭 순서 밖(tabindex="-1")이라 :focus-visible 이 매치되지 않으므로
+     :focus 로 건다(정본이 든 예시 수단). 안쪽 여백 2px 에는 결과 패널의 약한 바탕이 그대로 비친다. */
+  .result-panel h1:focus{outline:2px solid var(--color-focus);outline-offset:2px;}
   .path-success h1{color:var(--color-success-strong);}
   .path-danger h1{color:var(--color-danger-strong);}
   .path-warning h1{color:var(--color-warning-strong);}

@@ -56,6 +56,9 @@
   @media (min-width:768px){main.card{max-width:var(--size-content-max);}}
 
   h1.stage-title{font-size:var(--font-size-xl);line-height:var(--line-height-tight);font-weight:var(--font-weight-bold);margin:0 0 var(--space-2xs);}
+  /* 단계 제목의 포커스 링 — design-system.md §접근성 기준(포커스 표시). 조작 요소와 같은 한 벌의 링이며,
+     탭 순서 밖(tabindex="-1")이라 :focus-visible 이 매치되지 않으므로 :focus 로 건다(정본이 든 예시 수단). */
+  h1.stage-title:focus{outline:2px solid var(--color-focus);outline-offset:2px;}
   .stage-desc{font-size:var(--font-size-sm);color:var(--color-text-muted);margin:0 0 var(--space-lg);}
 
   .field{margin-bottom:var(--space-lg);}
