@@ -43,3 +43,14 @@ export const X_PLAINTEXT_MAX_LENGTH_BYTES = 1024;
  * (function_FN-001-003.md §FN-003 §에러 처리 같은 문장).
  */
 export const INTERLOCK_REQUEST_URL_MAX_LENGTH_CHARS = 2000;
+
+/**
+ * 규약 버전 `<MAJOR>.<MINOR>` — SEC-001-11 §규약 확정값(policy_SEC-crypto.md:42). 배포
+ * 환경마다 달라지지 않는 프로토콜 고정 상수라 이 파일의 다른 상수들과 같은 이유로 설정
+ * 서비스(연동 구성 상수) 주입 대상이 아니다 — 규약을 바꾸면 `SEC-001-12` 에 따라 라이브러리와
+ * 허브를 함께 재배포하고 이 값도 함께 올린다. 연동 규약 자가진단 API(`API-04`, `PROC-204` `B6`)
+ * 응답에 그대로 실려 발송처 라이브러리 상수와 대조된다(`BR-017`) — 연동 라이브러리
+ * `InterlockRequestBuilder.ProtocolVersion`(`apps/sender-sdk/AccountInterlockHub.SenderSdk/
+ * InterlockRequestBuilder.cs`)과 **값이 반드시 같아야 한다**(실측 확인 — 두 상수 모두 `1.0`).
+ */
+export const PROTOCOL_VERSION = '1.0';

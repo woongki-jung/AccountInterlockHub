@@ -8,6 +8,7 @@ import { EntryModule } from './interlock-entry/entry.module';
 import { ApproveModule } from './interlock-approve/approve.module';
 import { VerifyModule } from './interlock-verify/verify.module';
 import { ServerApiModule } from './interlock-server-api/server-api.module';
+import { SelfcheckModule } from './interlock-selfcheck/selfcheck.module';
 
 export interface AppBootstrapConfig {
   config: InterlockConfig;
@@ -46,6 +47,9 @@ export class AppModule {
         // accountinterlockhub#488 P11). 세 경로 모두 리터럴이라(런타임 상수 아님) 동적 모듈이
         // 아니다 — forRoot() 없이 바로 등록한다.
         ServerApiModule,
+        // PROC-204 연동 규약 자가진단 API(POST <SELFCHECK_PATH>, accountinterlockhub#489 P12).
+        // 경로가 런타임 상수(비공개 경로)라 동적 모듈로 받는다 — VerifyModule 과 같은 결이다.
+        SelfcheckModule.forRoot(bootstrapConfig.config.selfcheckPath),
       ],
     };
   }
