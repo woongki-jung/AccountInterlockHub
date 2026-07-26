@@ -31,6 +31,18 @@ interface ResultPanelProps {
    * 안내 영역을 그리지 않는다.
    */
   returnWaitSeconds?: number;
+  /**
+   * 결과 제목 자동 포커스를 건너뛰는가 — design-system.md §접근성 기준
+   * "진입(최초 로드)에는 제목으로 포커스를 옮기지 않는다". 이 패널이
+   * 진입(수화)으로 첫 화면이 되면 true, SCR-001·SCR-002·SCR-003 에서
+   * 전환으로 도착하면(확정 결과 재안내 포함 전부) false — 값의 정본
+   * 판정은 `useInterlockFlow.ts`(P14 `#491`)의 구별 신호이며 이 패널은
+   * 그 값을 그대로 StageTitle 로 전달할 뿐 스스로 진입·전환을 가르지
+   * 않는다(P16 `#493`, 교차검증 7회차 E7-1). `document.title` 갱신은
+   * 이 값과 무관하게 항상 수행된다(StageTitle → useStageFocus). 미지정
+   * 시 `false`(기존 거동 — 항상 포커스 이동).
+   */
+  skipFocus?: boolean;
   title?: string;
   description?: string;
   nextNote?: string;
@@ -48,6 +60,9 @@ interface ResultPanelProps {
  * wrapper 를 렌더하지 않아(Fragment) 제목이 이 `.panel` 의 직계 flex
  * 자식으로 서고, 아래 §간격(P16, `#493`)이 그 뒤 요소와의 간격을 정한다.
  * 포커스 이동·문서 제목 일치는 StageTitle 내부(useStageFocus)가 수행한다.
+ * `skipFocus` 는 그 이동 여부를 그대로 StageTitle 로 전달할 뿐 — 진입
+ * (경로 ② 하나뿐)·전환 구별 판정은 이 컴포넌트가 하지 않는다(정본은
+ * useInterlockFlow.ts 의 구별 신호 — P16 `#493`, 교차검증 7회차 E7-1).
  */
 export function ResultPanel({
   resultPath,
@@ -55,6 +70,7 @@ export function ResultPanel({
   isReAnnouncement = false,
   returnUrl,
   returnWaitSeconds,
+  skipFocus = false,
   title,
   description,
   nextNote,
@@ -122,7 +138,7 @@ export function ResultPanel({
   return (
     <div className={`${styles.panel} ${styles[meta.kind]}`} role="status">
       <ResultIcon kind={meta.kind} />
-      <StageTitle title={resolvedTitle} variant="result" placement="panel" />
+      <StageTitle title={resolvedTitle} variant="result" placement="panel" skipFocus={skipFocus} />
       {isReAnnouncement ? (
         <Badge variant="reannounce" className={styles.reannounceBadge}>
           {RE_ANNOUNCEMENT_BADGE_LABEL}

@@ -41,6 +41,15 @@ export function InterlockJourney() {
           onGated={flow.reportConsentValidationFailed}
         />
       )}
+      {/* ProgressPanel(SCR-003) 에는 skipFocus 를 배선하지 않는다 — 진입
+          응답이 산출할 수 있는 화면은 SCR-001·SCR-004 뿐이라
+          (EntryInitialStateDto.stage 가 IDENTITY·RESULT 두 값뿐 —
+          spec-functions-api-user.md §연동 요청 진입) SCR-003 은 진입으로
+          그려질 수 없다. design-system.md §접근성 기준 "적용 대상은
+          진입이 산출할 수 있는 화면 전부다"에 따라 이 규칙이 SCR-003 에는
+          닿을 자리가 없어 배선하지 않아도 구현 갭이 아니다 — 배선해도
+          항상 false 인 죽은 코드가 될 뿐이다(P16 `#493`, 교차검증 7회차
+          E7-1). */}
       {flow.view.screen === 'SCR-003' && <ProgressPanel unconfirmed={flow.view.unconfirmed} />}
       {flow.view.screen === 'SCR-004' && (
         <ResultPanel
@@ -49,6 +58,7 @@ export function InterlockJourney() {
           isReAnnouncement={flow.view.result.isReAnnouncement}
           returnUrl={flow.view.result.returnUrl}
           returnWaitSeconds={RETURN_WAIT_SECONDS}
+          skipFocus={flow.resultSkipFocus}
         />
       )}
     </AppShell>

@@ -21,6 +21,20 @@ const EMPTY_CODES: ReadonlySet<string> = new Set();
 export interface InterlockFlow {
   /** 지금 보여야 할 화면과 그 표시 상태. */
   view: ScreenView;
+  /**
+   * SCR-004 도착이 진입(수화)인지 전환인지 구별하는 신호 — true 면
+   * ResultPanel 이 결과 제목에 프로그램 포커스를 주지 않는다(design-
+   * system.md §접근성 기준 "진입(최초 로드)에는 제목으로 포커스를 옮기지
+   * 않는다" · screen_SCR-004.md §화면 상태 전이 마지막 두 항목). 진입
+   * (진입 판정 실패, 경로 ② 하나뿐)으로 SCR-004 가 첫 화면이 되면 true,
+   * SCR-001·SCR-002·SCR-003 에서 전환으로 도착하면(확정 결과 재안내
+   * 포함 전부) false — `view.result` 의 resultPath·isReAnnouncement·
+   * returnUrl 은 도착 경로를 담지 않으므로(같은 절) 그 값을 대신 읽지
+   * 않고 이 신호를 따로 둔다(구현은 아래 resultSkipFocusRef 선언부
+   * 참고). `view.screen !== 'SCR-004'` 인 동안은 의미가 없다(읽히지
+   * 않는다).
+   */
+  resultSkipFocus: boolean;
   /** 본인확인에서 입력받아 승인 제출까지 페이지 메모리로만 보유하는 생년월일. */
   birthDate: string;
   setBirthDate: (value: string) => void;
@@ -78,6 +92,52 @@ export function useInterlockFlow(): InterlockFlow {
   // 항목이 없다 — 마지막으로 받은 구성을 별도로 기억해 둔다.
   const lastConsentRef = useRef<ConsentConfigDto | null>(null);
 
+  /**
+   * SCR-004 진입/전환 구별 신호(P16 `#493`, 교차검증 7회차 E7-1) — 위
+   * InterlockFlow.resultSkipFocus 로 그대로 노출된다. **`isReAnnouncement`
+   * 를 이 신호로 쓰지 않는다** — 재안내는 전환으로만 오지만 전환의
+   * 전부가 재안내는 아니라서(최초 확정 도착도 전환이다) 그 값으로
+   * 가르면 최초 확정 도착의 포커스가 잘못 억제된다(screen_SCR-004.md
+   * §화면 상태 전이 마지막 항). resultPath·returnUrl 도 같은 이유로
+   * 대신 읽지 않는다 — 셋 다 진입·전환 어느 쪽으로 와도 같은 값을 가질
+   * 수 있다.
+   *
+   * **신호를 뒤집는 자리는 정확히 둘, 서로 배타적이다**:
+   * ① 아래 view 지연 초기화 안 — 진입 응답이 곧장 SCR-004 를 첫 화면
+   *    으로 주는 경우(진입 판정 실패, 경로 ② 하나뿐)에 true 로 둔다.
+   *    applyNextView() 를 거치지 않는 유일한 SCR-004 도착이라 거기서
+   *    처리할 수 없어 여기서 별도로 정한다.
+   * ② applyNextView 안, next.screen === 'SCR-004' 일 때 false 로
+   *    되돌린다. 이 함수는 verify()·approve() 의 서버 응답 처리에서만
+   *    호출되므로(각각 POST .../verify·.../approve 뒤) 그 호출은 전부
+   *    SCR-001·SCR-002(→SCR-003 낙관적 전이) 뒤의 **전환**이다 — 확정
+   *    결과 재안내(경로 ①·③)를 포함해 SCR-004 로 향하는 모든
+   *    applyNextView 호출이 여기 해당한다.
+   *
+   * **전이 그래프 전수 확인 — 직접 setView 호출들이 이 신호를 잘못된
+   * 값으로 남기지 않는지**(applyNextView 위 docstring 의 불변조건과
+   * 같은 감사): verify() 의 두 직접 호출(형식 게이팅·submitting 진입)은
+   * SCR-001 만 목적지로 삼고, approve() 의 SCR-003 낙관적 전이도
+   * SCR-003 만, reportConsentValidationFailed() 도 SCR-002 만 목적지로
+   * 삼는다(changeBirthDate·clearConsentGatedAlert 의 조건부 setView 도
+   * 각각 SCR-001·SCR-002 한정). 다섯 함수의 직접 setView 호출 여섯 곳
+   * 전부 SCR-004 를 보여주지 않으므로, 그 순간 이 ref 가 어떤 값이든
+   * 읽히지 않는다 — SCR-004 는 오직 위 ①·② 두 자리로만 도달하고, 한 번
+   * 도달하면(Terminal) 이 훅이 다시 SCR-001~003 으로 전이하는 경로가
+   * 없어(§구현 가이드 — 새로고침은 새 문서 로드라 이 훅 인스턴스 자체가
+   * 새로 만들어진다) 값 재사용 위험도 없다.
+   *
+   * **StrictMode 안전** — ①은 useState 지연 초기화 안에서만 값을
+   * 대입하는 단순 대입(불리언 상수 true, 누적·토글이 아니다)이라
+   * main.tsx 의 StrictMode 이중 렌더로 두 번 실행돼도(각 실행이 그
+   * 렌더 자신의 새 ref 인스턴스에 같은 값을 대입할 뿐이라) 결과가
+   * 갈리지 않는다 — 바로 위 `encRef.current = EMPTY_ENC_PAIR` 대입과
+   * 같은 자리·같은 패턴이다. ②는 렌더 바깥(이벤트 핸들러가 이어가는
+   * 비동기 완료)에서만 실행돼 StrictMode 의 렌더 함수 이중 호출 대상이
+   * 아니다.
+   */
+  const resultSkipFocusRef = useRef(false);
+
   const [birthDate, setBirthDateRaw] = useState('');
   const [agreedCodes, setAgreedCodes] = useState<ReadonlySet<string>>(EMPTY_CODES);
   const [view, setView] = useState<ScreenView>(() => {
@@ -90,6 +150,9 @@ export function useInterlockFlow(): InterlockFlow {
       // 계속 들고 있을 이유가 없다"). birthDate 는 이 시점까지 입력받은
       // 적이 없어(useState('') 초기값 그대로) 별도로 비울 것이 없다.
       encRef.current = EMPTY_ENC_PAIR;
+      // 진입(진입 판정 실패, 경로 ② 하나뿐)이라 결과 제목에 프로그램
+      // 포커스를 주지 않는다 — 위 resultSkipFocusRef 선언부 참고.
+      resultSkipFocusRef.current = true;
     }
     return initial;
   });
@@ -127,6 +190,9 @@ export function useInterlockFlow(): InterlockFlow {
       encRef.current = EMPTY_ENC_PAIR;
       setBirthDateRaw('');
       setAgreedCodes(EMPTY_CODES);
+      // 전환 도착(확정 결과 재안내 포함 전부) — 결과 제목으로 포커스를
+      // 옮긴다. 위 resultSkipFocusRef 선언부 "신호를 뒤집는 자리" ② 다.
+      resultSkipFocusRef.current = false;
     }
     setView(next);
   }
@@ -216,6 +282,7 @@ export function useInterlockFlow(): InterlockFlow {
 
   return {
     view,
+    resultSkipFocus: resultSkipFocusRef.current,
     birthDate,
     setBirthDate: changeBirthDate,
     agreedCodes,
