@@ -21,8 +21,13 @@ const utf8StrictDecoder = new TextDecoder('utf-8', { fatal: true });
  * 만들고도 버렸으므로(구 버전 — 유일한 소비자였던 `PROC-102`/`PROC-204` 는 `trackingKey` 만
  * 필요), 재분해·재복호화 없이 **그 자리에서 함께 반환**하는 것이 유일하게 안전한 해법이다 —
  * 별도 경로로 다시 만들면 `SEC-002-01`(세 접점이 반드시 같은 절차 하나를 공유)이 깨진다.
- * 이 확장 시점에 `judgeDecryption` 의 호출부가 전무해(실측 — grep 0건) 기존 소비자를 깨지
- * 않는다. `payload` 자체의 값·형태는 무변경이다.
+ * ⚠️ **오기재 정정(P09 회귀 1회차, #486)** — 이 확장 시점에 "호출부가 전무해(실측 — grep
+ * 0건) 기존 소비자를 깨지 않는다"고 판단했으나 그 실측이 틀렸다. 실제로는
+ * `apps/sender-sdk/verify-roundtrip.js:118` 이 유일한 기존 호출부였고, 반환형이 `payload`
+ * 단일 값에서 `{payload, rawPlaintext}` 로 바뀌면서 그 자리의 구조 비교(반환값 전체를
+ * `input.payload` 와 직접 비교)가 전건 불일치로 무력화돼 있었다 — 같은 회귀에서 그 호출부를
+ * `judgeDecryption(...).payload` 구조분해로 시정했다(상세: verify-roundtrip.js 헤더 주석).
+ * `payload` 자체의 값·형태는 무변경이다.
  */
 export interface DecryptionJudgmentResult {
   readonly payload: TransferPayload;

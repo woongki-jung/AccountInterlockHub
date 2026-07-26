@@ -15,13 +15,25 @@
  * 외 외부 의존이 없는 순수 함수 모음)를 읽기 전용으로 불러와 쓴다.
  *
  * [회귀 1회차 S-4] 구조 비교(deepEqual)만으로는 "의미상 같음"만 증명한다 — 리뷰어가 별도
- * 구현으로 6/6 바이트 동일까지 확인했으므로 그 강도를 여기 고정해 둔다. judgeDecryption 은
- * 중간값(복호화 평문 바이트)을 반환하지 않으므로(DATA-001-03 — 지역 값으로만 다룬다), 판정
- * 1·2단계(encY 복호화 → encX 복호화, FN-004 §설명 1·2)만 허브가 내보낸 원시 도구
- * (parseCipherPair·normalizeKey·CIPHER_ALGORITHM·IV_LENGTH_BYTES)로 이 스크립트가 직접
+ * 구현으로 6/6 바이트 동일까지 확인했으므로 그 강도를 여기 고정해 둔다. 판정 1·2단계
+ * (encY 복호화 → encX 복호화, FN-004 §설명 1·2)를 허브가 내보낸 원시 도구
+ * (parseCipherPair·normalizeKey·CIPHER_ALGORITHM·IV_LENGTH_BYTES)로 이 스크립트가 독립적으로
  * 재구성해 평문 바이트 자체를 얻고, 벡터 파일에 적힌 input.payload 원문 텍스트(재직렬화
  * 없는 원본 바이트)와 Buffer.equals 로 대조한다. 3·4단계(UTF-8/JSON 파싱·trackingKey 형식
  * 검증)는 이 보조 검증을 거치지 않는다 — 그건 위 judgeDecryption 기반 검증이 이미 맡는다.
+ *
+ * [P09 회귀 1회차, #486 — 오기재 정정] judgeDecryption(FN-004)은 이제 rawPlaintext(복호화
+ * 평문 바이트, Buffer)도 함께 반환한다(decryption-judgment.ts:27-31, PROC-104 B3 "재직렬화
+ * 금지" 충족). 아래 문단이 예전에 "judgeDecryption 은 중간값을 반환하지 않으므로"를 근거로
+ * 들었던 것은 그 확장 이전 얘기였고 이제 사실이 아니다 — 118행의 구조 비교는 이 확장에 맞춰
+ * `judgeDecryption(...).payload` 를 쓰도록 갱신했다(갱신 전에는 반환값 전체를 그대로
+ * `input.payload` 와 비교해 전건이 구조 불일치로 떨어졌었다). 다만 위 바이트 비교는 그
+ * rawPlaintext 를 가져다 쓰지 않고 독립 재구성을 그대로 유지한다 — judgeDecryption 자신이
+ * 내놓은 값을 그 함수 자신의 결과와 대조하면 함수 내부 배선(복호화 호출 순서·범위 계산 등)의
+ * 오류가 "자기 출력을 자기 출력과 비교"하는 셈이 되어 가려질 수 있다. 같은 원시 도구를 쓰되
+ * 이 스크립트가 독립적으로 다시 연결한 호출 순서로 대조해야 그 배선 결함을 잡아낼 여지가
+ * 남는다(왕복 검증의 존재 이유). 반환값·재구성 결과 모두 지역 변수로 즉시 폐기한다는
+ * DATA-001-03 준수는 양쪽 다 여전히 유효하다.
  *
  * 실행: node verify-roundtrip.js [벡터 파일 경로]
  *   (생략 시 이 스크립트와 같은 폴더의 protocol-test-vectors.json 을 쓴다)
@@ -115,7 +127,7 @@ function main() {
       const encPair = { encX: testCase.expected.encX, encY: testCase.expected.encY };
       const birthDate = testCase.input.birthDate;
 
-      const recovered = judgeDecryption(encPair, birthDate);
+      const { payload: recovered } = judgeDecryption(encPair, birthDate);
       const expectedPayload = testCase.input.payload;
       structuralMatch = deepEqual(recovered, expectedPayload);
       if (!structuralMatch) reasons.push('구조 비교(judgeDecryption) 불일치');
@@ -170,8 +182,10 @@ function extractRawPayloadTexts(vectorsRawText) {
 
 // FN-004(judgeDecryption)의 판정 1·2단계만 재구성해 복호화 평문 바이트를 직접 얻는다.
 // 정책이 정한 부분(구조 판정·키 정규화·알고리즘 상수)은 허브가 내보낸 함수·상수를 그대로
-// 쓰고, AES 복호화 호출 자체만 이 스크립트가 수행한다(judgeDecryption 이 중간값을 반환하지
-// 않으므로 — DATA-001-03).
+// 쓰고, AES 복호화 호출 자체만 이 스크립트가 수행한다 — judgeDecryption 이 이제 rawPlaintext
+// 를 반환하더라도(P09 회귀 1회차, #486) 그 값을 그대로 되비교하지 않고 이렇게 독립 재구성을
+// 유지하는 이유는 위 헤더 주석 [P09 회귀 1회차] 참고(자기 출력을 자기 출력과 비교하는 상황을
+// 피해 judgeDecryption 내부 배선 결함을 잡아낼 여지를 남긴다).
 function decryptPlainBytesViaHubPrimitives(hubCrypto, encPair, birthDate) {
   const cipher = hubCrypto.parseCipherPair(encPair);
   const keyY = hubCrypto.normalizeKey(birthDate);
