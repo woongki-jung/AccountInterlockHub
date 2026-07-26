@@ -30,15 +30,21 @@ export class RetentionSchedulerService {
   async handleDailyRetention(): Promise<void> {
     const summary = await this.retention.run(new Date());
 
-    // 표준 출력 관측 계약(마지막 줄 요약 JSON 1줄)은 CLI(§명령 진입점)가 관측 지점으로 삼는
-    // 대상이다(PRD §프로그램 구성 "인앱 스케줄 작업이라 명령 실행·종료 코드로 관측할 수 없다" —
-    // 그래서 수동 실행 진입점을 별도로 둔 것이 이 기능의 요구사항 자체다). 스케줄 경로는 같은
-    // 요약 형상을 값으로 계산할 뿐(DATA-002-04), 그 값을 stdout 계약으로 내보낼 필요가 없다 —
-    // 여기서는 운영 가시성을 위해 Nest Logger 로만 남긴다.
+    // C1 관측 계약 — "결과 요약은 표준 출력으로 나가고, 별도 실행 이력을 남기지 않는다"
+    // (PROC-304 §진입점 및 진입 조건 · POL OPS-003-04). 스케줄 경로엔 종료 코드가 없어 이
+    // 요약 1줄이 유일한 관측 수단이므로, 성패와 무관하게 표준 출력으로 직접 내보낸다.
+    // Nest ConsoleLogger 는 `error` 레벨을 표준 오류로 고정 라우팅한다(@nestjs/common
+    // console-logger.service.js printMessages — 'error' → 'stderr') — 요약을 로거 경로에만
+    // 실으면 실패 시 표준 출력이 비어 CLI(§명령 진입점)와 스트림 계약이 갈린다. 그래서 로거는
+    // 사람이 읽는 진단용 문구로만 병기하고(요약과 중복 출력돼도 무방 — 스트림만 갈리지 않으면
+    // 된다), 요약 값 자체는 스트림을 직접 통제해 내보낸다.
+    const summaryLine = buildRetentionSummaryLine(summary);
+    process.stdout.write(`${summaryLine}\n`);
+
     if (summary.failureReason === null) {
-      this.logger.log(`PROC-304 스케줄 실행 완료 — ${buildRetentionSummaryLine(summary)}`);
+      this.logger.log(`PROC-304 스케줄 실행 완료 — ${summaryLine}`);
     } else {
-      this.logger.error(`PROC-304 스케줄 실행 실패 — ${buildRetentionSummaryLine(summary)}`);
+      this.logger.error(`PROC-304 스케줄 실행 실패 — ${summaryLine}`);
     }
   }
 }
