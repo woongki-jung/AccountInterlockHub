@@ -1,0 +1,90 @@
+{
+  "protocolVersion": "1.0",
+  "hubBaseUrl": "https://vector-hub.example.test",
+  "cases": [
+    {
+      "caseId": "VEC-001-KEY-SHORT",
+      "boundaryNote": "키 원문(발송처키+생년월일)이 32바이트 미만 — '_'(0x5F) 우측 패딩 경계",
+      "input": {
+        "senderKey": "SNDR-SHORT-SNDR-SH",
+        "birthDate": "990101",
+        "payload": {"trackingKey":"TRK-VEC-001","note":"sender key + birth date shorter than 32 bytes"}
+      },
+      "expected": {
+        "encX": "qscMsRZo6a4isVa6IhPtc13L5lC-1gU00Qs7YqZJeLAwCEns_Me7aaQWYDfcU2gM2_v2x1a0TQArQ6kPOx3PhmlxhMh5cYVvsgM-3O8agvrEI9e8ww2BucW6Lg7LpEBm",
+        "encY": "dtQ9YQYrVru96w9WvhnJcL8o6Urgz5Qaksovzm5SFKNDfr74b59j_5cytHTGClZf",
+        "requestUrl": "https://vector-hub.example.test/interlock/entry?encX=qscMsRZo6a4isVa6IhPtc13L5lC-1gU00Qs7YqZJeLAwCEns_Me7aaQWYDfcU2gM2_v2x1a0TQArQ6kPOx3PhmlxhMh5cYVvsgM-3O8agvrEI9e8ww2BucW6Lg7LpEBm&encY=dtQ9YQYrVru96w9WvhnJcL8o6Urgz5Qaksovzm5SFKNDfr74b59j_5cytHTGClZf"
+      }
+    },
+    {
+      "caseId": "VEC-002-KEY-EXACT",
+      "boundaryNote": "키 원문(발송처키+생년월일)이 정확히 32바이트 — 절단·패딩이 일어나지 않는 경계",
+      "input": {
+        "senderKey": "SNDR-EXACT-SNDR-EXACT-SNDR",
+        "birthDate": "990102",
+        "payload": {"trackingKey":"TRK-VEC-002","note":"sender key + birth date exactly 32 bytes"}
+      },
+      "expected": {
+        "encX": "4HnWeV43spBJhOpIeGxAFoAlV8NS2VuG5Zxt2jE2XTAwce4vfwizxGpgMPUDjme7t_vgKQdOthUUrecmS5ubKznsxotRyNvr54nXvXL2ndY",
+        "encY": "zqCrLJBvouw-Inl_xpfdYyTCQtOZZON9mGkMaVmHvfjEGh4wlaBeKi3jn-XO-FKw",
+        "requestUrl": "https://vector-hub.example.test/interlock/entry?encX=4HnWeV43spBJhOpIeGxAFoAlV8NS2VuG5Zxt2jE2XTAwce4vfwizxGpgMPUDjme7t_vgKQdOthUUrecmS5ubKznsxotRyNvr54nXvXL2ndY&encY=zqCrLJBvouw-Inl_xpfdYyTCQtOZZON9mGkMaVmHvfjEGh4wlaBeKi3jn-XO-FKw"
+      }
+    },
+    {
+      "caseId": "VEC-003-KEY-LONG",
+      "boundaryNote": "키 원문(발송처키+생년월일)이 32바이트 초과 — 앞 32바이트 절단 경계",
+      "input": {
+        "senderKey": "SNDR-LONG-OVER-SNDR-LONG-OVER-SNDR-LONG-",
+        "birthDate": "990103",
+        "payload": {"trackingKey":"TRK-VEC-003","note":"sender key + birth date longer than 32 bytes"}
+      },
+      "expected": {
+        "encX": "P2ss2U0he52v3j-jsYWBdaLW6A0SgudQdsugRhRWJL7wZRjDJsnuLYQj4U3iXh5uag9vHX54cWQfGGThTTrl9sJhqgNl0rDsMnDsuvepQcDU7h29XHKP4RDHqre54Fp-",
+        "encY": "gl9o2_SyqbRYvSxOdB2hVYQg6CGAV59G1hsVu9uvdV3jjQawibGCUhI6HsjQLl9s",
+        "requestUrl": "https://vector-hub.example.test/interlock/entry?encX=P2ss2U0he52v3j-jsYWBdaLW6A0SgudQdsugRhRWJL7wZRjDJsnuLYQj4U3iXh5uag9vHX54cWQfGGThTTrl9sJhqgNl0rDsMnDsuvepQcDU7h29XHKP4RDHqre54Fp-&encY=gl9o2_SyqbRYvSxOdB2hVYQg6CGAV59G1hsVu9uvdV3jjQawibGCUhI6HsjQLl9s"
+      }
+    },
+    {
+      "caseId": "VEC-004-BASE64URL-SUBST",
+      "boundaryNote": "암호값(encX 또는 encY)에 Base64URL 치환 문자('-' 또는 '_')가 실제로 출현 — 전달 인코딩 경계",
+      "input": {
+        "senderKey": "SUBCH-CANDIDATE-0",
+        "birthDate": "990104",
+        "payload": {"trackingKey":"TRK-VEC-004","note":"base64url substitution character boundary"}
+      },
+      "expected": {
+        "encX": "PILvFkwyRU8KtaiwPyPe6KN-iXMgqG1rMaHcy_WdfHoILtBsMTWPAt1eRQX7YAKvGHyGtPbO0BlaINlPYi2gO6BvpOMKo1btTiw9m0P91y5_q_hGMWMFuqjsRIa5D5sF",
+        "encY": "h5DppfX7Z01Ss-DzdunDzeuqk0PVViBqMJ8qIadlT1ni5IhROdSevPQ4VdMc-gI6",
+        "requestUrl": "https://vector-hub.example.test/interlock/entry?encX=PILvFkwyRU8KtaiwPyPe6KN-iXMgqG1rMaHcy_WdfHoILtBsMTWPAt1eRQX7YAKvGHyGtPbO0BlaINlPYi2gO6BvpOMKo1btTiw9m0P91y5_q_hGMWMFuqjsRIa5D5sF&encY=h5DppfX7Z01Ss-DzdunDzeuqk0PVViBqMJ8qIadlT1ni5IhROdSevPQ4VdMc-gI6"
+      }
+    },
+    {
+      "caseId": "VEC-005-SIZE-NEAR-LIMIT",
+      "boundaryNote": "X 평문이 크기 상한(1,024바이트) 바로 아래(1023바이트) — 상한 판정 경계",
+      "input": {
+        "senderKey": "DEMO-SENDER-KEY-005",
+        "birthDate": "990105",
+        "payload": {"trackingKey":"TRK-VEC-005","filler":"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"}
+      },
+      "expected": {
+        "encX": "CDJDIMm_CdH-P233aYs5zXVEr0MedPki_pO5t_8kMp2dD3JEIJ9GxINg7Vjyyw_-GeXWvYC5sJA2leziwBCCL3Mw4D5jG-1ti7VOyGG0Rt4QQHqyeL9ALu-wPObHK5L4X3A9iNzIBIPIJHPikgr2Qafci5OsO065EysjAaIKktEvr5D7azaRMFCOSIDaMu9Y1cbuWlCO5GWutePCTLKTrOjucvH0-NSQzMGDgd0CrSbdw8gPtd43okGFnDt9VzIlcjzwyOTxFb1xvAP7m62IkZ3ApJzbFFs7aesPQ6QMUx-srWQBIRkGJZWqWxTImiZ5CN3dA5ZdAwniVmkMes4veFgdqjR5SJTIRE2_Dj2lE6J83z5m1qDB7qam2YncaP8lEoa5F1rYolNuIAb0CdD6xs6E9Ek_DhbtqMXc103rJ0p31V-x5su4IftBWhCoksZV4VCD74i20WPI2WLjP-ShD2Y3bazmNJhLuoMYwQTImLtW1dAkvOOHhBqUw8tSVkQ29yt9MeVaqc6vNhOTo3tOM38omYamF2KfP3BFI_mHvLWsmuVRX-VCLnmkwCXf5ykcR14WB_RviAJF_afMPkenIm2J0btQrfJiw7qoyphikv3-92_O4BJwyVwRmThB-VqXhlCuttoRwUJ_UIrFafaBwmyA0dWjk0WP6pZuWZDIOAaItqg2BZZxpbF7HDDKOAZ8PAoosU0zhqFy_FZibYJiK7ZZbpvrevlPOAtsv4dAeIpz1L92Rgz8Qqjw-G7XbhJtd9_pGW9uef3_qBiMU1-Qw5saNdyv_C7tTAcogOEknElOXlWsjmml_Y8FXcWUUYXbNiYg_fo3qF4ZWsTyhYg0avBDVnIXyR4HL8Wpnv5_peO_EOqvxvS9bbOF4gD_Qteb2nEx6ZNrGYY0AB6dzpP_iNZWHJG321u7RZMJR3SK9NA7LRgSUqFAtPW8gpldlY42Om7wmouqXYakXjCKf7q-lYWXMY5OgHhEYidLRELD8Za1VswO52tyJfesLr-bjDTybJoKPDruw1Sg3AE77v6h4_aDkeex04oyOhdtW7P9hTyt7N0_ELju7wev3Kqby8ZnTpw4Be7qf9WDKpSFEQoNkQUDAeP9sqsWFnxV_V8bR56fmh7PUAf0iSTb81kr8zQF93LNiSpQ8Zb3CDBpHY-SKErbwyotFRlByhIl8Esi1B12ExgpG762mFycrqqXXlEolNWBFzwQXwqNmbwl3f_NMenTkHL0BNSJVFB_i68dNLKnTKLMxOt4eKcF3NjOGo1dq5UGLA65MtvMNGKCj020l9PkP9kzV1CCkkUlc7jTDrduIcEgtfB7JsvFpTqM_dRRU7g-29gueOIxtuFHjWPitA",
+        "encY": "zbUYnsj6sOiCfaSmrjNZ3kpI2E7wJfpH0wZXqp58OM-2ws0u2NTU7WX6sc2D6RuR",
+        "requestUrl": "https://vector-hub.example.test/interlock/entry?encX=CDJDIMm_CdH-P233aYs5zXVEr0MedPki_pO5t_8kMp2dD3JEIJ9GxINg7Vjyyw_-GeXWvYC5sJA2leziwBCCL3Mw4D5jG-1ti7VOyGG0Rt4QQHqyeL9ALu-wPObHK5L4X3A9iNzIBIPIJHPikgr2Qafci5OsO065EysjAaIKktEvr5D7azaRMFCOSIDaMu9Y1cbuWlCO5GWutePCTLKTrOjucvH0-NSQzMGDgd0CrSbdw8gPtd43okGFnDt9VzIlcjzwyOTxFb1xvAP7m62IkZ3ApJzbFFs7aesPQ6QMUx-srWQBIRkGJZWqWxTImiZ5CN3dA5ZdAwniVmkMes4veFgdqjR5SJTIRE2_Dj2lE6J83z5m1qDB7qam2YncaP8lEoa5F1rYolNuIAb0CdD6xs6E9Ek_DhbtqMXc103rJ0p31V-x5su4IftBWhCoksZV4VCD74i20WPI2WLjP-ShD2Y3bazmNJhLuoMYwQTImLtW1dAkvOOHhBqUw8tSVkQ29yt9MeVaqc6vNhOTo3tOM38omYamF2KfP3BFI_mHvLWsmuVRX-VCLnmkwCXf5ykcR14WB_RviAJF_afMPkenIm2J0btQrfJiw7qoyphikv3-92_O4BJwyVwRmThB-VqXhlCuttoRwUJ_UIrFafaBwmyA0dWjk0WP6pZuWZDIOAaItqg2BZZxpbF7HDDKOAZ8PAoosU0zhqFy_FZibYJiK7ZZbpvrevlPOAtsv4dAeIpz1L92Rgz8Qqjw-G7XbhJtd9_pGW9uef3_qBiMU1-Qw5saNdyv_C7tTAcogOEknElOXlWsjmml_Y8FXcWUUYXbNiYg_fo3qF4ZWsTyhYg0avBDVnIXyR4HL8Wpnv5_peO_EOqvxvS9bbOF4gD_Qteb2nEx6ZNrGYY0AB6dzpP_iNZWHJG321u7RZMJR3SK9NA7LRgSUqFAtPW8gpldlY42Om7wmouqXYakXjCKf7q-lYWXMY5OgHhEYidLRELD8Za1VswO52tyJfesLr-bjDTybJoKPDruw1Sg3AE77v6h4_aDkeex04oyOhdtW7P9hTyt7N0_ELju7wev3Kqby8ZnTpw4Be7qf9WDKpSFEQoNkQUDAeP9sqsWFnxV_V8bR56fmh7PUAf0iSTb81kr8zQF93LNiSpQ8Zb3CDBpHY-SKErbwyotFRlByhIl8Esi1B12ExgpG762mFycrqqXXlEolNWBFzwQXwqNmbwl3f_NMenTkHL0BNSJVFB_i68dNLKnTKLMxOt4eKcF3NjOGo1dq5UGLA65MtvMNGKCj020l9PkP9kzV1CCkkUlc7jTDrduIcEgtfB7JsvFpTqM_dRRU7g-29gueOIxtuFHjWPitA&encY=zbUYnsj6sOiCfaSmrjNZ3kpI2E7wJfpH0wZXqp58OM-2ws0u2NTU7WX6sc2D6RuR"
+      }
+    },
+    {
+      "caseId": "VEC-006-MULTILINGUAL",
+      "boundaryNote": "X 에 다국어 문자(한글·이모지) 포함 — UTF-8 다중 바이트 직렬화 경계",
+      "input": {
+        "senderKey": "DEMO-SENDER-KEY-006",
+        "birthDate": "990106",
+        "payload": {"trackingKey":"TRK-VEC-006","note":"안녕하세요 계정연동 확인 메시지입니다 😀"}
+      },
+      "expected": {
+        "encX": "ONJFKyOTL4J01TGGInCiozUioQ_lF-8S4RL-5o9vHQsfIe6DxcPuJ59IL92NTxLfrrxNesHuH3Zz1amxNX-TkSts73ggwKyBhLu3mqtHw5jmxlBVOXVgC_jSfQNmxNMHFlX_WNFRK-lWrLdqI666Uw",
+        "encY": "2S7eTBPRKQZvXkragVwmDe1TYMGxOdSO8jsp9Zr95bkzL7QRZwWtpJtSumPlDV1L",
+        "requestUrl": "https://vector-hub.example.test/interlock/entry?encX=ONJFKyOTL4J01TGGInCiozUioQ_lF-8S4RL-5o9vHQsfIe6DxcPuJ59IL92NTxLfrrxNesHuH3Zz1amxNX-TkSts73ggwKyBhLu3mqtHw5jmxlBVOXVgC_jSfQNmxNMHFlX_WNFRK-lWrLdqI666Uw&encY=2S7eTBPRKQZvXkragVwmDe1TYMGxOdSO8jsp9Zr95bkzL7QRZwWtpJtSumPlDV1L"
+      }
+    }
+  ]
+}

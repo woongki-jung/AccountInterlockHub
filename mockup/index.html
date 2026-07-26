@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>목업 허브 — AccountInterlockHub 사용자 연동 화면</title>
+<style>
+  :root{
+    --color-bg:#F4F6F9; --color-surface:#FFFFFF; --color-text:#1B2027; --color-text-muted:#556070;
+    --color-border:#767F8C; --color-divider:#D8DDE5; --color-primary:#1F5EAE; --color-primary-strong:#17498A;
+    --color-primary-weak:#EAF1FB; --color-focus:#0B4FA8;
+    --font-family-base:-apple-system,BlinkMacSystemFont,"Segoe UI","Malgun Gothic","Apple SD Gothic Neo",Roboto,"Helvetica Neue",Arial,sans-serif;
+    --font-size-xs:0.8125rem; --font-size-sm:0.875rem; --font-size-base:1rem; --font-size-lg:1.125rem; --font-size-xl:1.375rem;
+    --font-weight-regular:400; --font-weight-semibold:600; --font-weight-bold:700;
+    --line-height-tight:1.35; --line-height-base:1.6;
+    --space-2xs:4px; --space-xs:8px; --space-sm:12px; --space-md:16px; --space-lg:24px; --space-xl:32px; --space-2xl:48px;
+    --radius-sm:6px; --radius-md:10px; --radius-lg:14px; --radius-pill:999px;
+    --shadow-card:0 1px 2px rgba(16,24,40,.06), 0 1px 3px rgba(16,24,40,.10);
+    --size-hit-min:44px;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{font-family:var(--font-family-base);background:var(--color-bg);color:var(--color-text);line-height:var(--line-height-base);-webkit-font-smoothing:antialiased;}
+  svg{display:block;}
+
+  /* ================= 목업 전용 도구 (제품 UI 아님) ================= */
+  .mockup-toolbar{position:sticky;top:0;z-index:100;background:#20242C;color:#F4F6F9;font-size:13px;border-bottom:3px solid #F5A623;}
+  .mockup-toolbar-inner{max-width:960px;margin:0 auto;padding:8px 12px 10px;}
+  .mockup-flag{display:inline-flex;align-items:center;gap:6px;background:#F5A623;color:#20242C;font-weight:700;padding:3px 10px;border-radius:999px;font-size:12px;letter-spacing:.02em;margin-right:10px;}
+  .mockup-nav{display:inline-flex;flex-wrap:wrap;gap:4px;vertical-align:middle;}
+  .mockup-nav a{color:#D8DDE5;text-decoration:none;padding:6px 10px;border-radius:6px;font-size:13px;border:1px solid transparent;}
+  .mockup-nav a:hover{background:#2E3340;color:#fff;}
+  .mockup-nav a.current{background:#F4F6F9;color:#20242C;font-weight:700;}
+
+  .page{padding:var(--space-xl) var(--space-md);display:flex;justify-content:center;}
+  @media (min-width:480px){.page{padding-left:var(--space-lg);padding-right:var(--space-lg);}}
+  @media (min-width:768px){.page{padding-top:var(--space-2xl);padding-bottom:var(--space-2xl);}}
+
+  main.card{width:100%;max-width:680px;background:var(--color-surface);border-radius:var(--radius-lg);box-shadow:var(--shadow-card);padding:var(--space-lg) var(--space-md);}
+  @media (min-width:480px){main.card{padding:var(--space-lg);}}
+
+  h1.hub-title{font-size:var(--font-size-xl);line-height:var(--line-height-tight);font-weight:var(--font-weight-bold);margin:0 0 var(--space-2xs);}
+  .hub-desc{font-size:var(--font-size-sm);color:var(--color-text-muted);margin:0 0 var(--space-lg);}
+
+  ol.flow-list{list-style:none;margin:0 0 var(--space-lg);padding:0;counter-reset:flow;}
+  .flow-item{margin-bottom:var(--space-sm);}
+  .flow-card{display:flex;align-items:center;gap:var(--space-md);text-decoration:none;color:var(--color-text);background:var(--color-primary-weak);border-radius:var(--radius-md);padding:var(--space-md);min-height:var(--size-hit-min);border:1px solid transparent;transition:border-color .15s;}
+  .flow-card:hover{border-color:var(--color-primary);}
+  .flow-card:focus-visible{outline:2px solid var(--color-focus);outline-offset:2px;}
+  .flow-num{flex:none;width:32px;height:32px;border-radius:50%;background:var(--color-primary);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:var(--font-weight-bold);}
+  .flow-card strong{display:block;font-size:var(--font-size-base);}
+  .flow-card small{display:block;color:var(--color-text-muted);font-size:var(--font-size-xs);margin-top:2px;}
+  .flow-arrow{text-align:center;color:var(--color-border);font-size:var(--font-size-lg);margin:2px 0;}
+
+  .hub-note{background:#FBFCFE;border:1px dashed #A9B2C0;border-radius:var(--radius-md);padding:var(--space-md);font-size:var(--font-size-sm);color:var(--color-text-muted);}
+  .hub-note p{margin:0 0 var(--space-xs);}
+  .hub-note p:last-child{margin-bottom:0;}
+  .hub-note strong{color:var(--color-text);}
+
+  .mockup-footer{max-width:680px;margin:var(--space-lg) auto var(--space-xl);text-align:center;color:#8A93A3;font-size:11px;padding:0 var(--space-md);}
+</style>
+</head>
+<body>
+
+<div class="mockup-toolbar">
+  <div class="mockup-toolbar-inner">
+    <span class="mockup-flag">목업 전용 — 제품 UI 아님</span>
+    <nav class="mockup-nav">
+      <a href="index.html" class="current">허브</a>
+      <a href="SCR-001.html">① SCR-001 본인확인</a>
+      <a href="SCR-002.html">② SCR-002 동의·승인</a>
+      <a href="SCR-003.html">③ SCR-003 진행 안내</a>
+      <a href="SCR-004.html">④ SCR-004 결과 안내</a>
+    </nav>
+  </div>
+</div>
+
+<div class="page">
+  <main class="card">
+    <h1 class="hub-title">사용자 연동 화면 목업</h1>
+    <p class="hub-desc">AccountInterlockHub · 발송처 링크 진입부터 결과 확인까지, <strong>URL 하나 위에서 진행되는 네 단계</strong>입니다. 아래 카드 순서가 곧 진행 순서이며, 각 화면 파일은 사양의 화면 상태를 상단 도구모음에서 토글로 시연합니다.</p>
+
+    <ol class="flow-list">
+      <li class="flow-item">
+        <a class="flow-card" href="SCR-001.html">
+          <span class="flow-num">1</span>
+          <span><strong>SCR-001 본인확인</strong><small>생년월일 여섯 자리로 본인을 확인 · 관련 IA USR-01 · USR-03</small></span>
+        </a>
+      </li>
+      <li class="flow-arrow" aria-hidden="true">↓</li>
+      <li class="flow-item">
+        <a class="flow-card" href="SCR-002.html">
+          <span class="flow-num">2</span>
+          <span><strong>SCR-002 동의·승인</strong><small>동의 항목을 확인하고 동의 여부를 결정 · 관련 IA USR-04</small></span>
+        </a>
+      </li>
+      <li class="flow-arrow" aria-hidden="true">↓</li>
+      <li class="flow-item">
+        <a class="flow-card" href="SCR-003.html">
+          <span class="flow-num">3</span>
+          <span><strong>SCR-003 연동 진행 안내</strong><small>복호화·수신처 전달이 끝날 때까지 대기 표시 · 관련 IA USR-02</small></span>
+        </a>
+      </li>
+      <li class="flow-arrow" aria-hidden="true">↓</li>
+      <li class="flow-item">
+        <a class="flow-card" href="SCR-004.html">
+          <span class="flow-num">4</span>
+          <span><strong>SCR-004 연동 결과 안내</strong><small>결과 3경로 중 하나로 안내하고 여정 종료 · 관련 IA USR-05</small></span>
+        </a>
+      </li>
+    </ol>
+
+    <div class="hub-note">
+      <p><strong>화면별 URL 이 없습니다.</strong> 네 화면은 사양상 <code>&lt;INTERLOCK_ENTRY_PATH&gt;</code> 라는 같은 경로 위의 네 단계이며, 실제 제품에서는 서버 응답이 같은 문서 안의 내용만 바꿔 화면을 전환합니다(리다이렉트 없음). 이 목업에서는 담당자가 각 단계를 독립적으로 열람·검토할 수 있도록 화면마다 별도 파일로 나누었습니다 — 파일 분리는 목업 전용 편의이며 제품의 URL 구조가 아닙니다.</p>
+      <p>각 화면 상단의 어두운 막대(노란 테두리)는 <strong>목업 전용 도구</strong>입니다 — 화면 이동 내비게이션과 상태 전환 버튼이며, 실제 제품에는 존재하지 않습니다(이 제품에는 전역 네비게이션·로그인이 없습니다). 카드 안쪽 흰 영역만 실제 화면 사양입니다.</p>
+      <p>모든 파일은 외부 자원(CDN·웹폰트·이미지) 없이 동작합니다. 인터넷 연결 없이 브라우저로 직접 열어 확인할 수 있습니다.</p>
+    </div>
+  </main>
+</div>
+
+<p class="mockup-footer">정본 사양: docs/specs/screens/spec-screens.md · design-system.md · design-system-components.md · 매핑 상세는 mockup/INDEX.md 참고</p>
+
+</body>
+</html>

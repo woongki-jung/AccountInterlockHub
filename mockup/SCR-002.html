@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SCR-002 동의·승인 — AccountInterlockHub 목업</title>
+<style>
+  :root{
+    --color-bg:#F4F6F9; --color-surface:#FFFFFF; --color-text:#1B2027; --color-text-muted:#556070;
+    --color-border:#767F8C; --color-divider:#D8DDE5; --color-primary:#1F5EAE; --color-primary-strong:#17498A;
+    --color-primary-weak:#EAF1FB; --color-focus:#0B4FA8; --color-success:#1C7A4B; --color-success-strong:#0F5C37;
+    --color-success-weak:#E8F5EE; --color-danger:#B3261E; --color-danger-strong:#8E1D17; --color-danger-weak:#FCEBE9;
+    --color-warning:#8A5A00; --color-warning-strong:#7A4F00; --color-warning-weak:#FDF3E2; --color-neutral:#3B4452;
+    --color-neutral-weak:#EDF0F4; --color-disabled-bg:#E7EAF0; --color-disabled-fg:#5C6675;
+    --font-family-base:-apple-system,BlinkMacSystemFont,"Segoe UI","Malgun Gothic","Apple SD Gothic Neo",Roboto,"Helvetica Neue",Arial,sans-serif;
+    --font-size-xs:0.8125rem; --font-size-sm:0.875rem; --font-size-base:1rem; --font-size-lg:1.125rem;
+    --font-size-xl:1.375rem; --font-size-2xl:1.75rem;
+    --font-weight-regular:400; --font-weight-semibold:600; --font-weight-bold:700;
+    --line-height-tight:1.35; --line-height-base:1.6;
+    --space-2xs:4px; --space-xs:8px; --space-sm:12px; --space-md:16px; --space-lg:24px; --space-xl:32px; --space-2xl:48px;
+    --radius-sm:6px; --radius-md:10px; --radius-lg:14px; --radius-pill:999px;
+    --shadow-card:0 1px 2px rgba(16,24,40,.06), 0 1px 3px rgba(16,24,40,.10);
+    --size-hit-min:44px; --size-control-height:48px; --size-content-max:480px;
+    --motion-duration-fast:120ms; --motion-duration-base:200ms; --motion-easing:cubic-bezier(.2,0,.38,1);
+  }
+  *{box-sizing:border-box;}
+  /* hidden 속성이 저자 display 선언(.alert 등)에 밀리지 않게 한다 — 조건부 표시 사양대로 숨는다 */
+  [hidden]{display:none !important;}
+  html,body{margin:0;padding:0;}
+  body{font-family:var(--font-family-base);background:var(--color-bg);color:var(--color-text);line-height:var(--line-height-base);-webkit-font-smoothing:antialiased;}
+  svg{display:block;}
+  button{font-family:inherit;}
+
+  /* ================= 목업 전용 도구 (제품 UI 아님) ================= */
+  .mockup-toolbar{position:sticky;top:0;z-index:100;background:#20242C;color:#F4F6F9;font-size:13px;border-bottom:3px solid #F5A623;}
+  .mockup-toolbar-inner{max-width:960px;margin:0 auto;padding:8px 12px 10px;}
+  .mockup-flag{display:inline-flex;align-items:center;gap:6px;background:#F5A623;color:#20242C;font-weight:700;padding:3px 10px;border-radius:999px;font-size:12px;letter-spacing:.02em;margin-right:10px;}
+  .mockup-nav{display:inline-flex;flex-wrap:wrap;gap:4px;vertical-align:middle;}
+  .mockup-nav a{color:#D8DDE5;text-decoration:none;padding:6px 10px;border-radius:6px;font-size:13px;border:1px solid transparent;}
+  .mockup-nav a:hover{background:#2E3340;color:#fff;}
+  .mockup-nav a.current{background:#F4F6F9;color:#20242C;font-weight:700;}
+  .mockup-states{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;align-items:center;}
+  .mockup-states-label{color:#9AA4B2;margin-right:2px;font-size:12px;}
+  .state-btn{background:#2E3340;color:#D8DDE5;border:1px solid #3A4050;border-radius:6px;padding:6px 10px;font-size:12.5px;cursor:pointer;}
+  .state-btn:hover{background:#3A4050;}
+  .state-btn.active{background:#F5A623;color:#20242C;border-color:#F5A623;font-weight:700;}
+  .mockup-note{color:#9AA4B2;font-size:11.5px;margin-top:6px;}
+
+  /* ================= 제품 UI (design-system.md 토큰) ================= */
+  .page{padding:var(--space-xl) var(--space-md);display:flex;justify-content:center;}
+  @media (min-width:480px){.page{padding-left:var(--space-lg);padding-right:var(--space-lg);}}
+  @media (min-width:768px){.page{padding-top:var(--space-2xl);padding-bottom:var(--space-2xl);}}
+
+  main.card{width:100%;max-width:480px;background:var(--color-surface);border-radius:var(--radius-lg);box-shadow:var(--shadow-card);padding:var(--space-lg) var(--space-md);}
+  @media (min-width:480px){main.card{max-width:440px;padding:var(--space-lg);}}
+  @media (min-width:768px){main.card{max-width:var(--size-content-max);}}
+
+  h1.stage-title{font-size:var(--font-size-xl);line-height:var(--line-height-tight);font-weight:var(--font-weight-bold);margin:0 0 var(--space-2xs);}
+  /* 단계 제목의 포커스 링 — design-system.md §접근성 기준(포커스 표시). 조작 요소와 같은 한 벌의 링이며,
+     탭 순서 밖(tabindex="-1")이라 :focus-visible 이 매치되지 않으므로 :focus 로 건다(정본이 든 예시 수단). */
+  h1.stage-title:focus{outline:2px solid var(--color-focus);outline-offset:2px;}
+  .stage-desc{font-size:var(--font-size-sm);color:var(--color-text-muted);margin:0 0 var(--space-lg);}
+
+  .notice{background:var(--color-primary-weak);border-radius:var(--radius-md);padding:var(--space-md);margin-bottom:var(--space-lg);color:var(--color-text);}
+  .notice p{margin:0 0 var(--space-sm);font-size:var(--font-size-sm);line-height:var(--line-height-base);}
+  .notice p:last-child{margin-bottom:0;}
+
+  ul.consent-list{list-style:none;margin:0 0 var(--space-lg);padding:0;border-top:1px solid var(--color-divider);}
+  .consent-item{border-bottom:1px solid var(--color-divider);}
+  .consent-item label{display:flex;align-items:flex-start;gap:var(--space-sm);padding:var(--space-sm) var(--space-2xs);min-height:var(--size-hit-min);cursor:pointer;}
+  .consent-item input[type=checkbox]{width:20px;height:20px;margin-top:2px;accent-color:var(--color-primary);flex:none;}
+  .consent-item .ci-body{flex:1;}
+  .consent-item .ci-name{font-weight:var(--font-weight-semibold);display:flex;align-items:center;flex-wrap:wrap;gap:6px;}
+  .consent-item .ci-desc{font-size:var(--font-size-sm);color:var(--color-text-muted);margin-top:2px;}
+  /* 잠금(제출 중) 상태를 두지 않는다 — design-system-components.md §ConsentList·ConsentItem:
+     거부 제출이 폐지되면서 목록을 잠근 채 대기할 트리거가 사라졌다. 승인은 발신 즉시 카드가
+     SCR-003 으로 바뀌어 목록 자체가 화면에서 사라지므로, 잠금 CSS·상태를 만들지 않는다. */
+
+  .badge{display:inline-flex;align-items:center;gap:4px;font-size:var(--font-size-xs);border-radius:var(--radius-pill);padding:2px var(--space-xs);font-weight:var(--font-weight-semibold);}
+  .badge-required{background:var(--color-primary-weak);color:var(--color-primary-strong);}
+
+  .alert{display:flex;gap:var(--space-xs);align-items:flex-start;background:var(--color-danger-weak);border-left:3px solid var(--color-danger);border-radius:var(--radius-md);padding:var(--space-sm) var(--space-md);color:var(--color-danger-strong);font-size:var(--font-size-sm);margin:0 0 var(--space-lg);}
+  .alert svg{flex:none;width:18px;height:18px;margin-top:1px;color:var(--color-danger);}
+
+  .btn{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;min-height:var(--size-control-height);border-radius:var(--radius-md);font-size:var(--font-size-base);font-weight:var(--font-weight-semibold);cursor:pointer;border:1px solid transparent;padding:0 var(--space-md);transition:background var(--motion-duration-fast) var(--motion-easing);}
+  .btn-primary{background:var(--color-primary);color:#fff;}
+  .btn-primary:hover{background:var(--color-primary-strong);}
+  .btn-primary:focus-visible{outline:2px solid #fff;box-shadow:0 0 0 4px var(--color-focus);}
+  .btn[aria-disabled="true"]{background:var(--color-disabled-bg);color:var(--color-disabled-fg);cursor:not-allowed;border-color:transparent;}
+  .btn:focus-visible{outline:2px solid var(--color-focus);outline-offset:2px;}
+  /* Spinner 규칙을 두지 않는다 — SCR-002 에는 Spinner 를 쓰는 상태가 없다(승인 제출 즉시 카드가 SCR-003 으로 교체된다) */
+
+  .flow-note{max-width:480px;margin:var(--space-lg) auto 0;padding:var(--space-md);border:1px dashed #A9B2C0;border-radius:var(--radius-md);background:#FBFCFE;color:var(--color-text-muted);font-size:var(--font-size-sm);}
+  .flow-note-title{font-weight:700;color:#5B4400;background:#FDF3E2;display:inline-block;padding:2px 8px;border-radius:999px;font-size:var(--font-size-xs);margin-bottom:var(--space-sm);}
+  .flow-note ul{margin:0;padding-left:1.1em;}
+  .flow-note li{margin-bottom:4px;}
+  .flow-note a{color:var(--color-primary);}
+  .mockup-footer{max-width:480px;margin:var(--space-lg) auto var(--space-xl);text-align:center;color:#8A93A3;font-size:11px;padding:0 var(--space-md);}
+</style>
+</head>
+<body>
+
+<div class="mockup-toolbar">
+  <div class="mockup-toolbar-inner">
+    <span class="mockup-flag">목업 전용 — 제품 UI 아님</span>
+    <nav class="mockup-nav">
+      <a href="index.html">허브</a>
+      <a href="SCR-001.html">① SCR-001 본인확인</a>
+      <a href="SCR-002.html" class="current">② SCR-002 동의·승인</a>
+      <a href="SCR-003.html">③ SCR-003 진행 안내</a>
+      <a href="SCR-004.html">④ SCR-004 결과 안내</a>
+    </nav>
+    <div class="mockup-states">
+      <span class="mockup-states-label">상태 전환:</span>
+      <button type="button" class="state-btn" data-state="initialUnchecked">초기 미동의</button>
+      <button type="button" class="state-btn" data-state="agreed">동의 완료</button>
+      <button type="button" class="state-btn" data-state="noNotice">안내 문구 없음</button>
+      <button type="button" class="state-btn" data-state="gated">유효성 안내(화면 게이팅)</button>
+      <button type="button" class="state-btn" data-state="blocked">서버 EX-BIZ-001</button>
+      <button type="button" class="state-btn" data-state="retryable">EX-BIZ-003 재시도</button>
+    </div>
+    <p class="mockup-note">사양: screen_SCR-002.md §화면 상태 전이 · §조건부 표시. <strong>거부·취소 종료 수단은 없습니다</strong> — 동의하지 않는 사용자의 종료 수단은 창을 닫는 것입니다(<code>BIZ-003-03</code>). "유효성 안내"는 미동의 상태에서 버튼을 눌렀을 때 화면이 막는 1차 방어(문구: "모든 항목에 동의해 주셔야 합니다"), "서버 EX-BIZ-001"은 서버 재검증 실패(문구: "필수 동의 항목에 모두 동의해 주세요.") — 문구가 서로 다릅니다. 체크박스를 직접 눌러도 버튼 활성 여부가 즉시 반영됩니다.</p>
+  </div>
+</div>
+
+<div class="page">
+  <main class="card">
+    <h1 class="stage-title" tabindex="-1">연동 동의</h1>
+    <p class="stage-desc">아래 내용을 확인하고 모든 항목에 동의해 주세요.</p>
+
+    <div class="notice" id="notice">
+      <p>아래 항목에 동의하시면 서비스 연동이 진행됩니다. 동의하지 않으시면 연동이 취소됩니다.</p>
+    </div>
+
+    <ul class="consent-list" id="consent-list">
+      <li class="consent-item">
+        <label>
+          <input type="checkbox" id="ci-1">
+          <span class="ci-body">
+            <span class="ci-name">개인정보 제3자 제공 동의 <span class="badge badge-required">필수</span></span>
+            <span class="ci-desc">발송처가 보유한 회원 식별 정보를 수신처에 제공하는 데 동의합니다.</span>
+          </span>
+        </label>
+      </li>
+    </ul>
+
+    <div class="alert" id="alert" role="status" hidden>
+      <svg viewBox="0 0 20 20" width="18" height="18" aria-hidden="true"><circle cx="10" cy="10" r="8.5" fill="none" stroke="currentColor" stroke-width="1.6"/><line x1="10" y1="5.5" x2="10" y2="11.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><circle cx="10" cy="14" r="1" fill="currentColor"/></svg>
+      <span id="alert-text"></span>
+    </div>
+
+    <button type="button" class="btn btn-primary" id="approve-btn">
+      <span id="approve-content">동의하고 연동하기</span>
+    </button>
+  </main>
+</div>
+
+<aside class="flow-note">
+  <p class="flow-note-title">사양 §화면 간 이동 경로 요약 (목업 보조 — 제품 UI 아님)</p>
+  <ul>
+    <li>승인 버튼 클릭(필수 동의 충족) → <a href="SCR-003.html">SCR-003 연동 진행 안내</a></li>
+    <li>승인 제출 응답이 확정 결과 재안내 또는 <code>EX-SEC-001</code>·<code>EX-SEC-002</code> → <a href="SCR-004.html">SCR-004 결과 안내</a></li>
+    <li>승인 시점 재복호화 실패(<code>EX-AUTH-001</code>·<code>EX-AUTH-002</code>) → <a href="SCR-001.html">SCR-001 본인확인(재입력)</a></li>
+    <li>필수 미충족 상태에서 승인 버튼 클릭(<code>aria-disabled</code>) → 이 화면 유지 — 요청을 보내지 않고 유효성 안내만 띄운다</li>
+    <li>서버 재검증 실패(<code>EX-BIZ-001</code>)·처리 오류(<code>EX-BIZ-003</code>) → 이 화면 유지(위 상태 전환 참고)</li>
+  </ul>
+</aside>
+<p class="mockup-footer">정본 사양: docs/specs/screens/screen_SCR-002.md · design-system.md · design-system-components.md(NoticeBlock·ConsentList·Button)</p>
+
+<script>
+  // 상태 6종 — screen_SCR-002.md §화면 상태 전이 · §조건부 표시.
+  // Gated(화면 게이팅·BR-004)와 Blocked(서버 재검증·BR-005)는 같은 알림 영역을 쓰지만 문구가 다르다.
+  var STATES = {
+    initialUnchecked: { label:'초기 미동의',              notice:true,  checked:false, alertText:'' },
+    agreed:           { label:'동의 완료',                notice:true,  checked:true,  alertText:'' },
+    noNotice:         { label:'안내 문구 없음',           notice:false, checked:false, alertText:'' },
+    gated:            { label:'유효성 안내(화면 게이팅)', notice:true,  checked:false, alertText:'모든 항목에 동의해 주셔야 합니다', focusCheckbox:true },
+    blocked:          { label:'서버 EX-BIZ-001',          notice:true,  checked:false, alertText:'필수 동의 항목에 모두 동의해 주세요.', focusCheckbox:true },
+    retryable:        { label:'EX-BIZ-003 재시도',        notice:true,  checked:true,  alertText:'처리 중 문제가 발생했습니다. 잠시 후 다시 시도해 주세요.' }
+  };
+
+  var notice = document.getElementById('notice');
+  var checkbox = document.getElementById('ci-1');
+  var alertEl = document.getElementById('alert');
+  var alertText = document.getElementById('alert-text');
+  var approveBtn = document.getElementById('approve-btn');
+
+  function updateApproveEnabled(checked){
+    if (checked) approveBtn.removeAttribute('aria-disabled');
+    else approveBtn.setAttribute('aria-disabled', 'true');
+  }
+
+  function applyState(key){
+    var s = STATES[key];
+    if(!s) return;
+
+    notice.hidden = !s.notice;
+    checkbox.checked = s.checked;
+    updateApproveEnabled(s.checked);
+
+    if (s.alertText) {
+      alertEl.hidden = false;
+      alertText.textContent = s.alertText;
+    } else {
+      alertEl.hidden = true;
+    }
+
+    document.querySelectorAll('.state-btn').forEach(function(b){
+      b.classList.toggle('active', b.getAttribute('data-state') === key);
+    });
+
+    // "첫 미충족 항목으로 포커스" — 현재 상수는 필수 항목 1건이라 그 체크박스로 옮긴다.
+    if (s.focusCheckbox) { checkbox.focus(); }
+  }
+
+  document.querySelectorAll('.state-btn').forEach(function(b){
+    b.addEventListener('click', function(){ applyState(b.getAttribute('data-state')); });
+  });
+
+  // 체크박스를 직접 조작해도 승인 버튼 활성 여부가 즉시 반영된다(BIZ-003-01 — 1차 방어는 화면, 판정 근거는 서버).
+  // 체크박스는 어떤 상태에서도 disabled 로 두지 않는다 — 잠금 상태가 없다(design-system-components.md §ConsentList).
+  checkbox.addEventListener('change', function(){
+    updateApproveEnabled(checkbox.checked);
+    if (checkbox.checked) { alertEl.hidden = true; }
+  });
+
+  // "동의하고 연동하기": aria-disabled 여도 클릭 이벤트는 살아 있다 — 그 자리에서 유효성 안내를 띄운다(화면 게이팅, 서버를 부르지 않는다).
+  approveBtn.addEventListener('click', function(){
+    if (approveBtn.getAttribute('aria-disabled') === 'true') {
+      applyState('gated');
+      return;
+    }
+    window.location.href = 'SCR-003.html';
+  });
+
+  applyState('initialUnchecked');
+</script>
+</body>
+</html>

@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SCR-003 연동 진행 안내 — AccountInterlockHub 목업</title>
+<style>
+  :root{
+    --color-bg:#F4F6F9; --color-surface:#FFFFFF; --color-text:#1B2027; --color-text-muted:#556070;
+    --color-border:#767F8C; --color-divider:#D8DDE5; --color-primary:#1F5EAE; --color-primary-strong:#17498A;
+    --color-primary-weak:#EAF1FB; --color-focus:#0B4FA8; --color-success:#1C7A4B; --color-success-strong:#0F5C37;
+    --color-success-weak:#E8F5EE; --color-danger:#B3261E; --color-danger-strong:#8E1D17; --color-danger-weak:#FCEBE9;
+    --color-warning:#8A5A00; --color-warning-strong:#7A4F00; --color-warning-weak:#FDF3E2; --color-neutral:#3B4452;
+    --color-neutral-weak:#EDF0F4; --color-disabled-bg:#E7EAF0; --color-disabled-fg:#5C6675;
+    --font-family-base:-apple-system,BlinkMacSystemFont,"Segoe UI","Malgun Gothic","Apple SD Gothic Neo",Roboto,"Helvetica Neue",Arial,sans-serif;
+    --font-size-xs:0.8125rem; --font-size-sm:0.875rem; --font-size-base:1rem; --font-size-lg:1.125rem;
+    --font-size-xl:1.375rem; --font-size-2xl:1.75rem;
+    --font-weight-regular:400; --font-weight-semibold:600; --font-weight-bold:700;
+    --line-height-tight:1.35; --line-height-base:1.6;
+    --space-2xs:4px; --space-xs:8px; --space-sm:12px; --space-md:16px; --space-lg:24px; --space-xl:32px; --space-2xl:48px;
+    --radius-sm:6px; --radius-md:10px; --radius-lg:14px; --radius-pill:999px;
+    --shadow-card:0 1px 2px rgba(16,24,40,.06), 0 1px 3px rgba(16,24,40,.10);
+    --size-hit-min:44px; --size-control-height:48px; --size-content-max:480px;
+    --motion-duration-fast:120ms; --motion-duration-base:200ms; --motion-easing:cubic-bezier(.2,0,.38,1);
+  }
+  *{box-sizing:border-box;}
+  /* hidden 속성이 저자 display 선언(.alert 등)에 밀리지 않게 한다 — 조건부 표시 사양대로 숨는다 */
+  [hidden]{display:none !important;}
+  html,body{margin:0;padding:0;}
+  body{font-family:var(--font-family-base);background:var(--color-bg);color:var(--color-text);line-height:var(--line-height-base);-webkit-font-smoothing:antialiased;}
+  svg{display:block;}
+  button{font-family:inherit;}
+
+  /* ================= 목업 전용 도구 (제품 UI 아님) ================= */
+  .mockup-toolbar{position:sticky;top:0;z-index:100;background:#20242C;color:#F4F6F9;font-size:13px;border-bottom:3px solid #F5A623;}
+  .mockup-toolbar-inner{max-width:960px;margin:0 auto;padding:8px 12px 10px;}
+  .mockup-flag{display:inline-flex;align-items:center;gap:6px;background:#F5A623;color:#20242C;font-weight:700;padding:3px 10px;border-radius:999px;font-size:12px;letter-spacing:.02em;margin-right:10px;}
+  .mockup-nav{display:inline-flex;flex-wrap:wrap;gap:4px;vertical-align:middle;}
+  .mockup-nav a{color:#D8DDE5;text-decoration:none;padding:6px 10px;border-radius:6px;font-size:13px;border:1px solid transparent;}
+  .mockup-nav a:hover{background:#2E3340;color:#fff;}
+  .mockup-nav a.current{background:#F4F6F9;color:#20242C;font-weight:700;}
+  .mockup-states{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;align-items:center;}
+  .mockup-states-label{color:#9AA4B2;margin-right:2px;font-size:12px;}
+  .state-btn{background:#2E3340;color:#D8DDE5;border:1px solid #3A4050;border-radius:6px;padding:6px 10px;font-size:12.5px;cursor:pointer;}
+  .state-btn:hover{background:#3A4050;}
+  .state-btn.active{background:#F5A623;color:#20242C;border-color:#F5A623;font-weight:700;}
+  .mockup-note{color:#9AA4B2;font-size:11.5px;margin-top:6px;}
+
+  /* ================= 제품 UI (design-system.md 토큰) ================= */
+  .page{padding:var(--space-xl) var(--space-md);display:flex;justify-content:center;}
+  @media (min-width:480px){.page{padding-left:var(--space-lg);padding-right:var(--space-lg);}}
+  @media (min-width:768px){.page{padding-top:var(--space-2xl);padding-bottom:var(--space-2xl);}}
+
+  main.card{width:100%;max-width:480px;background:var(--color-surface);border-radius:var(--radius-lg);box-shadow:var(--shadow-card);padding:var(--space-lg) var(--space-md);}
+  @media (min-width:480px){main.card{max-width:440px;padding:var(--space-lg);}}
+  @media (min-width:768px){main.card{max-width:var(--size-content-max);}}
+
+  .progress-panel{text-align:center;padding:var(--space-xl) 0;display:flex;flex-direction:column;align-items:center;gap:var(--space-md);}
+  .progress-panel .spinner-lg{color:var(--color-primary);}
+  .progress-panel h1{font-size:var(--font-size-xl);font-weight:var(--font-weight-bold);margin:0;color:var(--color-text);}
+  /* 단계 제목의 포커스 링 — design-system.md §접근성 기준(포커스 표시). 조작 요소와 같은 한 벌의 링이며,
+     탭 순서 밖(tabindex="-1")이라 :focus-visible 이 매치되지 않으므로 :focus 로 건다(정본이 든 예시 수단).
+     이 화면은 조작 요소가 0 이라 이 표시가 다음 Tab 의 출발점을 알리는 유일한 단서다. */
+  .progress-panel h1:focus{outline:2px solid var(--color-focus);outline-offset:2px;}
+  .progress-panel p.sub{color:var(--color-text-muted);font-size:var(--font-size-sm);margin:0;max-width:32ch;}
+
+  .alert{display:flex;gap:var(--space-xs);align-items:flex-start;background:var(--color-danger-weak);border-left:3px solid var(--color-danger);border-radius:var(--radius-md);padding:var(--space-sm) var(--space-md);color:var(--color-danger-strong);font-size:var(--font-size-sm);width:100%;text-align:left;}
+  .alert svg{flex:none;width:18px;height:18px;margin-top:1px;color:var(--color-danger);}
+
+  @keyframes spin{to{transform:rotate(360deg);}}
+  .spinner-lg{width:32px;height:32px;border-radius:50%;border:4px solid rgba(31,94,174,.2);border-top-color:var(--color-primary);animation:spin .9s linear infinite;}
+  @media (prefers-reduced-motion:reduce){.spinner-lg{animation-duration:1.6s;}}
+
+  .flow-note{max-width:480px;margin:var(--space-lg) auto 0;padding:var(--space-md);border:1px dashed #A9B2C0;border-radius:var(--radius-md);background:#FBFCFE;color:var(--color-text-muted);font-size:var(--font-size-sm);}
+  .flow-note-title{font-weight:700;color:#5B4400;background:#FDF3E2;display:inline-block;padding:2px 8px;border-radius:999px;font-size:var(--font-size-xs);margin-bottom:var(--space-sm);}
+  .flow-note ul{margin:0;padding-left:1.1em;}
+  .flow-note li{margin-bottom:4px;}
+  .flow-note a{color:var(--color-primary);}
+  .mockup-footer{max-width:480px;margin:var(--space-lg) auto var(--space-xl);text-align:center;color:#8A93A3;font-size:11px;padding:0 var(--space-md);}
+</style>
+</head>
+<body>
+
+<div class="mockup-toolbar">
+  <div class="mockup-toolbar-inner">
+    <span class="mockup-flag">목업 전용 — 제품 UI 아님</span>
+    <nav class="mockup-nav">
+      <a href="index.html">허브</a>
+      <a href="SCR-001.html">① SCR-001 본인확인</a>
+      <a href="SCR-002.html">② SCR-002 동의·승인</a>
+      <a href="SCR-003.html" class="current">③ SCR-003 진행 안내</a>
+      <a href="SCR-004.html">④ SCR-004 결과 안내</a>
+    </nav>
+    <div class="mockup-states">
+      <span class="mockup-states-label">상태 전환:</span>
+      <button type="button" class="state-btn" data-state="waiting">대기·진행 표시</button>
+      <button type="button" class="state-btn" data-state="unconfirmed">응답 미수신(Unconfirmed)</button>
+    </div>
+    <p class="mockup-note">사양: screen_SCR-003.md — 이 화면은 인터랙션이 없습니다(조작 요소 0). 취소·재시도 버튼을 두지 않는 것이 사양입니다.</p>
+  </div>
+</div>
+
+<div class="page">
+  <main class="card">
+    <div class="progress-panel" role="status" aria-live="polite" aria-busy="true">
+      <span class="spinner-lg" aria-hidden="true"></span>
+      <h1 tabindex="-1">연동을 진행하고 있습니다</h1>
+      <p class="sub">창을 닫거나 새로 고치지 마세요. 잠시만 기다려 주세요.</p>
+      <div class="alert" id="alert" hidden>
+        <svg viewBox="0 0 20 20" width="18" height="18" aria-hidden="true"><circle cx="10" cy="10" r="8.5" fill="none" stroke="currentColor" stroke-width="1.6"/><line x1="10" y1="5.5" x2="10" y2="11.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><circle cx="10" cy="14" r="1" fill="currentColor"/></svg>
+        <span>처리 결과를 확인하지 못했습니다. 받으신 링크로 다시 들어오면 결과를 확인할 수 있습니다.</span>
+      </div>
+    </div>
+  </main>
+</div>
+
+<aside class="flow-note">
+  <p class="flow-note-title">사양 §화면 간 이동 경로 요약 (목업 보조 — 제품 UI 아님)</p>
+  <ul>
+    <li>결과 응답(경로 ①·②·③) 또는 <code>EX-BIZ-002</code>(경로 ③) → <a href="SCR-004.html">SCR-004 연동 결과 안내</a></li>
+    <li><code>EX-BIZ-001</code>·<code>EX-BIZ-003</code> → <a href="SCR-002.html">SCR-002 동의·승인</a>으로 되돌아감</li>
+    <li><code>EX-AUTH-001</code>·<code>EX-AUTH-002</code>(재복호화 실패) → <a href="SCR-001.html">SCR-001 본인확인</a>으로 되돌아감</li>
+    <li>응답 미수신(Unconfirmed) → 재진입 안내만 하고 화면은 그대로 대기(위 상태 전환 참고). 네 번째 결과 경로가 아닙니다</li>
+  </ul>
+</aside>
+<p class="mockup-footer">정본 사양: docs/specs/screens/screen_SCR-003.md · design-system-components.md(ProgressPanel·Spinner)</p>
+
+<script>
+  // aria-busy 는 대기 중에만 선다 — Unconfirmed 는 대기가 끝난 상태라 해제한다.
+  // 켠 채로 알림을 띄우면 보조기술이 재진입 안내를 미루거나 건너뛴다
+  // (design-system-components.md §ProgressPanel §접근성이 정본). role="status"·aria-live 는 그대로 둔다.
+  var STATES = { waiting:{ alert:false, busy:true }, unconfirmed:{ alert:true, busy:false } };
+  var panel = document.querySelector('.progress-panel');
+  var alertEl = document.getElementById('alert');
+
+  function applyState(key){
+    var s = STATES[key];
+    if(!s) return;
+    alertEl.hidden = !s.alert;
+    if (s.busy) panel.setAttribute('aria-busy', 'true');
+    else panel.removeAttribute('aria-busy');
+    document.querySelectorAll('.state-btn').forEach(function(b){
+      b.classList.toggle('active', b.getAttribute('data-state') === key);
+    });
+  }
+
+  document.querySelectorAll('.state-btn').forEach(function(b){
+    b.addEventListener('click', function(){ applyState(b.getAttribute('data-state')); });
+  });
+
+  applyState('waiting');
+</script>
+</body>
+</html>

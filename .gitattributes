@@ -1,0 +1,13 @@
+# 저장소 차원 개행 규약 — 현재는 연동 라이브러리(apps/sender-sdk) 배포 패키지 산출물의
+# 결정적 체크섬(SHA256SUMS.txt, LIB-03)을 확보하기 위해 도입한다(P18 S-b,
+# docs/specs/functions/spec-functions-lib.md §배포 패키지 · §규약 테스트 벡터).
+#
+# 배경: 이 저장소는 지금까지 개행 규약이 없어 체크아웃 개행이 PC 의 core.autocrlf 설정에
+# 따라 갈렸다(이 PC 는 core.autocrlf=true). 텍스트 산출물(사용 안내·규약 테스트 벡터 등)의
+# 바이트가 체크아웃 환경마다 달라지면 그 파일들의 SHA-256 체크섬도 함께 흔들린다.
+#
+# 영향 범위를 연동 라이브러리 경로로만 한정한다 — 그 밖의 경로(예: apps/frontend/**·
+# apps/backend/src/config/**·history/USR-*.md·history/common.md)는 이 파일과 무관하며,
+# 같은 시각 그 경로에서 작업 중인 다른 doer 의 커밋에 영향을 주지 않는다
+# (ai/strategies/git-flow.md §공유 워킹트리 — 좁은 pathspec 원칙과 같은 취지).
+apps/sender-sdk/** text=auto eol=lf

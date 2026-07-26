@@ -1,0 +1,25 @@
+/* Spinner — design-system-components.md §Spinner */
+
+.spinner {
+  display: inline-block;
+  border-radius: 50%;
+  border-style: solid;
+  border-color: currentColor;
+  border-right-color: transparent;
+  animation: spin 0.9s linear infinite;
+}
+
+/* 감소 모션 설정에서는 회전 주기를 1.6초 이상으로 늦춘다 — 없애지
+   않는다(design-system.md §간격·크기·모양 · design-system-components.md
+   §Spinner "접근성"). */
+@media (prefers-reduced-motion: reduce) {
+  .spinner {
+    animation-duration: 1.6s;
+  }
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}

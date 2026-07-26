@@ -1,0 +1,18 @@
+/* NoticeBlock — design-system-components.md §NoticeBlock */
+
+.block {
+  background-color: var(--color-primary-weak);
+  border-radius: var(--radius-md);
+  padding: var(--space-md);
+  margin-bottom: var(--space-lg);
+  color: var(--color-text);
+}
+
+.block p {
+  font-size: var(--font-size-sm);
+  line-height: var(--line-height-base);
+}
+
+.block p + p {
+  margin-top: var(--space-sm);
+}

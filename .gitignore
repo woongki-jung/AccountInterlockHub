@@ -17,3 +17,11 @@ works/
 apps/**/dist/
 apps/**/node_modules/
 *.tsbuildinfo
+
+# C#/.NET Framework 빌드·배포 산출물 (apps/sender-sdk 등 — infra.md §연동 라이브러리 배포)
+apps/**/bin/
+apps/**/obj/
+apps/**/packages/
+*.user
+*.suo
+.vs/

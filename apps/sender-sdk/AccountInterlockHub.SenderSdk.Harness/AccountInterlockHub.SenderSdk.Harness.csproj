@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  발송처(서비스 A) Visual Studio 프로젝트 참조·프로젝트 열람용으로 함께 두는 구성 파일이다.
+  이 저장소 PC 에는 .NET Framework 타게팅 팩이 없어 이 파일로는 빌드하지 못한다 —
+  실제 빌드는 상위 폴더의 build.ps1(csc.exe 직접 호출)이 수행한다.
+  배포 패키지(LIB-03, P18 소관)의 "C# 호출 샘플"도 이 하네스와 같은 형태를 쓴다
+  (spec-functions-lib.md §배포 패키지).
+-->
+<Project ToolsVersion="15.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <ProjectGuid>{00D8751E-8FD1-4D3C-B7E2-2844F436B05E}</ProjectGuid>
+    <OutputType>Exe</OutputType>
+    <RootNamespace>AccountInterlockHub.SenderSdk.Harness</RootNamespace>
+    <AssemblyName>AccountInterlockHub.SenderSdk.Harness</AssemblyName>
+    <TargetFrameworkVersion>v4.8</TargetFrameworkVersion>
+    <FileAlignment>512</FileAlignment>
+    <Deterministic>true</Deterministic>
+    <LangVersion>5</LangVersion>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>full</DebugType>
+    <Optimize>false</Optimize>
+    <OutputPath>bin\Debug\</OutputPath>
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <DebugType>pdbonly</DebugType>
+    <Optimize>true</Optimize>
+    <OutputPath>bin\Release\</OutputPath>
+    <DefineConstants>TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="System" />
+    <Reference Include="System.Core" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="Program.cs" />
+    <Compile Include="VectorFile.cs" />
+    <Compile Include="Json\JsonValue.cs" />
+    <Compile Include="Json\MiniJsonParser.cs" />
+    <Compile Include="Properties\AssemblyInfo.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\AccountInterlockHub.SenderSdk\AccountInterlockHub.SenderSdk.csproj">
+      <Project>{E101AB21-7E90-4C5E-98ED-ACB8DDAC2832}</Project>
+      <Name>AccountInterlockHub.SenderSdk</Name>
+    </ProjectReference>
+  </ItemGroup>
+  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+</Project>

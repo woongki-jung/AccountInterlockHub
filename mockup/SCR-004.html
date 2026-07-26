@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SCR-004 연동 결과 안내 — AccountInterlockHub 목업</title>
+<style>
+  :root{
+    --color-bg:#F4F6F9; --color-surface:#FFFFFF; --color-text:#1B2027; --color-text-muted:#556070;
+    --color-border:#767F8C; --color-divider:#D8DDE5; --color-primary:#1F5EAE; --color-primary-strong:#17498A;
+    --color-primary-weak:#EAF1FB; --color-focus:#0B4FA8; --color-success:#1C7A4B; --color-success-strong:#0F5C37;
+    --color-success-weak:#E8F5EE; --color-danger:#B3261E; --color-danger-strong:#8E1D17; --color-danger-weak:#FCEBE9;
+    --color-warning:#8A5A00; --color-warning-strong:#7A4F00; --color-warning-weak:#FDF3E2; --color-neutral:#3B4452;
+    --color-neutral-weak:#EDF0F4; --color-disabled-bg:#E7EAF0; --color-disabled-fg:#5C6675;
+    --font-family-base:-apple-system,BlinkMacSystemFont,"Segoe UI","Malgun Gothic","Apple SD Gothic Neo",Roboto,"Helvetica Neue",Arial,sans-serif;
+    --font-size-xs:0.8125rem; --font-size-sm:0.875rem; --font-size-base:1rem; --font-size-lg:1.125rem;
+    --font-size-xl:1.375rem; --font-size-2xl:1.75rem;
+    --font-weight-regular:400; --font-weight-semibold:600; --font-weight-bold:700;
+    --line-height-tight:1.35; --line-height-base:1.6;
+    --space-2xs:4px; --space-xs:8px; --space-sm:12px; --space-md:16px; --space-lg:24px; --space-xl:32px; --space-2xl:48px;
+    --radius-sm:6px; --radius-md:10px; --radius-lg:14px; --radius-pill:999px;
+    --shadow-card:0 1px 2px rgba(16,24,40,.06), 0 1px 3px rgba(16,24,40,.10);
+    --size-hit-min:44px; --size-control-height:48px; --size-content-max:480px;
+    --motion-duration-fast:120ms; --motion-duration-base:200ms; --motion-easing:cubic-bezier(.2,0,.38,1);
+  }
+  *{box-sizing:border-box;}
+  /* hidden 속성이 저자 display 선언(.badge 등)에 밀리지 않게 한다 — 조건부 표시 사양대로 숨는다 */
+  [hidden]{display:none !important;}
+  html,body{margin:0;padding:0;}
+  body{font-family:var(--font-family-base);background:var(--color-bg);color:var(--color-text);line-height:var(--line-height-base);-webkit-font-smoothing:antialiased;}
+  svg{display:block;}
+  button{font-family:inherit;}
+
+  /* ================= 목업 전용 도구 (제품 UI 아님) ================= */
+  .mockup-toolbar{position:sticky;top:0;z-index:100;background:#20242C;color:#F4F6F9;font-size:13px;border-bottom:3px solid #F5A623;}
+  .mockup-toolbar-inner{max-width:960px;margin:0 auto;padding:8px 12px 10px;}
+  .mockup-flag{display:inline-flex;align-items:center;gap:6px;background:#F5A623;color:#20242C;font-weight:700;padding:3px 10px;border-radius:999px;font-size:12px;letter-spacing:.02em;margin-right:10px;}
+  .mockup-nav{display:inline-flex;flex-wrap:wrap;gap:4px;vertical-align:middle;}
+  .mockup-nav a{color:#D8DDE5;text-decoration:none;padding:6px 10px;border-radius:6px;font-size:13px;border:1px solid transparent;}
+  .mockup-nav a:hover{background:#2E3340;color:#fff;}
+  .mockup-nav a.current{background:#F4F6F9;color:#20242C;font-weight:700;}
+  .mockup-states{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;align-items:center;}
+  .mockup-states-label{color:#9AA4B2;margin-right:2px;font-size:12px;}
+  .state-btn{background:#2E3340;color:#D8DDE5;border:1px solid #3A4050;border-radius:6px;padding:6px 10px;font-size:12.5px;cursor:pointer;}
+  .state-btn:hover{background:#3A4050;}
+  .state-btn.active{background:#F5A623;color:#20242C;border-color:#F5A623;font-weight:700;}
+  .mockup-note{color:#9AA4B2;font-size:11.5px;margin-top:6px;}
+  .mockup-note code{color:#C9D1DB;}
+  .mockup-check{display:inline-flex;align-items:center;gap:6px;color:#D8DDE5;font-size:12.5px;}
+  .mockup-check.disabled{opacity:.55;}
+  .mockup-check input:disabled{cursor:not-allowed;}
+
+  /* ================= 제품 UI (design-system.md 토큰) ================= */
+  .page{padding:var(--space-xl) var(--space-md);display:flex;justify-content:center;}
+  @media (min-width:480px){.page{padding-left:var(--space-lg);padding-right:var(--space-lg);}}
+  @media (min-width:768px){.page{padding-top:var(--space-2xl);padding-bottom:var(--space-2xl);}}
+
+  main.card{width:100%;max-width:480px;background:var(--color-surface);border-radius:var(--radius-lg);box-shadow:var(--shadow-card);padding:var(--space-lg) var(--space-md);}
+  @media (min-width:480px){main.card{max-width:440px;padding:var(--space-lg);}}
+  @media (min-width:768px){main.card{max-width:var(--size-content-max);}}
+
+  .result-panel{border-radius:var(--radius-md);padding:var(--space-lg);border-left:4px solid transparent;}
+  .result-panel.path-success{background:var(--color-success-weak);border-left-color:var(--color-success);}
+  .result-panel.path-danger{background:var(--color-danger-weak);border-left-color:var(--color-danger);}
+  .result-panel.path-warning{background:var(--color-warning-weak);border-left-color:var(--color-warning);}
+
+  .result-icon{width:40px;height:40px;margin-bottom:var(--space-md);}
+  .path-success .result-icon{color:var(--color-success);}
+  .path-danger .result-icon{color:var(--color-danger);}
+  .path-warning .result-icon{color:var(--color-warning);}
+
+  .result-panel h1{font-size:var(--font-size-2xl);line-height:var(--line-height-tight);font-weight:var(--font-weight-bold);margin:0;color:var(--color-text);}
+  /* 결과 제목(StageTitle 결과 변형)의 포커스 링 — design-system.md §접근성 기준(포커스 표시).
+     조작 요소와 같은 한 벌의 링이며, 탭 순서 밖(tabindex="-1")이라 :focus-visible 이 매치되지 않으므로
+     :focus 로 건다(정본이 든 예시 수단). 안쪽 여백 2px 에는 결과 패널의 약한 바탕이 그대로 비친다. */
+  .result-panel h1:focus{outline:2px solid var(--color-focus);outline-offset:2px;}
+  .path-success h1{color:var(--color-success-strong);}
+  .path-danger h1{color:var(--color-danger-strong);}
+  .path-warning h1{color:var(--color-warning-strong);}
+
+  .badge{display:inline-flex;align-items:center;gap:4px;font-size:var(--font-size-xs);border-radius:var(--radius-pill);padding:2px var(--space-xs);font-weight:var(--font-weight-semibold);background:var(--color-neutral-weak);color:var(--color-neutral);margin-top:var(--space-sm);}
+  .badge svg{width:12px;height:12px;}
+
+  .result-desc{margin:var(--space-md) 0 0;color:var(--color-text);}
+  .result-next{margin:var(--space-md) 0 0;color:var(--color-text-muted);font-size:var(--font-size-sm);}
+
+  /* 복귀 안내 영역 — screen_SCR-004.md §복귀 이동 · design-system-components.md §ResultPanel.
+     표시 조건은 returnUrl 속성의 존재 여부이며 경로 번호로 다시 판정하지 않는다. */
+  .return-area{margin-top:var(--space-md);}
+  .return-notice{margin:0;font-size:var(--font-size-sm);color:var(--color-text-muted);}
+  .return-countdown{margin:2px 0 0;font-size:var(--font-size-sm);color:var(--color-text-muted);}
+  .return-moved{margin:2px 0 0;font-size:var(--font-size-sm);color:var(--color-text-muted);}
+  .return-link{display:inline-flex;align-items:center;min-height:var(--size-hit-min);margin-top:2px;color:var(--color-primary);font-weight:var(--font-weight-semibold);font-size:var(--font-size-base);text-decoration:underline;}
+  .return-link:focus-visible{outline:2px solid var(--color-focus);outline-offset:2px;border-radius:4px;}
+  /* 목업 전용 표시(제품 UI 아님) — 외부 이동 토글이 꺼져 있을 때 실제 이동 대신 보여주는 시뮬레이션 안내 */
+  .mockup-inline-tag{display:inline-block;font-size:11px;color:#7A5B00;background:#FDF3E2;border:1px dashed #C7A227;border-radius:999px;padding:1px 8px;margin-left:6px;vertical-align:middle;}
+
+  .flow-note{max-width:480px;margin:var(--space-lg) auto 0;padding:var(--space-md);border:1px dashed #A9B2C0;border-radius:var(--radius-md);background:#FBFCFE;color:var(--color-text-muted);font-size:var(--font-size-sm);}
+  .flow-note-title{font-weight:700;color:#5B4400;background:#FDF3E2;display:inline-block;padding:2px 8px;border-radius:999px;font-size:var(--font-size-xs);margin-bottom:var(--space-sm);}
+  .flow-note ul{margin:0;padding-left:1.1em;}
+  .flow-note li{margin-bottom:4px;}
+  .flow-note a{color:var(--color-primary);}
+  .mockup-footer{max-width:480px;margin:var(--space-lg) auto var(--space-xl);text-align:center;color:#8A93A3;font-size:11px;padding:0 var(--space-md);}
+</style>
+</head>
+<body>
+
+<div class="mockup-toolbar">
+  <div class="mockup-toolbar-inner">
+    <span class="mockup-flag">목업 전용 — 제품 UI 아님</span>
+    <nav class="mockup-nav">
+      <a href="index.html">허브</a>
+      <a href="SCR-001.html">① SCR-001 본인확인</a>
+      <a href="SCR-002.html">② SCR-002 동의·승인</a>
+      <a href="SCR-003.html">③ SCR-003 진행 안내</a>
+      <a href="SCR-004.html" class="current">④ SCR-004 결과 안내</a>
+    </nav>
+    <div class="mockup-states">
+      <span class="mockup-states-label">결과 경로:</span>
+      <button type="button" class="state-btn" data-path="1">① 연동 완료</button>
+      <button type="button" class="state-btn" data-path="2">② 링크·복호화 오류</button>
+      <button type="button" class="state-btn" data-path="3">③ 수신처 전달 실패</button>
+    </div>
+    <div class="mockup-states" id="reason-row">
+      <span class="mockup-states-label">② 사유 코드:</span>
+      <button type="button" class="state-btn" data-reason="sec001">링크 형식 위반</button>
+      <button type="button" class="state-btn" data-reason="sec004">URL 길이 초과</button>
+      <button type="button" class="state-btn" data-reason="sec002">규약 위반</button>
+      <button type="button" class="state-btn" data-reason="ops002">내부 처리 오류</button>
+    </div>
+    <div class="mockup-states">
+      <label class="mockup-check" id="reannounce-label"><input type="checkbox" id="reannounce-toggle"> 확정 결과 재안내로 보기("이미 처리된 요청입니다" 배지)</label>
+    </div>
+    <div class="mockup-states">
+      <label class="mockup-check"><input type="checkbox" id="has-return-url-toggle" checked> <code>returnUrl</code> 있음(복귀 안내 영역 표시)</label>
+      <label class="mockup-check"><input type="checkbox" id="external-nav-toggle"> 외부 이동 실제 수행(기본 꺼짐)</label>
+      <button type="button" class="state-btn" id="replay-return-btn">복귀 데모 다시 보기</button>
+    </div>
+    <p class="mockup-note">사양: screen_SCR-004.md §결과 3경로 · §확정 결과 재안내 · §복귀 이동. <strong>네 번째 경로는 만들지 않습니다</strong>(<code>BIZ-001-02</code>). 이 화면에는 별도 버튼이 없습니다 — 유일한 조작 요소는 복귀 안내 영역의 수동 이동 링크뿐입니다.</p>
+    <p class="mockup-note" id="reannounce-note" hidden>경로 ②(링크·복호화 오류)는 확정 결과 재안내 대상이 아닙니다 — 추적 키를 확보하기 전에 항상 실패가 확정돼 레코드가 만들어지지 않습니다(<code>EXC-BIZ-14</code>, screen_SCR-004.md §확정 결과 재안내: 배지가 붙는 경로는 ①·③뿐). 위 재안내 체크박스가 비활성화됩니다.</p>
+    <p class="mockup-note"><code>returnUrl</code> 토글은 경로 번호와 별개로 복귀 영역 표시를 켜고 끕니다 — 표시 조건이 경로 번호가 아니라 이 필드의 존재 여부임을 보이기 위한 것으로, <strong>실제로 값이 실리는 경로는 ① 하나뿐</strong>이라 경로 ②·③ 으로 바꾸면 <strong>기본으로 꺼집니다</strong>(거기서 직접 켜 보는 것은 목업 시연 전용이며 실제로 일어나지 않는 조합입니다). 외부 이동 토글이 꺼져 있으면(기본값) 대기 종료·수동 링크 클릭 시 실제로 이동하지 않고 "이동했습니다"로 대체합니다 — 이동 대상은 <strong>잠정 상수 · 실제 값은 CLAUDE.env.md</strong>(<code>&lt;COMPLETION_REDIRECT_URL&gt;</code>, 현재 개발용 더미 <code>https://www.naver.com</code>)입니다.</p>
+  </div>
+</div>
+
+<div class="page">
+  <main class="card">
+    <div class="result-panel" id="result-panel" role="status">
+      <div class="result-icon" id="result-icon" aria-hidden="true"></div>
+      <h1 id="result-title" tabindex="-1"></h1>
+      <div class="badge" id="reannounce-badge" hidden>
+        <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 4v4h4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/><path d="M4.5 8a5 5 0 1 0 1.6-3.7" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+        <span>이미 처리된 요청입니다</span>
+      </div>
+      <p class="result-desc" id="result-desc"></p>
+      <p class="result-next" id="result-next"></p>
+      <div class="return-area" id="return-area" hidden>
+        <p class="return-notice">잠시 후 원래 화면으로 자동으로 돌아갑니다.</p>
+        <p class="return-countdown" id="return-countdown" aria-hidden="true">3초 후 이동합니다</p>
+        <p class="return-moved" id="return-moved" hidden>이동했습니다.<span class="mockup-inline-tag">목업 시뮬레이션 — 실제 이동 없음</span></p>
+        <a href="#" class="return-link" id="return-link">지금 돌아가기</a>
+      </div>
+    </div>
+  </main>
+</div>
+
+<aside class="flow-note">
+  <p class="flow-note-title">사양 §화면 간 이동 경로 요약 (목업 보조 — 제품 UI 아님)</p>
+  <ul>
+    <li><strong>복귀 주소</strong>(허브 밖·여정의 끝) — 복귀 이동 대기 시간 경과 또는 "지금 돌아가기" 클릭 시 이동. <code>returnUrl</code> 이 있고 절대 URL 확인을 통과할 때만(실제로 실리는 경로는 ① 하나)</li>
+    <li><code>returnUrl</code> 이 없거나 확인 미달이면(경로 ②·③ 포함) 화면이 제공하는 이동 수단이 없습니다 — 잔류</li>
+    <li>새로고침·같은 링크 재진입 → <a href="SCR-001.html">SCR-001 본인확인</a>부터 다시 시작(진입 판정 통과 시)</li>
+    <li>결과가 확정된 추적 키로 재진입하면 본인확인 통과 후 이 화면(경로 ①·③ 은 확정 결과 재안내)으로 돌아옵니다</li>
+    <li>진입 단계 실패(경로 ②)는 추적 레코드가 없어 재진입해도 같은 판정으로 다시 경로 ②가 됩니다</li>
+  </ul>
+</aside>
+<p class="mockup-footer">정본 사양: docs/specs/screens/screen_SCR-004.md · design-system.md §결과 3경로의 시각 구분 · design-system-components.md(ResultPanel·Badge)</p>
+
+<script>
+  var ICONS = {
+    check: '<svg viewBox="0 0 40 40" width="40" height="40" aria-hidden="true"><circle cx="20" cy="20" r="18" fill="none" stroke="currentColor" stroke-width="2.5"/><path d="M12 20.5l5.5 5.5L28 14" fill="none" stroke="currentColor" stroke-width="2.75" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+    exclaimCircle: '<svg viewBox="0 0 40 40" width="40" height="40" aria-hidden="true"><circle cx="20" cy="20" r="18" fill="none" stroke="currentColor" stroke-width="2.5"/><line x1="20" y1="11" x2="20" y2="23" stroke="currentColor" stroke-width="2.75" stroke-linecap="round"/><circle cx="20" cy="28.5" r="1.6" fill="currentColor"/></svg>',
+    exclaimTriangle: '<svg viewBox="0 0 40 40" width="40" height="40" aria-hidden="true"><path d="M20 6.5 L36 32.5 L4 32.5 Z" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linejoin="round"/><line x1="20" y1="16.5" x2="20" y2="24.5" stroke="currentColor" stroke-width="2.75" stroke-linecap="round"/><circle cx="20" cy="28.2" r="1.6" fill="currentColor"/></svg>'
+  };
+
+  // 결과 3경로 고정 문구 — screen_SCR-004.md §결과 3경로 그대로. 색·아이콘·제목·다음 안내는
+  // 거부 경로 폐지 전 것을 그대로 승계했고(BIZ-003-03), 번호만 ③→②·④→③ 으로 당겨졌다.
+  var PATHS = {
+    '1': { cls:'path-success', icon:ICONS.check,           title:'연동이 완료되었습니다', desc:'요청하신 연동이 정상적으로 처리되었습니다.', next:'이 화면에서 더 하실 일은 없습니다.' },
+    '3': { cls:'path-warning', icon:ICONS.exclaimTriangle,  title:'연동을 마치지 못했습니다', desc:'연동 대상 서비스에 전달하지 못했습니다.', next:'다시 연동하려면 연동을 요청한 서비스에서 새로 요청해 주세요.' }
+  };
+  var PATH2 = { cls:'path-danger', icon:ICONS.exclaimCircle, title:'연동을 진행할 수 없습니다', next:'연동을 요청한 서비스에서 새 링크를 받아 다시 진행해 주세요.' };
+  // 사유 코드별 기본 문구(경로 ②) — function_FN-014-015.md §오류 메시지 기본값
+  var REASONS = {
+    sec001: '연동 링크가 올바르지 않습니다.',
+    sec004: '전달 정보가 허용 크기를 넘었습니다.',
+    sec002: '연동 요청 정보가 규약과 맞지 않습니다.',
+    ops002: '처리 중 문제가 발생했습니다. 잠시 후 다시 시도해 주세요.'
+  };
+  var REANNOUNCE_SUFFIX = ' 이 연동은 앞서 처리가 끝났고, 지금 보시는 결과가 그때 확정된 결과입니다.';
+  // 잠정 상수 · 실제 값은 CLAUDE.env.md <COMPLETION_REDIRECT_URL> (배포 시 주입, 현재는 개발용 더미)
+  var COMPLETION_REDIRECT_URL = 'https://www.naver.com';
+  var RETURN_WAIT_SECONDS = 3; // screen_SCR-004.md §복귀 이동 — 이 값의 정본은 화면 사양이며 모션 토큰이 아니다
+
+  var state = { path:'1', reason:'sec001', reannounce:false };
+
+  var panel = document.getElementById('result-panel');
+  var iconEl = document.getElementById('result-icon');
+  var titleEl = document.getElementById('result-title');
+  var descEl = document.getElementById('result-desc');
+  var nextEl = document.getElementById('result-next');
+  var badgeEl = document.getElementById('reannounce-badge');
+  var reasonRow = document.getElementById('reason-row');
+  var reannounceToggle = document.getElementById('reannounce-toggle');
+  var reannounceLabel = document.getElementById('reannounce-label');
+  var reannounceNote = document.getElementById('reannounce-note');
+
+  var returnArea = document.getElementById('return-area');
+  var returnNotice = document.querySelector('.return-notice');
+  var returnCountdown = document.getElementById('return-countdown');
+  var returnMoved = document.getElementById('return-moved');
+  var returnLink = document.getElementById('return-link');
+  var hasReturnUrlToggle = document.getElementById('has-return-url-toggle');
+  var externalNavToggle = document.getElementById('external-nav-toggle');
+  var replayBtn = document.getElementById('replay-return-btn');
+
+  function render(){
+    var meta, desc;
+    var isPath2 = state.path === '2';
+    if (isPath2) {
+      meta = PATH2;
+      desc = REASONS[state.reason];
+    } else {
+      meta = PATHS[state.path];
+      desc = meta.desc;
+    }
+
+    // 경로 ② 는 확정 결과 재안내 대상이 아니다 — EXC-BIZ-14(추적 키를 확보하기 전에 항상 실패가 확정돼 레코드가 없다).
+    // screen_SCR-004.md §확정 결과 재안내: 배지가 붙는 경로는 ①·③뿐이다.
+    reannounceToggle.disabled = isPath2;
+    reannounceLabel.classList.toggle('disabled', isPath2);
+    reannounceNote.hidden = !isPath2;
+    if (isPath2) { reannounceToggle.checked = false; state.reannounce = false; }
+
+    panel.className = 'result-panel ' + meta.cls;
+    iconEl.innerHTML = meta.icon;
+    titleEl.textContent = meta.title;
+    descEl.textContent = state.reannounce ? (desc + REANNOUNCE_SUFFIX) : desc;
+    nextEl.textContent = meta.next;
+    badgeEl.hidden = !state.reannounce;
+
+    reasonRow.hidden = !isPath2;
+
+    document.querySelectorAll('[data-path]').forEach(function(b){
+      b.classList.toggle('active', b.getAttribute('data-path') === state.path);
+    });
+    document.querySelectorAll('[data-reason]').forEach(function(b){
+      b.classList.toggle('active', b.getAttribute('data-reason') === state.reason);
+    });
+
+    refreshReturnArea();
+  }
+
+  // ===== 복귀 이동 (연동 완료 결과) — screen_SCR-004.md §복귀 이동 =====
+  // 표시 신호는 returnUrl 속성의 존재 여부뿐이다(BIZ-001-06) — 아래 토글은 경로 번호와 별개로 동작한다.
+  var countdownTimer = null;
+  var secondsLeft = RETURN_WAIT_SECONDS;
+
+  function clearCountdownTimer(){
+    if (countdownTimer) { clearInterval(countdownTimer); countdownTimer = null; }
+  }
+
+  function updateCountdownText(){
+    returnCountdown.textContent = secondsLeft + '초 후 이동합니다';
+  }
+
+  function refreshReturnArea(){
+    clearCountdownTimer();
+    if (!hasReturnUrlToggle.checked) {
+      returnArea.hidden = true;
+      return;
+    }
+    returnArea.hidden = false;
+    returnNotice.hidden = false;
+    returnCountdown.hidden = false;
+    returnLink.hidden = false;
+    returnMoved.hidden = true;
+    secondsLeft = RETURN_WAIT_SECONDS;
+    updateCountdownText();
+    countdownTimer = setInterval(function(){
+      secondsLeft--;
+      if (secondsLeft <= 0) {
+        clearCountdownTimer();
+        performMove();
+      } else {
+        updateCountdownText();
+      }
+    }, 1000);
+  }
+
+  // 대기 종료 또는 수동 링크 클릭 — 실제 이동은 이력 치환이 원칙이다. 목업 도구모음의 "외부 이동" 토글이
+  // 꺼져 있으면(기본값) 리뷰 중 페이지 이탈을 막기 위해 실제 이동 대신 "이동했습니다" 로 대체한다.
+  function performMove(){
+    clearCountdownTimer();
+    if (externalNavToggle.checked) {
+      window.location.replace(COMPLETION_REDIRECT_URL);
+      return;
+    }
+    returnNotice.hidden = true;
+    returnCountdown.hidden = true;
+    returnLink.hidden = true;
+    returnMoved.hidden = false;
+  }
+
+  returnLink.addEventListener('click', function(e){
+    e.preventDefault();
+    performMove();
+  });
+
+  hasReturnUrlToggle.addEventListener('change', refreshReturnArea);
+  replayBtn.addEventListener('click', refreshReturnArea);
+
+  // 목업 도구모음 전용 — returnUrl 토글의 **기본값**은 서버가 값을 실어 보내는 경로를 따라간다.
+  // 실제로 값이 실리는 경로는 ① 하나뿐이므로(BIZ-001-06 · EXC-BIZ-15) 경로 ②·③ 의 기본 화면에는
+  // 복귀 안내 영역이 서지 않는다 — 실재하지 않는 조합을 기본 화면으로 보이지 않기 위한 것이다.
+  // 표시 판정은 여전히 이 필드의 존재 여부 하나뿐이고(경로 번호로 다시 판정하지 않는다) 토글도
+  // 잠그지 않으므로, 검토자가 경로 ②·③ 에서 직접 켜서 시연하는 것은 그대로 가능하다.
+  function applyReturnUrlDefault(){
+    hasReturnUrlToggle.checked = (state.path === '1');
+  }
+
+  document.querySelectorAll('[data-path]').forEach(function(b){
+    b.addEventListener('click', function(){
+      var nextPath = b.getAttribute('data-path');
+      if (nextPath !== state.path) { state.path = nextPath; applyReturnUrlDefault(); }
+      render();
+    });
+  });
+  document.querySelectorAll('[data-reason]').forEach(function(b){
+    b.addEventListener('click', function(){ state.reason = b.getAttribute('data-reason'); render(); });
+  });
+  reannounceToggle.addEventListener('change', function(){ state.reannounce = reannounceToggle.checked; render(); });
+
+  applyReturnUrlDefault(); // 최초 로드 상태도 위 규칙에서 파생시킨다(초기 경로 ① → 켜짐)
+  render();
+</script>
+</body>
+</html>

@@ -1,0 +1,85 @@
+/* ResultPanel — design-system-components.md §ResultPanel ·
+   design-system.md §결과 3경로의 시각 구분 */
+
+/* 간격(P16, #493 — 사양 확정 9e6eb90으로 §StageTitle·§ResultPanel §간격이
+   해결한 것을 이 파일이 이제 그대로 구현한다) — **균일 gap 을 쓰지
+   않는다**(배지가 제목에 붙어야 해 한 값으로 덮을 수 없다). 요소별
+   배정: 아이콘→제목 --space-md · 제목→배지 --space-sm(제목 바로 아래) ·
+   배지(없으면 제목)→설명 --space-md · 설명→다음 안내 --space-md ·
+   다음 안내→복귀 안내 영역 --space-md. StageTitle 이 placement="panel"
+   로 wrapper 없이 렌더돼(Fragment) 제목(h1)이 이 .panel 의 직계 flex
+   자식이 되므로(자기 여백은 갖지 않는다) 아래 `.panel > h1` 로 그 앞
+   간격을 이 패널이 직접 준다. 배지는 wrapper div 대신 Badge 자신에
+   .reannounceBadge 여백을 실어(직계 flex 자식 구조 유지) 제목→배지
+   간격을 낸다. .description·.nextNote 는 "배지 있으면 배지→설명,
+   없으면 제목→설명"이 **같은 값(md)**이라 조건 분기 없이 자기 margin-top
+   하나로 양쪽을 다 만족한다. 안쪽 여백은 --space-lg 균일(왼쪽 강조선
+   4px 은 border 라 패딩 박스 밖에 더해진다). */
+.panel {
+  border-left: 4px solid transparent;
+  border-radius: var(--radius-md);
+  padding: var(--space-lg);
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.panel > h1 {
+  margin-top: var(--space-md);
+}
+
+.reannounceBadge {
+  margin-top: var(--space-sm);
+}
+
+.success {
+  background-color: var(--color-success-weak);
+  border-left-color: var(--color-success);
+  color: var(--color-success);
+}
+
+.danger {
+  background-color: var(--color-danger-weak);
+  border-left-color: var(--color-danger);
+  color: var(--color-danger);
+}
+
+.warning {
+  background-color: var(--color-warning-weak);
+  border-left-color: var(--color-warning);
+  color: var(--color-warning);
+}
+
+.description {
+  margin-top: var(--space-md);
+  color: var(--color-text);
+  line-height: var(--line-height-base);
+}
+
+.nextNote {
+  margin-top: var(--space-md);
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+}
+
+.returnArea {
+  margin-top: var(--space-md);
+  width: 100%;
+}
+
+.returnNotice,
+.returnCountdown {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+}
+
+.returnLink {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--size-hit-min);
+  margin-top: var(--space-2xs);
+  color: var(--color-primary);
+  font-weight: var(--font-weight-semibold);
+  font-size: var(--font-size-base);
+  text-decoration: underline;
+}

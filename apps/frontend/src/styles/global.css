@@ -1,0 +1,61 @@
+/*
+ * 전역 기본 스타일 — 정본: docs/specs/screens/design-system.md
+ * 리셋 + 문서 바탕 + 전역 포커스 표시만 둔다. 전역 네비게이션·브랜드
+ * 영역은 두지 않는다(design-system.md §레이아웃 — "없는 것").
+ */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background-color: var(--color-bg);
+  color: var(--color-text);
+  font-family: var(--font-family-base);
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-regular);
+  line-height: var(--line-height-base);
+  /* 가로 스크롤을 만들지 않는다(design-system.md §반응형 브레이크포인트) */
+  overflow-x: hidden;
+}
+
+#root {
+  min-height: 100vh;
+}
+
+h1,
+h2,
+h3,
+p {
+  margin: 0;
+}
+
+button,
+input {
+  font-family: inherit;
+}
+
+/* 항상 보이는 포커스 표시 — design-system.md §접근성 기준.
+   :focus-visible 미지원 브라우저를 위해 :focus 아웃라인을 기본으로 두고
+   :focus-visible 지원 환경에서는 마우스 클릭 시의 링을 없앤다. */
+:focus {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 2px;
+}
+
+:focus:not(:focus-visible) {
+  outline: none;
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 2px;
+}
