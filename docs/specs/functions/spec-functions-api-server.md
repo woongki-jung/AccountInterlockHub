@@ -140,7 +140,7 @@
 | 요청 DTO | [`MDL-014`](../datas/model_MDL-011-015.md) — `{ encX, encY, birthDate }` |
 | 응답 DTO (200) | [`MDL-015`](../datas/model_MDL-011-015.md) — `{ isConform, reasonCode, protocolVersion }` |
 | 응답 DTO (4xx/5xx) | 오류 응답 엔벨로프 |
-| Rate Limiting | **미적용 — 수용 리스크**(`OPS-002-03`·EXC-SEC-09). 경로 비공개가 유일한 완화 장치다 |
+| Rate Limiting | **미적용 — 수용 리스크**(`OPS-002-03`·EXC-SEC-09). **경로 비공개는 반복 시도의 완화 장치가 아니다**(`OPS-002-06`) — 입력 부재에 400 `EX-SEC-003` 을 돌려주므로(`SEC-003-04`) 요청 1건으로 경로 존재가 확인된다. 노출 범위를 줄이는 장치로만 취급한다 |
 
 ### 사유 코드 체계 (확정)
 
