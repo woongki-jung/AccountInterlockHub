@@ -7,6 +7,7 @@ import { RecordsModule } from './records/records.module';
 import { EntryModule } from './interlock-entry/entry.module';
 import { ApproveModule } from './interlock-approve/approve.module';
 import { VerifyModule } from './interlock-verify/verify.module';
+import { ServerApiModule } from './interlock-server-api/server-api.module';
 
 export interface AppBootstrapConfig {
   config: InterlockConfig;
@@ -41,6 +42,10 @@ export class AppModule {
         // PROC-102 본인확인 제출(POST <INTERLOCK_ENTRY_PATH>/verify, accountinterlockhub#485
         // P08). 위와 같은 이유로 동적 모듈로 받는다.
         VerifyModule.forRoot(bootstrapConfig.config.interlockEntryPath),
+        // PROC-201·202·203 서버 대면 API(POST /api/interlock/status·completion·callback,
+        // accountinterlockhub#488 P11). 세 경로 모두 리터럴이라(런타임 상수 아님) 동적 모듈이
+        // 아니다 — forRoot() 없이 바로 등록한다.
+        ServerApiModule,
       ],
     };
   }
