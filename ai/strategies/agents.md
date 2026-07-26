@@ -48,12 +48,16 @@ ai-pm 은 요청을 **directing / 제품 루프** 둘로 분기한다 — direct
 | spec | 요구사항 게이트 · 도메인별 사양 정의 · 교차검증 · 정리 · (마무리) 목업 — [`stages/spec.md`](stages/spec.md) |
 | build | 계획 · 코드 작성 · 코드리뷰 · 기능검증 · 배포 산출물 · 정리 — [`stages/build.md`](stages/build.md) |
 | qa | 환경 구성 · 검증 계획 · 검증 실행 · 결과 평가 — [`stages/qa.md`](stages/qa.md) |
+| (업무 종결 보고) | 작업 보고 doer — [`session-reporter`](../agents/session-reporter.md) |
+
+각 단계 오케스트레이터는 자기 레그를 마칠 때 **레그 report** 를 직접 등록하고, 업무 1건이 끝날 때의 **세션 report** 는 `session-reporter` 가 맡는다([`work-tracking.md`](work-tracking.md) §작업 보고).
 
 ## 등록 카탈로그
 
 - **ai-pm**(`ai/bots/ai-pm/`) — 마스터 디스패처(봇). 정의·운영은 [`ai-pm.md`](ai-pm.md).
 - **제품 루프 오케스트레이터**(`ai/agents/product-loop.md`) — ai-pm 이 제품 루프 작업으로 디스패치하는 상위 조율자. spec→build→qa 흐름을 하이브리드(체크포인트) 승인으로 제어하고 단계 오케스트레이터를 하위 호출한다([`base-workflow.md`](base-workflow.md) §단계 진행 모델).
 - **단계 오케스트레이터**(`ai/agents/`) — 제품 루프 오케스트레이터가 하위 호출하는 조율자: `spec.md`·`build.md`·`qa.md`. 각자 stages 흐름을 doer 호출로 실행한다(directing 은 ai-pm 이 직접 수행 — 오케스트레이터 없음).
+- **작업 보고 doer**(`ai/agents/session-reporter.md`) — ai-pm 이 작업세션 이슈 종결 직전 디스패치한다. Redmine 정본·git 이력에서 그 업무 1건의 경과를 재구성해 `report` 일감으로 등록한다([`work-tracking.md`](work-tracking.md) §작업 보고). 레그 단위 보고는 각 단계 오케스트레이터가 직접 남긴다.
 - **doer**(`ai/agents/workflow-*/`) — 오케스트레이터가 호출하는 실행 단위:
 	- spec: prd-reviewer · prd-to-{policies·service·datas·functions·screens·process·qa} · spec-reviewer · mockup-builder
 	- build: backend-developer · frontend-developer · code-reviewer · build-installer (기능검증은 tester 공유)
