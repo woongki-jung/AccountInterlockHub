@@ -92,7 +92,19 @@ export class DatabaseService implements OnModuleDestroy {
     client.on('error', onCheckedOutError);
 
     try {
-      await client.query('BEGIN');
+      // ISOLATION LEVEL 을 명시한다 — 현재 PostgreSQL 기본 구성(READ COMMITTED)에서는 동작이
+      // 무변경이다. 목적은 암묵적으로 기대고 있던 의존을 코드에 명시하는 것이다. 아래 4곳의
+      // 사양이 이미 이 트랜잭션 경계를 READ COMMITTED 로 못박는다 — process_PROC-102-logic.md
+      // B6(118행) · process_PROC-103-logic.md B3(89행) · process_PROC-104.md B6(175행) ·
+      // process_PROC-203.md B4(135행). 서버 기본 격리수준이 REPEATABLE READ 로 바뀌면
+      // process_PROC-103-logic.md B6 표지 검사(124~133행 — 잠금을 쥔 채로
+      // `SELECT COUNT(*) FROM tbl_consent_proof … AND consented_at >= locked.created_at` 로
+      // 이미 전달을 시도했는지 본다)가 조용히 깨진다: 그 검사를 도는 트랜잭션(T2)의 스냅숏이
+      // BEGIN 시점에 고정돼 T1 이 그 직후 커밋한 증적을 보지 못하고(이중 전달 부활), T1 은
+      // 그 행에 FOR UPDATE 로 잠금만 걸 뿐 UPDATE 하지 않으므로(실제 쓰기는 다른 테이블인
+      // tbl_consent_proof 의 INSERT) 행 버전이 그대로라 T2 는 직렬화 실패조차 겪지 않고
+      // 자신의 스냅숏을 그대로 신뢰해 진행한다.
+      await client.query('BEGIN ISOLATION LEVEL READ COMMITTED');
       const result = await work(client);
       await client.query('COMMIT');
       return result;
