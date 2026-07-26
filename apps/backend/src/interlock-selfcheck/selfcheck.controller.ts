@@ -10,11 +10,21 @@ import { ProtocolConformanceService } from './protocol-conformance.service';
  * (`SEC-003-01`·`SEC-003-02`)라 `@Post()` 데코레이터에 리터럴로 박을 수 없다 —
  * `verify.controller.ts` `createVerifyController()`·`approve.controller.ts`
  * `createApproveController()` 와 같은 이유로 "경로를 인자로 받는 팩토리 함수" 관례를 그대로
- * 따른다(`selfcheck.module.ts` 의 `forRoot()` 안에서만 호출된다). 경로 값은 이 함수의
- * 인자·클로저 밖으로 나가지 않는다 — 로그·응답·오류 메시지 어디에도 담지 않는다(FN-015
- * `FORBIDDEN_KEYS` 의 `selfcheckPath`·`SELFCHECK_PATH` 도 같은 목적의 2차 방어 — 이 컨트롤러가
- * 그 값을 어떤 객체 속성에도 실어 응답·로그 경로로 흘려보내지 않으므로 여기서는 발동할 자리
- * 자체가 없다).
+ * 따른다(`selfcheck.module.ts` 의 `forRoot()` 안에서만 호출된다). **이 컨트롤러 자신의 코드**는
+ * 경로 값을 함수 인자·클로저 밖의 어떤 객체 속성으로도 옮기지 않는다 — 응답·오류 메시지
+ * 어디에도 담지 않는다(FN-015 `FORBIDDEN_KEYS` 의 `selfcheckPath`·`SELFCHECK_PATH` 도 같은
+ * 목적의 2차 방어 — 이 컨트롤러가 그 값을 어떤 객체 속성에도 실어 응답·로그 경로로 흘려보내지
+ * 않으므로 여기서는 발동할 자리 자체가 없다).
+ *
+ * **로그는 예외였다(P12 회귀 1회차 C-1 실측)** — `@Post(selfcheckPath)` 로 이 값을 데코레이터
+ * 인자에 리터럴로 넘기는 것 자체가, Nest 프레임워크의 `RouterExplorer` 로 하여금 기동 시
+ * `Mapped {<경로>, POST} route` 를 표준출력에 **자동** 기록하게 만들었다 — 이 컨트롤러(과
+ * `selfcheck.module.ts`)가 직접 호출하는 로그가 아니라 프레임워크가 라우트 등록을 관측해
+ * 스스로 남기는 로그라, 이 파일들을 아무리 정적으로 읽어도 드러나지 않는다. 이 경로는
+ * `main.ts` 가 `NestFactory.create()` 에 주입하는 `RedactingConsoleLogger`
+ * (`common/logging/redacting-console-logger.ts`)가 값 기반으로 걸러 막는다 — 키 이름이
+ * 아니라 로그 메시지 문자열에 그 값이 실제로 등장하는지를 본다는 점에서 FN-015 와는 다른
+ * 층의 방어다.
  */
 export function createSelfcheckController(selfcheckPath: string): Type<unknown> {
   @Controller()

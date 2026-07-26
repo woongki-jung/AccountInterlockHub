@@ -13,6 +13,16 @@ import { toEncPair } from './selfcheck-request.dto';
 import type { SelfcheckRequestBody } from './selfcheck-request.dto';
 import type { SelfcheckResponseBody } from './selfcheck-response.model';
 
+/**
+ * `B4`·`B5` 가 실제로 채우는 부적합 사유 4종(process_PROC-204.md §분기 및 예외 흐름 —
+ * `EX-SEC-001`·`EX-AUTH-002`·`EX-SEC-002`·`EX-SEC-004`). `MappedExCode` 카탈로그 12종
+ * 전체가 아니라 이 자리에 실제로 올 수 있는 부분집합으로 좁혀, `EX-OPS-002` 등 다른
+ * 카탈로그 코드가 대입 실수로 섞여 드는 것을 컴파일 타임에 막는다(build 회귀 1회차 S-2).
+ * `Extract` 로 정의해 네 리터럴이 `MappedExCode` 정본에서 실제로 빠지면(오타·카탈로그 개정)
+ * 그 즉시 이 유니온에서도 함께 좁아져 아래 대입문이 타입 오류로 드러난다.
+ */
+type SelfcheckReasonCode = Extract<MappedExCode, 'EX-SEC-001' | 'EX-AUTH-002' | 'EX-SEC-002' | 'EX-SEC-004'>;
+
 @Injectable()
 export class ProtocolConformanceService {
   /**
@@ -36,7 +46,7 @@ export class ProtocolConformanceService {
     validateBirthDateFormat(request.birthDate);
 
     let isConform: boolean;
-    let reasonCode: MappedExCode | null;
+    let reasonCode: SelfcheckReasonCode | null;
     try {
       // B4 — FN-004(연동과 같은 함수 — 시그니처·반환형을 이 Phase 가 바꾸지 않는다). payload
       // (trackingKey 등 X 의 업무 필드)는 자가진단에 필요 없어 애초에 구조 분해하지 않는다 —

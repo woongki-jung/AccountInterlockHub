@@ -10,6 +10,7 @@ import {
   createRouteGuardMiddleware,
   createStaticAssetsMiddleware,
 } from './common/http';
+import { RedactingConsoleLogger } from './common/logging/redacting-console-logger';
 import { loadInterlockConfig } from './config/interlock-config.loader';
 
 /**
@@ -66,7 +67,20 @@ async function bootstrap(): Promise<void> {
   const expressInstance = express();
   expressInstance.set('case sensitive routing', true);
 
-  const app = await NestFactory.create(AppModule.register({ config, consent }), new ExpressAdapter(expressInstance));
+  // P12 회귀 1회차 C-1 — `<SELFCHECK_PATH>` 는 애플리케이션 코드가 로그로 남기지 않지만,
+  // `@Post(selfcheckPath)` 로 라우트를 등록하는 것 자체가 Nest 내부 RouterExplorer 로 하여금
+  // 기동 로그에 `Mapped {<경로>, POST} route` 를 그대로 찍게 만든다(실측 확인 — 프레임워크가
+  // 라우트 등록을 관측해 스스로 남기는 로그라 애플리케이션 코드 어디에도 그 호출이 없고,
+  // 정적 읽기로 검출할 수 없다). 커스텀 Logger 를 주입해 이 값이 실제로 등장하는 로그
+  // 메시지만 값 기반으로 걸러낸다(FN-015 의 키 이름 기반 방어가 원리상 닿지 않는 자리를
+  // 보완하는 2차 방어 — common/logging/redacting-console-logger.ts 참고). 🔴 전역
+  // `logger:false` 를 쓰지 않는다 — 그러면 다른 기동 로그(다른 경로의 라우트 매핑·기동 완료
+  // 등)까지 함께 사라진다.
+  const bootstrapLogger = new RedactingConsoleLogger([config.selfcheckPath]);
+
+  const app = await NestFactory.create(AppModule.register({ config, consent }), new ExpressAdapter(expressInstance), {
+    logger: bootstrapLogger,
+  });
 
   // FN-014/015 횡단 계층(P05) + 정적 서빙 배선(P16, `#493`) — 반드시 이 순서로, Nest 라우팅이
   // 붙기 전에 건다(app.use() 는 Nest 라우팅·전역 예외 필터보다 먼저 실행되도록 문서화된
