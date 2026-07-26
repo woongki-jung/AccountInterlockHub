@@ -65,6 +65,32 @@ export class DatabaseService implements OnModuleDestroy {
       // 커넥션 획득 자체의 실패 — 아직 트랜잭션이 없어 ROLLBACK·release 대상이 없다.
       throw this.toRecordWriteFailure(error);
     }
+
+    // 횡단 결함 시정 [C-3] — [C-1]이 무해화한 것은 "유휴(idle)" 커넥션의 크래시뿐이다. pg-pool 은
+    // 커넥션을 체크아웃할 때(_acquireClient, node_modules/pg-pool/index.js 344행)
+    // `client.removeListener('error', idleListener)` 로 자신의 idleListener 를 그 client 인스턴스에서
+    // 뗀다 — 이 함수가 커넥션을 쥐고 있는 체크아웃 구간에는 Pool 이 대신 받아줄 'error' 리스너가
+    // 없다. 그 구간에 서버가 이 커넥션을 강제 종료하면(관리형 PostgreSQL 의
+    // idle_in_transaction_session_timeout, DBA 의 세션 강제 종료 등 — 재현: pg_terminate_backend()
+    // 로 BEGIN 이후·COMMIT 이전의 활성 커넥션만 강제 종료) Pool 이 아니라 이 개별 Client 인스턴스가
+    // 리스너 없는 'error' 를 던져 [C-1] 과 같은 이유로 프로세스 전체가 크래시한다(node_modules/pg/lib/
+    // client.js _handleErrorEvent 확인 — 실측 재현: "Emitted 'error' event on Client instance", exit 1).
+    // 체크아웃 구간에만 한정해 무해화 리스너를 달고, release 직전(finally)에 반드시 뗀다 — 풀에
+    // 반납된 뒤에는 pg-pool 자신의 idleListener 가 다시 그 자리를 맡으므로(_release, index.js 385행)
+    // 이 리스너를 남겨두면 다음 체크아웃 때 또 새로 달려 누적된다(MaxListenersExceededWarning 위험,
+    // 같은 커넥션의 재사용 횟수만큼 실측 확인 — 완료 보고 참고). 이 리스너는 "unhandled 'error' 로
+    // 인한 프로세스 종료"만 막을 뿐이다 — 진행 중이던 쿼리의 거절(reject)은 pg 내부
+    // `_errorAllQueries()` 가 `emit('error')` 보다 먼저 별도 경로로 그대로 처리해(client.js
+    // _handleErrorEvent) 아래 catch 로 전파되므로 [C-2] 분류를 그대로 탄다 — 이 리스너가 그 전파를
+    // 가로채거나 삼키지 않는다. message·stack·code 는 로그에 담지 않는다(FN-015 금지 키·
+    // OPS-003-03·SEC-002-05) — describeError 관례를 그대로 따른다.
+    let checkedOutClientErrored = false;
+    const onCheckedOutError = (err: unknown): void => {
+      checkedOutClientErrored = true;
+      this.logger.error(`pg.Client checked-out error — ${this.describeError(err)}`);
+    };
+    client.on('error', onCheckedOutError);
+
     try {
       await client.query('BEGIN');
       const result = await work(client);
@@ -78,7 +104,17 @@ export class DatabaseService implements OnModuleDestroy {
       await client.query('ROLLBACK').catch(() => undefined);
       throw this.toRecordWriteFailure(error);
     } finally {
-      client.release();
+      // [C-3] — 위 무해화 리스너를 release 이전에 반드시 뗀다(누적 방지, 위 주석 참고). 체크아웃
+      // 구간에서 실제로 소켓 오류를 겪은 커넥션은 `release(true)` 로 반납해 pg-pool 이 그 커넥션을
+      // 폐기(discard, `_remove`)하게 한다 — pg-pool README "Shutdown" 절이 명시하는 공식 계약이다
+      // (진단: pg 내부적으로도 이런 커넥션은 `_queryable=false` 로 남아 `release()` 인자 없이 반납해도
+      // pg-pool 자신이 결국 폐기하지만 — index.js `_release` 의 `!client._queryable` 분기 — 그 판정을
+      // pg 의 비공개 내부 상태 플래그에만 의존시키지 않고, 우리가 실제로 관측한 사실을 공개 계약으로
+      // 명시한다). 그냥 반납하면 이 죽은 커넥션이 idle 목록에 남아 다음 pool.connect() 가 그 죽은
+      // 커넥션을 다시 뽑아 실패하는 사태로 이어질 수 있다. 체크아웃 구간에서 오류가 없었던 정상
+      // 종료는 `release(false)` 로 기존과 동일하게 idle 로 반환한다(동작 무변경).
+      client.removeListener('error', onCheckedOutError);
+      client.release(checkedOutClientErrored);
     }
   }
 
