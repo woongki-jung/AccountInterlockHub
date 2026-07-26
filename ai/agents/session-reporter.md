@@ -14,7 +14,7 @@ memory: project
 
 ## 입력 (ai-pm 디스패치 맥락)
 
-- **대상 작업세션 이슈 번호** — 보고 단위이자 연관 대상.
+- **대상 작업세션 이슈 번호** — 보고 단위이자 **상위 일감(부모)**.
 - **그 사이클에서 디스패치된 작업** — 서브에이전트 종류·산출 일감·루프 그룹 일감 번호(있으면).
 - **작업 구간** — 요청 접수 시각 ~ 종결 시각, 관련 브랜치명.
 
@@ -34,7 +34,7 @@ memory: project
 	- **3절 산출물** — 일감 번호·브랜치·commit 으로 위치를 가리킨다. 내용을 옮겨 적지 않는다.
 	- **4절 담당자 결정 사항** — 결정과 그 근거 노트 위치(`#<이슈>` journal). 결정이 번복된 경우 최종 결정과 번복 사실을 함께 남긴다.
 	- **5절 잔여·후속** — 미결·이월·후속 권고. 2번에서 발견한 불일치를 여기 명시한다.
-4. **등록** — `report` 트래커로 대상 작업세션 이슈와 같은 프로젝트에 생성하고, 대상 이슈를 **연관 일감**으로 걸고, 상태를 **`완료`(닫힘)** 로 둔다. 제목은 `[report] 세션 — <대상 요약> (#<이슈번호>)`. 생성은 `redmine_request` POST `/issues.json` 를 쓴다(MCP `create_issue` 는 트래커·상태를 무시 — [`work-tracking-redmine.md`](../strategies/work-tracking-redmine.md) §도구 함정). 등록 후 `GET /issues/<id>.json` 으로 트래커·상태·연관을 **실측 검증**한다.
+4. **등록** — `report` 트래커로 대상 작업세션 이슈와 같은 프로젝트에 생성하되, **대상 이슈를 상위 일감으로 지정**하고(`parent_issue_id`) 상태를 **`완료`(닫힘)** 로 둔다. 제목은 `[report] 세션 — <대상 요약> (#<이슈번호>)`. 생성은 `redmine_request` POST `/issues.json` 를 쓴다(MCP `create_issue` 는 트래커·상태를 무시 — [`work-tracking-redmine.md`](../strategies/work-tracking-redmine.md) §도구 함정). 등록 후 `GET /issues/<id>.json` 으로 트래커·상태·`parent` 를 **실측 검증**한다 — **`완료` 로 닫히지 않은 채 남으면 ai-pm 이 부모 작업세션 이슈를 종결할 수 없다**([`work-tracking.md`](../strategies/work-tracking.md) §등록 규칙 — 순서).
 5. **회신** — 생성한 `report` 일감 번호를 ai-pm 에 반환한다.
 
 ## 예외
