@@ -29,11 +29,11 @@
 
 | 계층·유형 | 검증 대상 | 검증 PROC | 검증 분기/예외 | 우선순위 | 자동화 |
 |---|---|---|---|---|---|
-| INTG · Positive | MDL-012 · ENT-001 §속성 정의 · `BIZ-002-03` ② | PROC-201 | BR-002(`OPEN`) | 높음 | 자동 |
+| INTG · Positive | MDL-012 · FN-007 · ENT-001 §속성 정의 · `BIZ-002-03` ② | PROC-201 | BR-002(`OPEN`) | 높음 | 자동 |
 
 - **전제**: `SEED-TRK-OPEN`(SQL)
-- **단계**: ① 미확정 레코드 키로 POST `B3` → 200 ② 응답 `B4` → `resultCode = null` · `isSuccess = false` · `resultAt = null` · `isResultConfirmed = false` · `resultConfirmedAt = null` ③ 조회가 성립함을 확인(결과가 없어도 404 가 아니다 — 레코드는 존재한다)
-- **판정**: 공통 판정 기준
+- **단계**: ① 미확정 레코드 키로 POST `B3` → 200 ② 응답 `B4` → `resultCode = null` · **`isSuccess = null`** · `resultAt = null` · `isResultConfirmed = false` · `resultConfirmedAt = null` ③ **`isSuccess` 가 `false` 가 아님을 따로 확인한다** — `false` 는 "결과가 확정됐고 성공이 아니다"라는 뜻이라 미확정과 뭉개지면 결과 구분 3종 체계가 무너진다(`BIZ-001-01`). 값 비교는 **타입까지** 본다(`null !== false`) ④ 조회가 성립함을 확인(결과가 없어도 404 가 아니다 — 레코드는 존재한다)
+- **판정**: 공통 판정 기준. **기대값 `null` 의 근거는 정본 3문서가 일치한다** — [`../../datas/model_MDL-011-015.md`](../../datas/model_MDL-011-015.md) `MDL-012` §속성 정의("결과 미확정이면 null")·[`../../functions/function_FN-007-008.md`](../../functions/function_FN-007-008.md) `FN-007` 3(`행.result_code == NULL ? null : …`)·[`../../processes/process_PROC-201.md`](../../processes/process_PROC-201.md) `B4`("null 가능(결과 미확정)"). `MDL-001` §속성 정의도 같다.
 
 ### API-01_003 결과 확인 표시 — `resultCode` 가 null 이 아닐 때만 최초 1회
 

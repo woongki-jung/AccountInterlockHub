@@ -89,6 +89,7 @@
 |---|--:|---|---|---|---|
 | `SEED-CSP-OLD` 보존 경과 증적 | 1 | `tbl_consent_proof` | SQL | `consented_at` 이 실행 시각 − `<CONSENT_PROOF_RETENTION_MONTHS>` 보다 과거인 행 1건 | `BAT-02_001`·`_010`·`BAT-05_011` |
 | `SEED-CSP-BOUNDARY` 경계 3종 | 3 | `tbl_consent_proof` | SQL | 기준 일시의 1초 전 / 정확히 / 1초 후 | `BAT-02_007` |
+| `SEED-PROOF-STALE` 앞선 보관 주기 증적 + 재수신 레코드 | 1쌍 | `tbl_consent_proof` + `tbl_interlock_tracking` | SQL | **같은 `tracking_key`** 로 ⓐ 증적 1행이 남아 있고 ⓑ 그 키의 **옛 추적 레코드는 없으며**(보관 배치로 삭제된 상태를 재현) ⓒ 같은 키로 새로 만든 추적 레코드가 `result_code IS NULL` 이고 그 `created_at` 이 ⓐ 의 `consented_at` **보다 나중**인지 각각 확인. 검증 쿼리: 이 키로 `SELECT COUNT(*) FROM tbl_consent_proof WHERE tracking_key = :k` 가 1 이고, `SELECT created_at FROM tbl_interlock_tracking WHERE tracking_key = :k` 가 그 증적의 `consented_at` 보다 큰지 대조. **증적이 추적 레코드보다 오래 남는 것은 정상 상태다**(`DATA-002-02`·EXC-BIZ-04) | `USR-04_018` |
 | `SEED-MET` 지표 집계 행 | 3일치 | `tbl_interlock_metric_daily` | SQL | 알려진 값으로 채워 두 성공률 계산 결과가 **서로 다른** 값이 나오는지 확인(**결과 구분 3종의 합이 요청 수보다 작은 일자**를 포함해야 정의 차이가 드러난다 — 결과 미확정으로 끝난 요청) | `BAT-06_011` |
 | `SEED-MET-OLD` 오래된 일자 행 | 1 | `tbl_interlock_metric_daily` | SQL | 어떤 보관 기간보다도 과거인 `metric_date` 행이 배치 실행 후에도 남는지 확인 | `BAT-02_009`·`BAT-06_013` |
 
@@ -119,3 +120,5 @@
 | `CHK-NOSTORE` 저장소 전수 점검 절차 | 절차 | 데이터베이스 전 테이블·파일 시스템·캐시·세션 저장소·브라우저 저장소를 훑어 **표식 값**(시드에 심은 고유 문자열)이 0건인지 확인하는 절차 | `USR-03_013`·`USR-02_010`·`SCEN_015`·`SCEN_016` |
 | 표식 값 시드 | 파일 | 발송처키·생년월일·X 필드값에 검색 가능한 고유 문자열을 심고, 로그·응답·화면·저장소에서 그 문자열을 검색해 0건인지 확인 | `SCEN_016` |
 | `CHK-NAVBLOCK` 복귀 이동 차단 관측 절차 | 절차 | 브라우저 자동화로 **복귀 주소로의 네비게이션을 차단**한 뒤, 결과 화면이 그대로 남고 수동 이동 링크가 유지되며 새 EX 코드·알림이 생기지 않는지 확인하는 절차. 이동 성공 여부를 애플리케이션이 판정하지 않으므로 **관측은 브라우저 쪽에서만** 성립한다 | `USR-05_015` |
+| `CHK-FOCUSEMU` 포커스 에뮬레이션 전제 | 절차 | 헤드리스 브라우저는 창 포커스가 없어 **`Emulation.setFocusEmulationEnabled({enabled: true})` 를 페이지 로드 전에 켜지 않으면 `:focus` 가 매치되지 않는다.** 확인 방법: ① 그 설정을 켠 뒤 포커스를 준 요소에 링이 실제로 관측되는지 ② **양성 대조** — 링이 없어야 하는 상태에서 실제로 "링 없음"이 나오는지. ②를 빠뜨리면 관측 실패와 결함 부재가 구별되지 않아 **시정 전후가 똑같이 "링 없음"으로 나오는 위음성**이 된다(`a8058a0` 검증 1회차 실사례). 미충족 시 해당 관측은 🟠 Block(🔴 Fail 로 올리지 않는다) | `USR-04_004`·`USR-02_015`·`USR-05_010`·`USR-04_011`·`USR-04_003`·`USR-03_015` |
+| `CHK-PGKILL` 커넥션 강제 종료 절차 | 절차 | 운영에서 실제로 일어나는 방식(**서버측 세션 강제 종료** — `pg_terminate_backend`)으로 커넥션을 끊는 절차. **유휴 커넥션과 체크아웃(사용 중) 커넥션을 각각** 지목할 수 있어야 한다(`pg_stat_activity` 의 `state` 로 `idle` / `active` 를 구분해 대상 `pid` 를 고른다). 확인 방법: 대상 세션이 실제로 사라졌는지(`pg_stat_activity` 재조회)와 애플리케이션 **PID·리스닝 포트가 유지**되는지를 각각 실측. 클라이언트가 받는 오류는 관리자 종료(`57P01`) 계열이다. **한쪽 경로만 재현하는 절차는 이 시드를 충족하지 않는다**(`OPS-004-02` 가 "각각"을 요구한다) | `SCEN_024`·`SCEN_025`·`SCEN_026` |
