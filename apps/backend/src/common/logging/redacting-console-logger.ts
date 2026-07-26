@@ -46,12 +46,20 @@
 // (`common/errors/error-envelope.ts` 의 오류 응답 `details` 재구성, `common/interceptors/
 // sanitize-response.interceptor.ts` 의 성공 응답 인터셉터) — 로그 호출부 어디에도 걸려
 // 있지 않다. 즉 이 클래스가 문자열 아닌 로그 인자에 대해서도 **유일한** 방어선이다. 이 공백은
-// 실제로 도달 가능하다: Nest 부트스트랩 실패 경로(`@nestjs/core/errors/exception-handler.js`
-// `ExceptionHandler.handle()` → `this.logger.error(exception)`, `nest-factory.js` 의
-// `handleInitializationError` 가 호출)는 **Error 객체를 인자 하나로만** 넘긴다(실측 확인). 인자가
-// 하나뿐이면 `ConsoleLogger.getContextAndStackAndMessagesToPrint` 가 `errorStack` 을 분리해
-// 내지 못해(`messages.length<=1` 분기) `printStackTrace()` 도 타지 않는다 — 문자열 전용 검사와
-// 스택 전용 검사 **둘 다** 비켜 간다. `<SELFCHECK_PATH>` 형식 검증
+// 실제로 도달 가능하다: Nest 부트스트랩 실패 경로 — 초기화 예외를 잡는
+// `ExceptionsZone.asyncRun()`(`@nestjs/core/errors/exceptions-zone.js` 실측)의
+// catch 블록이 `ExceptionHandler.handle()` →
+// `ExceptionHandler.logger.error(exception)`(정적 필드)를 호출하며, 이 호출부는
+// **Error 객체 하나만** 인자로 넘긴다(실측 확인). 그런데 `ExceptionHandler.logger` 는
+// `new Logger(ExceptionHandler.name)` 로 만들어져 **항상 컨텍스트를 가진 인스턴스**다
+// (`exception-handler.js:11` 실측) — `Logger.prototype.error` 가 `optionalParams` 에
+// `[undefined, context]` 를 이어 붙여(`logger.service.js` 실측) `ConsoleLogger.error`
+// 가 실제로 받는 인자는 3개(`Error, undefined, 'ExceptionHandler'`)다. 이 경우
+// `ConsoleLogger.getContextAndStackAndMessagesToPrint` 는 `messages.length<=1` 분기
+// (`console-logger.service.js:335`)가 아니라 **마지막 원소가 `undefined` 인 분기**
+// (`:341-348`)를 타 `errorStack` 을 분리하지 못한다 — `printStackTrace()` 도 타지
+// 않는다는 결론은 그대로다. 문자열 전용 검사와 스택 전용 검사 **둘 다** 비켜 간다.
+// `<SELFCHECK_PATH>` 형식 검증
 // (`config/interlock-config.validators.ts` `isPathFormat`)이 `:`·`*`·`(` 같은
 // path-to-regexp 메타문자를 막지 않으므로, 그런 값이 오면 라우트 등록 자체가 기동 예외를
 // 던지고 그 Error 의 message·stack 에 경로 원문이 실린 채 바로 이 경로로 흐른다. 아래
