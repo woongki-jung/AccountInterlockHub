@@ -34,9 +34,10 @@ export function InterlockJourney() {
       {flow.view.screen === 'SCR-002' && (
         <ConsentScreen
           view={flow.view}
-          onApprove={(codes) => void flow.approve(codes)}
+          agreedCodes={flow.agreedCodes}
+          onToggle={flow.toggleConsent}
+          onApprove={() => void flow.approve()}
           onGated={flow.reportConsentValidationFailed}
-          onRequiredSatisfied={flow.clearConsentGatedAlert}
         />
       )}
       {flow.view.screen === 'SCR-003' && <ProgressPanel unconfirmed={flow.view.unconfirmed} />}

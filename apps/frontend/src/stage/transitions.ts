@@ -1,7 +1,13 @@
 import type { ApiOutcome } from '../api/client';
 import { defaultMessageFor } from '../api/errorMessages';
 import { normalizeResultPath } from '../api/types';
-import type { ApproveResponseDto, ConsentConfigDto, EntryInitialStateDto, VerifyResponseDto } from '../api/types';
+import type {
+  ApproveResponseDto,
+  ConsentConfigDto,
+  ConsentItemDto,
+  EntryInitialStateDto,
+  VerifyResponseDto,
+} from '../api/types';
 import type { ConsentAlert, ScreenView } from './types';
 
 // 단계 상태머신 — 서버 응답이 다음 화면을 정한다(화면이 스스로 단계를
@@ -126,6 +132,22 @@ function backToConsentOrFallback(lastConsent: ConsentConfigDto | null, alert: Co
   // 있으므로 lastConsent 는 항상 있다. 방어적으로 미매핑 catch-all 과
   // 같은 정신으로 결과 경로 ②를 안내한다(SVC-005 F-003).
   return { screen: 'SCR-004', result: { resultPath: 2, isReAnnouncement: false } };
+}
+
+/**
+ * 필수 충족 판정 — SCR-002 승인 버튼 활성 여부(ConsentScreen 렌더)·클릭
+ * 시 게이팅(ConsentScreen.handleApproveClick)·체크 시 Gated 알림 해제
+ * (useInterlockFlow.toggleConsent) 셋이 전부 이 하나의 판정 결과를 쓴다
+ * (screen_SCR-002.md §구현 가이드 "필수 충족 판정을 한 곳에 둔다" ·
+ * process_PROC-103.md F2 `canApprove = consent.items.filter(i =>
+ * i.required).every(i => agreed.has(i.code))`). 회귀 2회차 I-3 —
+ * agreedCodes 소유가 ConsentScreen 로컬 상태에서 useInterlockFlow 로
+ * 옮겨가며 화면·훅 두 모듈이 함께 쓰는 판정이 됐다. 두 곳에서 따로
+ * 계산하면 버튼은 활성인데 안내가 남는 어긋남이 재발하므로, 어느 쪽에도
+ * 속하지 않는 이 순수 함수 모듈로 옮겨 단일 출처를 유지한다.
+ */
+export function isAllRequiredMet(items: ConsentItemDto[], agreedCodes: ReadonlySet<string>): boolean {
+  return items.filter((item) => item.required).every((item) => agreedCodes.has(item.code));
 }
 
 /**

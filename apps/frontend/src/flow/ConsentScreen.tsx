@@ -1,7 +1,7 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef } from 'react';
 import { Button, ConsentList, InlineAlert, NoticeBlock, StageTitle } from '../components';
 import type { ConsentListHandle } from '../components';
-import type { ConsentItemDto } from '../api/types';
+import { isAllRequiredMet } from '../stage/transitions';
 import type { ScreenView } from '../stage/types';
 import stack from './stack.module.css';
 
@@ -9,33 +9,34 @@ const ALERT_ID = 'scr002-alert';
 /** screen_SCR-002.md §입력 폼 정의 — 문구 정본(BR-004, 화면 게이팅). 서버 호출 없이 화면이 직접 띄운다. */
 const GATED_MESSAGE = '모든 항목에 동의해 주셔야 합니다';
 
-/**
- * 필수 충족 판정 — 버튼 활성 여부·클릭 시 게이팅·체크 시 Gated 알림
- * 해제가 전부 이 하나의 판정 결과를 쓴다(screen_SCR-002.md §구현 가이드
- * "필수 충족 판정을 한 곳에 둔다" · 회귀 1회차 I-2). 두 곳에서 따로
- * 계산하면 버튼은 활성인데 안내가 남는 어긋남이 재발한다.
- */
-function isAllRequiredMet(items: ConsentItemDto[], agreedCodes: ReadonlySet<string>): boolean {
-  return items.filter((item) => item.required).every((item) => agreedCodes.has(item.code));
-}
-
 interface ConsentScreenProps {
   view: Extract<ScreenView, { screen: 'SCR-002' }>;
-  onApprove: (agreedItemCodes: string[]) => void;
+  /** 동의 체크 상태 — 흐름 훅(useInterlockFlow) 소유(회귀 2회차 I-3). */
+  agreedCodes: ReadonlySet<string>;
+  onToggle: (code: string) => void;
+  onApprove: () => void;
   onGated: (message: string) => void;
-  /** 필수 항목이 전부 충족된 시점에 호출 — Gated 알림 해제(회귀 1회차 I-2). */
-  onRequiredSatisfied: () => void;
 }
 
 /**
- * SCR-002 동의·승인 — screen_SCR-002.md 조립 참조 구현. 체크 상태는 이
- * 화면(SCR-002) 이 마운트돼 있는 동안만 존재하는 순수 로컬 UI 상태다 —
- * 본인확인으로 되돌아가면(BackToIdentity) 컴포넌트가 새로 마운트되어
- * 자동으로 빈 상태가 된다(screen_SCR-002.md §구현 가이드 "본인확인으로
- * 되돌아가면 동의 선택 상태를 비운다").
+ * SCR-002 동의·승인 — screen_SCR-002.md 조립 참조 구현. 체크 상태
+ * (agreedCodes) 는 이 컴포넌트가 아니라 상위 흐름 훅(useInterlockFlow)
+ * 이 소유하는 **controlled** 값이다 — 이전엔 이 컴포넌트의 로컬
+ * `useState` 였는데, 승인 발신 즉시 SCR-003 으로 전환돼 이 컴포넌트가
+ * 언마운트되므로 `EX-BIZ-003`(Retryable)·`EX-BIZ-001`(Blocked) 로
+ * SCR-002 에 되돌아올 때 재마운트와 함께 체크가 사라지는 결함이 있었다
+ * (회귀 1회차 재판정 I-3 — "본인확인으로 되돌아갈 때만 마운트가 새로
+ * 된다"는 옛 주석은 사실이 아니었다: SCR-002 를 떠나는 **모든** 전이가
+ * 언마운트를 일으킨다). 훅은 본인확인으로 되돌아갈 때(BackToIdentity)와
+ * 결과 도달 시점에만 agreedCodes 를 비운다(process_PROC-103.md F5
+ * "본인확인으로 되돌아가면 agreed 를 비운다" · screen_SCR-002.md §구현
+ * 가이드 "본인확인으로 되돌아가면 동의 선택 상태를 비운다" — 비우는
+ * 경우는 이 하나로 한정된다. Retryable·Blocked 로 이 화면에 남는
+ * 전이는 해당하지 않아 agreedCodes 가 그대로 유지된다 — screen_SCR-002.md
+ * §화면 상태 전이 `Retryable` "결과 미확정이라 그대로 다시 제출할 수
+ * 있다").
  */
-export function ConsentScreen({ view, onApprove, onGated, onRequiredSatisfied }: ConsentScreenProps) {
-  const [agreedCodes, setAgreedCodes] = useState<ReadonlySet<string>>(new Set());
+export function ConsentScreen({ view, agreedCodes, onToggle, onApprove, onGated }: ConsentScreenProps) {
   const consentListRef = useRef<ConsentListHandle>(null);
 
   useEffect(() => {
@@ -44,20 +45,6 @@ export function ConsentScreen({ view, onApprove, onGated, onRequiredSatisfied }:
     }
   }, [view.alert]);
 
-  /**
-   * 회귀 1회차 I-2 — 값 반영(`setAgreedCodes`)과 "필수 충족 시 Gated
-   * 알림 해제" 부수효과를 별개의 순차 호출로 둔다(updater 함수 자체는
-   * 여전히 순수하다 — `setState` updater 안에 부수효과를 넣지 않는다).
-   * "next 충족 여부" 판정은 `isAllRequiredMet` 하나만 쓴다.
-   */
-  function toggle(code: string) {
-    const next = new Set(agreedCodes);
-    if (next.has(code)) next.delete(code);
-    else next.add(code);
-    setAgreedCodes(next);
-    if (isAllRequiredMet(view.consent.items, next)) onRequiredSatisfied();
-  }
-
   const allRequiredMet = isAllRequiredMet(view.consent.items, agreedCodes);
 
   function handleApproveClick() {
@@ -65,14 +52,14 @@ export function ConsentScreen({ view, onApprove, onGated, onRequiredSatisfied }:
       onGated(GATED_MESSAGE);
       return;
     }
-    onApprove(Array.from(agreedCodes));
+    onApprove();
   }
 
   return (
     <div>
       <StageTitle title="연동 동의" subtitle="아래 내용을 확인하고 모든 항목에 동의해 주세요." />
       <NoticeBlock notice={view.consent.notice} />
-      <ConsentList ref={consentListRef} items={view.consent.items} agreedCodes={agreedCodes} onToggle={toggle} />
+      <ConsentList ref={consentListRef} items={view.consent.items} agreedCodes={agreedCodes} onToggle={onToggle} />
       {view.alert ? (
         <div className={stack.body}>
           <InlineAlert id={ALERT_ID} message={view.alert.message} />
