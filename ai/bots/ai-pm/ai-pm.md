@@ -6,7 +6,7 @@ model fallback: opus
 effort: max
 bot name: ai-pm
 exec path: ai/bots/ai-pm/
-exec machine: WOONGS-WORK
+exec machine: CLAUDE-HOMEBOOK
 ---
 # ai-pm
 
