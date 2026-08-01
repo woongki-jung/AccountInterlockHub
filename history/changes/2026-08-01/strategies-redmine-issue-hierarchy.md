@@ -14,6 +14,7 @@
 - **영향**:
   - `ai/strategies/work-tracking.md` — §프로젝트·이슈 구조(루트 원칙 추가)·**§계층·연관 전면 개정**(트리 그림·부모 필수·오류 일감 부모)·§단계별 미러링(상위 일감 열 추가)·§표준 이슈 양식(상위 일감 필수 항목)·§닫을 때 지킬 것(닫기 사슬)·**§작업세션 종결 신설**·§생애주기·갱신 책임(4개 행 개정 + directing 산출 행 신설).
   - `ai/strategies/work-tracking-redmine.md` — §이슈 조작(부모 필수·실측·PUT 교정)·§도구 함정(부모 누락 = 조용한 루트 생성).
+    - **동시 개정과의 정합** — 같은 날 `strategies-redmine-vocab-tool-traps` 가 §도구 함정을 실측 기준으로 재작성하며 **MCP `create_issue` 가 트래커·상태를 스스로 교정·재검증**하게 됐다(전용 MCP 서버 `ai/scripts/redmine-mcp-server.mjs`). 병합하며 확인한 결과 그 자동 검증은 **`tracker_id`·`status_id` 뿐이고 `parent_issue_id` 는 전달만 될 뿐 `verified` 에 실리지 않는다** — 따라서 부모 실측은 도구에 맡길 수 없고 호출 측 의무로 남는다는 점을 §도구 함정·§이슈 조작 양쪽에 명시했다. 아울러 §이슈 조작 생성 항목에 남아 있던 낡은 괄호 설명("MCP `create_issue` 는 트래커·상태를 무시")이 재작성된 §도구 함정과 정면으로 어긋나 있어 함께 바로잡았다.
   - `ai/strategies/ai-pm.md` — §Slack→Redmine 매핑(금지 범위 한정)·§디스패치 계약 1·2(부모 좌표 전달)·6(종결 전 열린 하위 확인)·§단계 연결(directing 산출 계층)·§글로벌 운영 원칙.
   - `ai/bots/ai-pm/ai-pm.md` — §트리거·처리 규칙·처리 절차 5(디스패치 시 부모 좌표)·9(종결 전 확인)·§이슈 운용 표(directing 산출 행 신설).
   - `ai/agents/product-loop.md` — §입력(작업세션 번호 필수)·흐름 1(그룹 부모 = 작업세션)·§Redmine·재개(실측·하위 호출 전달).

@@ -5,7 +5,8 @@
 ## 접속
 
 - 서버 URL·관리자 키·세션 API 키는 git 비관리 [`CLAUDE.local.md`](../../CLAUDE.local.md) §Redmine 자격증명 단일 출처.
-- 세션은 Redmine MCP 도구(`mcp__redmine__*`)로 작용한다. MCP 서버는 환경변수 `REDMINE_API_KEY`·`REDMINE_BASE_URL` 을 최우선으로 읽고, 없으면 서버 기본 `.env`(admin)로 폴백한다.
+- 세션은 Redmine MCP 도구(`mcp__redmine__*`)로 작용한다. 서버 본체는 저장소에 있다 — [`ai/scripts/redmine-mcp-server.mjs`](../scripts/redmine-mcp-server.mjs)(의존성 0 Node 단일 파일). 등록 절차는 [`project-bootstrap.md`](project-bootstrap.md) §3-B.
+- MCP 서버는 환경변수 `REDMINE_API_KEY`·`REDMINE_BASE_URL` 을 최우선으로 읽고, 없으면 서버 파일과 같은 위치의 `.env`(admin)로 폴백한다.
 - **작업 정체성**: 메인 세션 env `REDMINE_API_KEY` 가 있으면 그 정체성으로 작동한다(이슈 작성자·담당자가 그 계정). 미설정 시 admin 폴백(프로젝트·사용자 생성 등 관리자 동작 포함).
 
 ## 요소 식별자 레퍼런스
@@ -48,7 +49,7 @@ docker exec -e SECRET_KEY_BASE_DUMMY=1 redmine bin/rails runner /tmp/<script>.rb
 - 스크립트는 `docker cp` 로 컨테이너에 넣고 경로를 인자로 준다. Git Bash 는 `/tmp/...` 인자를 Windows 경로로 변환하므로 `MSYS_NO_PATHCONV=1` 로 변환을 막는다.
 - 현 트래커 세트(그룹·오류·기능·사양·검증·작업세션·report)는 구성 완료 상태다. 새 트래커 추가 시 전 프로젝트 활성 + 기존 트래커의 워크플로 전이를 복사한다.
 - **`Report` 트래커 — 활성화 완료(2026-07-26)**: 작업 보고 정책([`work-tracking.md`](work-tracking.md) §작업 보고)이 요구하는 트래커(`Report`=8)가 **3개 프로젝트(`ai-workgroup-ops`·`accountinterlockhub`·`smoke-test`) 전부에 활성**이다(REST 실측). 전이도 열린 상태 6종 전면 개방으로 확인됐다.
-	- 🔴 **등록은 3단계여야 한다 — 생성 요청의 `status_id` 는 무시된다.** `tracker_id: 8` 로 POST 하면서 `status_id: 5` 를 함께 보내도 이슈가 **`Needs Feedback`(4)으로 떨어진다**(실측). 따라서 **① POST 생성 → ② PUT `status_id: 5` → ③ GET 으로 `closed_on` 실측** 순으로 닫는다. ①만 하면 **열린 하위가 남아 부모(작업세션 이슈·루프 그룹 일감)를 닫을 수 없다** — report 일감은 등록과 동시에 닫히는 것이 전제다([`work-tracking.md`](work-tracking.md) §계층·연관).
+	- 🔴 **생성 요청의 `status_id` 는 무시된다** — `tracker_id: 8` 로 POST 하면서 `status_id: 5` 를 함께 보내도 이슈가 **`Needs Feedback`(4)으로 떨어진다**(실측 2026-07-26·2026-08-01). MCP `create_issue` 를 쓰면 생성 후 교정·재검증까지 서버가 처리하므로 1회 호출로 닫힌 상태가 된다(`corrected: true` 로 표시). `redmine_request` 로 직접 POST 할 때만 **① POST → ② PUT `status_id: 5` → ③ GET `closed_on` 실측** 3단계를 손으로 수행한다. 닫지 못하면 **열린 하위가 남아 부모(작업세션 이슈·루프 그룹 일감)를 닫을 수 없다** — report 일감은 등록과 동시에 닫히는 것이 전제다([`work-tracking.md`](work-tracking.md) §계층·연관).
 	- **프로젝트 활성은 REST 로도 된다** — `PUT /projects/<id>.json` 에 `{"project":{"tracker_ids":[...]}}`. **치환 의미라 기존 목록을 전부 포함해** 보낸다(빠뜨린 트래커는 그 프로젝트에서 사라진다). 트래커 자체의 신규 생성·워크플로 전이 복사는 여전히 admin 전용이라 아래 스크립트를 쓴다.
 	- **실행본**: [`ai/scripts/redmine-create-report-tracker.rb`](../scripts/redmine-create-report-tracker.rb) — 멱등이며 이미 있는 `Report`(8)를 **대소문자 무시로 찾아 재사용**한다. 서비스 호스트(Redmine 컨테이너가 도는 장비)에서 실행하며, 이 워크스페이스가 도는 PC 일 필요는 없다. **위 활성화는 REST 로 처리했으므로 이 스크립트의 미실행 상태는 유지된다** — 워크플로 전이를 명시 생성해야 할 때 실행한다.
 
@@ -67,9 +68,9 @@ docker exec -e SECRET_KEY_BASE_DUMMY=1 redmine bin/rails runner /tmp/<script>.rb
 
 ## 이슈 조작
 
-- **생성**: 정확한 트래커·상태 제어가 필요하므로 `redmine_request` POST `/issues.json` 본문 `{"issue":{"project_id","tracker_id","status_id","parent_issue_id","assigned_to_id","category_id","fixed_version_id","description",...}}` 를 쓴다(MCP `create_issue` 는 트래커·상태를 무시 — §도구 함정).
+- **생성**: 본문은 `{"issue":{"project_id","tracker_id","status_id","parent_issue_id","assigned_to_id","category_id","fixed_version_id","description",...}}`. **MCP `create_issue` 를 기본으로 쓴다** — 트래커·상태가 지정대로 반영됐는지 생성 후 스스로 교정·재검증한다(§도구 함정). `redmine_request` POST `/issues.json` 로 직접 만들 때는 그 교정을 손으로 해야 한다.
 	- **`parent_issue_id` 는 필수다** — 작업세션 이슈를 제외한 모든 일감은 상위 일감을 갖는다([`work-tracking.md`](work-tracking.md) §계층·연관). 어느 일감을 부모로 삼는지도 그 절이 정본이다.
-	- **생성 직후 `GET /issues/<id>.json` 으로 `parent` 를 실측 확인**한다. 누락하면 오류 없이 루트 일감이 되므로(§도구 함정) 응답만 보고는 알 수 없다.
+	- **생성 직후 `GET /issues/<id>.json` 으로 `parent` 를 실측 확인**한다. 누락하면 오류 없이 루트 일감이 되고, **`parent` 는 MCP 도구의 자동 검증 대상도 아니다**(§도구 함정) — 어느 경로로 만들든 이 확인은 직접 해야 한다.
 	- **부모 교정**: `PUT /issues/<id>.json` 본문 `{"issue":{"parent_issue_id":<부모>}}`. 루트로 떨어진 일감을 발견하면 이 방법으로 제자리에 붙인다.
 - **연관 추가**: POST `/issues/<id>/relations.json` `{"relation":{"issue_to_id":<대상 이슈>,"relation_type":"relates"}}` — build·qa 일감 → 참조 `사양` 일감.
 - **노트·상태·담당자 변경**: MCP `update_issue`(`notes`·`status_id`·`assigned_to_id`) 또는 `redmine_request` PUT `/issues/<id>.json`.
@@ -89,9 +90,9 @@ docker exec -e SECRET_KEY_BASE_DUMMY=1 redmine bin/rails runner /tmp/<script>.rb
 
 ## 도구 함정 (Redmine MCP)
 
-- **`create_issue` 가 `tracker_id`·`status_id` 무시**(priority·assignee 는 반영) → `redmine_request` 로 생성하거나 생성 후 PUT 으로 교정.
-- **`parent_issue_id` 누락이 조용히 루트 일감을 만든다** — 부모를 빠뜨려도 Redmine 은 오류를 내지 않고 그냥 프로젝트 루트 일감으로 생성한다. 응답만 보면 정상 생성과 구분되지 않으므로 **생성 후 `GET` 으로 `parent` 를 실측**한다([`work-tracking.md`](work-tracking.md) §계층·연관 — 루트에 일감을 만들지 않는다). MCP `create_issue` 는 부모 지정도 신뢰할 수 없으니 `redmine_request` 로 생성한다.
-- **`update_issue` 가 부분 실패를 성공으로 삼킴** — `notes`+`status_id` 를 함께 보냈는데 Redmine 이 상태 전이만 거부해도 응답은 `{"ok":true}` 다(노트만 남고 상태는 그대로). → **상태 전이는 응답을 믿지 말고 `GET /issues/<id>.json` 의 `status`·`closed_on` 으로 실측 검증**한다. 특히 `해결`→`완료`(닫힘).
+- **생성 요청의 `status_id` 는 Redmine 이 무시한다**(실측 2026-08-01: `tracker_id: 8` + `status_id: 5` 로 POST → `Needs Feedback`(4) 로 떨어짐. `tracker_id` 는 반영된다). MCP `create_issue` 는 **생성 후 PUT 으로 교정하고 GET 으로 재검증**해 결과에 `corrected`·`verified` 를 싣는다 → 지정대로 만들려면 이 도구를 쓴다. `redmine_request` 로 직접 POST 할 때만 3단계(POST → PUT `status_id` → GET 실측)를 손으로 수행한다.
+- **`parent_issue_id` 누락은 조용히 루트 일감을 만든다 — 그리고 자동 검증 대상이 아니다.** 부모를 빠뜨리거나 Redmine 이 그 지정을 반영하지 않아도 오류 없이 프로젝트 루트 일감이 된다. MCP `create_issue` 는 `parent_issue_id` 를 그대로 전달하지만 **자동 교정·재검증 대상은 `tracker_id`·`status_id` 뿐이라 `parent` 는 `verified` 에 실리지 않는다** — 위 함정과 달리 도구가 대신 잡아주지 않는다. 계층이 걸린 생성은 **직접 `GET /issues/<id>.json` 으로 `parent` 를 실측**하고, 비어 있으면 `PUT` 으로 붙인다([`work-tracking.md`](work-tracking.md) §계층·연관 — 루트에 일감을 만들지 않는다).
+- **상태 전이 거부는 PUT 응답에 드러나지 않는다** — `notes`+`status_id` 를 함께 보냈는데 Redmine 이 전이만 거부해도 PUT 자체는 성공한다(노트만 남고 상태는 그대로). MCP `update_issue` 는 **PUT 직후 GET 으로 실측 검증**해, 어긋나면 `ok:false` + `warning` + `allowed_statuses` 로 노출한다 → 이 도구를 쓰면 조용히 넘어가지 않는다. `redmine_request` 로 직접 PUT 할 때는 여전히 응답을 믿지 말고 `GET /issues/<id>.json` 의 `status`·`closed_on` 으로 확인한다. 특히 `해결`→`완료`(닫힘).
 - **열린 하위가 있으면 부모 close 가 거부된다** → 종결은 **하위 먼저, 부모 나중** 순서로 수행한다(위 함정과 겹치면 부모가 안 닫힌 채 성공으로 보인다). 닫기 전에 §전이 사전 확인으로 `Closed` 가 후보에 있는지 보면 이 상황을 미리 잡을 수 있다.
 - **`create_project` 는 기본 트래커만 활성** → §프로젝트 생성 표준 절차 2번으로 보완.
 - **admin 화면 전용(REST 생성 불가)**: 커스텀 필드·트래커·상태·워크플로 전이·역할·우선순위 → 이 객체들에 의존하지 않는 설계를 유지한다.

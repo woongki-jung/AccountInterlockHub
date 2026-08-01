@@ -1,7 +1,7 @@
 {
     "bot_name": "ai-pm",
     "display_name": "ai-pm",
-    "exec_machine": "WOONGS-WORK",
+    "exec_machine": "CLAUDE-HOMEBOOK",
     "redmine_projects": ["ai-workgroup-ops", "accountinterlockhub"],
     "ops_status_issue": 406,
     "worksession_tracker_id": 7,
