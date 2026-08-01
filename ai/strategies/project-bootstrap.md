@@ -96,7 +96,7 @@ ai-pm 은 Redmine 작업세션 이슈를 폴링해 담당자와 협업하는 단
 - **작업세션 트래커** — Redmine 에 일감 유형 `작업세션`(에이전트·담당자 소통 적재)이 있어야 한다. 없으면 관리 UI 로 추가한다.
 - **워크플로 개방** — 작업세션 트래커는 **모든 역할이 모든 상태로 전이 가능**해야 한다(담당자·봇 누구나 차례를 넘김). `D:\redmine\agent\configure_worksession_workflow.rb` 를 rails runner 로 적용한다(멱등): `cat configure_worksession_workflow.rb | docker exec -i redmine bash -c 'export SECRET_KEY_BASE="$REDMINE_SECRET_KEY_BASE"; bin/rails runner -'`. 워크플로 설정은 REST 로 불가하므로 rails runner(로컬 Docker) 또는 관리 웹 UI 로만 가능하다.
 - **트래커 활성화** — 감시 대상 프로젝트(운영·제품) 설정에서 작업세션 트래커를 활성화한다.
-- **운영 상태 이슈** — 담당자가 운영 프로젝트에 상시 작업세션 이슈 1건(`[ai-pm] 운영 상태 …`)을 생성한다 — ai-pm 이 부팅·리셋·백로그·에러 공지를 여기 노트로 남긴다(봇은 이슈를 만들지 않는다).
+- **운영 상태 이슈** — 담당자가 운영 프로젝트에 상시 작업세션 이슈 1건(`[ai-pm] 운영 상태 …`)을 생성한다 — ai-pm 이 부팅·리셋·백로그·에러 공지를 여기 노트로 남긴다(봇은 작업세션 이슈를 열지 않는다 — [`ai-pm.md`](ai-pm.md) §글로벌 운영 원칙).
 
 ### B. 워크스페이스 파일 기입
 

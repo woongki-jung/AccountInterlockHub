@@ -68,7 +68,10 @@ docker exec -e SECRET_KEY_BASE_DUMMY=1 redmine bin/rails runner /tmp/<script>.rb
 
 ## 이슈 조작
 
-- **생성**: 정확한 트래커·상태 제어가 필요하므로 `redmine_request` POST `/issues.json` 본문 `{"issue":{"project_id","tracker_id","status_id","assigned_to_id","category_id","fixed_version_id","parent_issue_id"(하위 이슈),"description",...}}` 를 쓴다(MCP `create_issue` 는 트래커·상태를 무시 — §도구 함정).
+- **생성**: 본문은 `{"issue":{"project_id","tracker_id","status_id","parent_issue_id","assigned_to_id","category_id","fixed_version_id","description",...}}`. **MCP `create_issue` 를 기본으로 쓴다** — 트래커·상태가 지정대로 반영됐는지 생성 후 스스로 교정·재검증한다(§도구 함정). `redmine_request` POST `/issues.json` 로 직접 만들 때는 그 교정을 손으로 해야 한다.
+	- **`parent_issue_id` 는 필수다** — 작업세션 이슈를 제외한 모든 일감은 상위 일감을 갖는다([`work-tracking.md`](work-tracking.md) §계층·연관). 어느 일감을 부모로 삼는지도 그 절이 정본이다.
+	- **생성 직후 `GET /issues/<id>.json` 으로 `parent` 를 실측 확인**한다. 누락하면 오류 없이 루트 일감이 되고, **`parent` 는 MCP 도구의 자동 검증 대상도 아니다**(§도구 함정) — 어느 경로로 만들든 이 확인은 직접 해야 한다.
+	- **부모 교정**: `PUT /issues/<id>.json` 본문 `{"issue":{"parent_issue_id":<부모>}}`. 루트로 떨어진 일감을 발견하면 이 방법으로 제자리에 붙인다.
 - **연관 추가**: POST `/issues/<id>/relations.json` `{"relation":{"issue_to_id":<대상 이슈>,"relation_type":"relates"}}` — build·qa 일감 → 참조 `사양` 일감.
 - **노트·상태·담당자 변경**: MCP `update_issue`(`notes`·`status_id`·`assigned_to_id`) 또는 `redmine_request` PUT `/issues/<id>.json`.
 
@@ -88,6 +91,7 @@ docker exec -e SECRET_KEY_BASE_DUMMY=1 redmine bin/rails runner /tmp/<script>.rb
 ## 도구 함정 (Redmine MCP)
 
 - **생성 요청의 `status_id` 는 Redmine 이 무시한다**(실측 2026-08-01: `tracker_id: 8` + `status_id: 5` 로 POST → `Needs Feedback`(4) 로 떨어짐. `tracker_id` 는 반영된다). MCP `create_issue` 는 **생성 후 PUT 으로 교정하고 GET 으로 재검증**해 결과에 `corrected`·`verified` 를 싣는다 → 지정대로 만들려면 이 도구를 쓴다. `redmine_request` 로 직접 POST 할 때만 3단계(POST → PUT `status_id` → GET 실측)를 손으로 수행한다.
+- **`parent_issue_id` 누락은 조용히 루트 일감을 만든다 — 그리고 자동 검증 대상이 아니다.** 부모를 빠뜨리거나 Redmine 이 그 지정을 반영하지 않아도 오류 없이 프로젝트 루트 일감이 된다. MCP `create_issue` 는 `parent_issue_id` 를 그대로 전달하지만 **자동 교정·재검증 대상은 `tracker_id`·`status_id` 뿐이라 `parent` 는 `verified` 에 실리지 않는다** — 위 함정과 달리 도구가 대신 잡아주지 않는다. 계층이 걸린 생성은 **직접 `GET /issues/<id>.json` 으로 `parent` 를 실측**하고, 비어 있으면 `PUT` 으로 붙인다([`work-tracking.md`](work-tracking.md) §계층·연관 — 루트에 일감을 만들지 않는다).
 - **상태 전이 거부는 PUT 응답에 드러나지 않는다** — `notes`+`status_id` 를 함께 보냈는데 Redmine 이 전이만 거부해도 PUT 자체는 성공한다(노트만 남고 상태는 그대로). MCP `update_issue` 는 **PUT 직후 GET 으로 실측 검증**해, 어긋나면 `ok:false` + `warning` + `allowed_statuses` 로 노출한다 → 이 도구를 쓰면 조용히 넘어가지 않는다. `redmine_request` 로 직접 PUT 할 때는 여전히 응답을 믿지 말고 `GET /issues/<id>.json` 의 `status`·`closed_on` 으로 확인한다. 특히 `해결`→`완료`(닫힘).
 - **열린 하위가 있으면 부모 close 가 거부된다** → 종결은 **하위 먼저, 부모 나중** 순서로 수행한다(위 함정과 겹치면 부모가 안 닫힌 채 성공으로 보인다). 닫기 전에 §전이 사전 확인으로 `Closed` 가 후보에 있는지 보면 이 상황을 미리 잡을 수 있다.
 - **`create_project` 는 기본 트래커만 활성** → §프로젝트 생성 표준 절차 2번으로 보완.

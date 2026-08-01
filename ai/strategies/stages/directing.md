@@ -73,7 +73,7 @@ directing 은 **ai-pm 을 통해 Redmine 작업세션 이슈에서 노트 대화
 - **정보 구조(IA)** — 서비스 제공 기능단위까지의 IA 트리(`docs/prd/ia/IA.md`, 대부분 확정). 세부 구현기능은 제외(spec 소관). 양식은 [`ia.md`](../ia.md).
 - **개발사양** — 시스템 제약·프로그램 구성을 개발 고정값 문서로 구체화한 묶음(`docs/prd/devspec/`): 외부 API·인터페이스(`external-apis.md`) / 데이터베이스 지침(`database.md`) / 설치·배포·인프라(`infra.md`). 필요 항목만 작성하고 해당 없으면 생략한다. spec·build·qa 가 단일 출처로 참조한다([`doc-structure.md`](../doc-structure.md)).
 - **환경 값 갱신** — 프로그램 구성표·개발사양으로 확정된 구체 프로그램 구성 값(설치 경로·실행 파일·소스 프로젝트명 등)을 directing 수행 주체가 [`CLAUDE.env.md`](../../../CLAUDE.env.md) 의 변수로 추가·갱신한다. 부트스트랩은 기본 골격만 채우며([`project-bootstrap.md`](../project-bootstrap.md) §2), 이후 전 문서는 플레이스홀더로만 참조한다([`document-master-guide.md`](../document-master-guide.md) §경로·이름 표기).
-- **작업 티켓 연결** — directing 작업은 ai-pm 이 Redmine 이슈로 추적한다(§수행 방법). 이슈↔단계 매핑 등 작업 티켓 정책의 정본은 [work-tracking 전략](../work-tracking.md)에서 정의한다.
+- **작업 티켓 연결** — directing 작업은 ai-pm 이 Redmine 이슈로 추적한다(§수행 방법). directing 은 제품 루프 밖이라 그룹 일감(루프 우산)을 두지 않으므로, 추적이 필요한 산출은 **작업세션 이슈의 직속 하위 일감**으로 ai-pm 이 직접 등록한다 — 프로젝트 루트에 만들지 않는다. 계층·이슈↔단계 매핑 등 작업 티켓 정책의 정본은 [work-tracking 전략](../work-tracking.md) §계층·연관에서 정의한다.
 
 ## 완성도(완료) 기준
 
