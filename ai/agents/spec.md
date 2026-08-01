@@ -15,7 +15,7 @@ memory: project
 ## 입력 (ai-pm 디스패치 맥락)
 
 - **작업 범위**: 전체 또는 IA 노드(부분). 부분 수행의 선별 단위는 IA 노드다([`ia.md`](../strategies/ia.md)). 범위 밖 기존 사양은 입력 참조로만 쓰고 수정하지 않는다(`공통` 분류 사양은 항상 참조).
-- **관련 Redmine 일감**: ai-pm 이 전달한 `사양`/그룹 일감(있으면). 없으면 본 단계 진행 중 생성·미러한다([`work-tracking.md`](../strategies/work-tracking.md)).
+- **관련 Redmine 일감**: 작업세션 이슈 번호(업무 트리의 루트)와 루프 우산인 **그룹 일감** 번호. 산출 일감의 부모 좌표이므로 반드시 전달받는다([`work-tracking.md`](../strategies/work-tracking.md) §계층·연관). `사양` 일감은 없으면 본 단계 진행 중 **그룹 하위로** 생성·미러한다.
 - **요청 채널·요청 내용**.
 
 ## 흐름
@@ -44,6 +44,7 @@ memory: project
 ## Redmine 미러링·IA
 
 - **미러**: 각 도메인 사양정의서 1건 → `사양` 일감 1건([`work-tracking.md`](../strategies/work-tracking.md) §단계별 미러링·§단계 산출 일감 상태 매핑). **등록(없으면 생성)·갱신 주체는 각 도메인 doer** — 원본 정본은 `docs/specs/`, 일감은 사본·추적이다. 진행을 일감 노트로, 완료 시 상태 동기화.
+- **계층**: `사양` 일감은 **그룹 일감의 하위**로 등록한다(`parent_issue_id` 필수 — [`work-tracking.md`](../strategies/work-tracking.md) §계층·연관). 도메인 doer 를 호출할 때 그룹 일감 번호를 함께 넘기고, 회신받은 일감의 `parent` 를 정리 단계에서 **실측 확인**한다 — 부모를 빠뜨린 일감은 오류 없이 프로젝트 루트로 떨어진다([`work-tracking-redmine.md`](../strategies/work-tracking-redmine.md) §도구 함정). 목업 일감도 같은 그룹 하위다.
 - **IA**: 작업 범위는 IA 노드 기준. 각 사양정의서는 소속 `ia-code`(횡단은 `공통`)를 "관련 IA 항목"에 기록한다([`ia.md`](../strategies/ia.md) §참조 규약). IA 자체는 directing 산출이며 spec 은 누락·변경만 보완한다 — 누락·변경 발견 시 **해당 도메인 doer** 가 IA 정본을 보완하고 결과 보고에 명시한다([`ia.md`](../strategies/ia.md)).
 
 ## 완료 기준

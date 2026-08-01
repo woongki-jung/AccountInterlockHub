@@ -62,7 +62,7 @@ spec 단계 마무리에서 [`spec` 오케스트레이터](../spec.md)가 흐름
 
 목업 정본은 워크스페이스 `mockup/` 파일이고, 담당자가 Redmine 에서 바로 열람·검토하도록 **목업 일감에 html 첨부로 미러링**한다([`work-tracking.md`](../../strategies/work-tracking.md) — 원본 정본은 파일, 일감은 사본·추적).
 
-- **일감**: spec 그룹 일감 하위에 목업 일감 1건을 둔다(없으면 생성, 있으면 재사용). 트래커·계층·상태 어휘·티켓 양식은 work-tracking.md 를 따른다. 첨부 REST 절차는 [`work-tracking-redmine.md`](../../strategies/work-tracking-redmine.md) §이슈 조작.
+- **일감**: 루프 **그룹 일감의 하위**에 목업 일감 1건을 둔다(없으면 생성, 있으면 재사용 — `parent_issue_id` 필수, 생성 후 `parent` 실측 확인). 트래커·계층·상태 어휘·티켓 양식은 [`work-tracking.md`](../../strategies/work-tracking.md) §계층·연관을 따른다. 첨부 REST 절차는 [`work-tracking-redmine.md`](../../strategies/work-tracking-redmine.md) §이슈 조작.
 - **첨부 등록**: 목업 html 파일(열람 허브 `index.html` 포함)을 그 일감에 첨부한다. 매핑 문서 `INDEX.md` 도 함께 첨부해 목업 패키지를 완비한다.
 - **갱신 시 최신만 유지**: 목업 파일 **내용이 바뀌면 해당 파일의 기존 첨부를 삭제하고 최신 파일만 남긴다** — 파일당 항상 최신 1건만 유지해, 담당자가 옛 버전을 내려받지 않게 한다.
 - 등록·갱신 시점과 결과(첨부 파일 수)는 일감 노트로 남긴다.

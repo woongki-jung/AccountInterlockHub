@@ -67,7 +67,10 @@ docker exec -e SECRET_KEY_BASE_DUMMY=1 redmine bin/rails runner /tmp/<script>.rb
 
 ## 이슈 조작
 
-- **생성**: 정확한 트래커·상태 제어가 필요하므로 `redmine_request` POST `/issues.json` 본문 `{"issue":{"project_id","tracker_id","status_id","assigned_to_id","category_id","fixed_version_id","parent_issue_id"(하위 이슈),"description",...}}` 를 쓴다(MCP `create_issue` 는 트래커·상태를 무시 — §도구 함정).
+- **생성**: 정확한 트래커·상태 제어가 필요하므로 `redmine_request` POST `/issues.json` 본문 `{"issue":{"project_id","tracker_id","status_id","parent_issue_id","assigned_to_id","category_id","fixed_version_id","description",...}}` 를 쓴다(MCP `create_issue` 는 트래커·상태를 무시 — §도구 함정).
+	- **`parent_issue_id` 는 필수다** — 작업세션 이슈를 제외한 모든 일감은 상위 일감을 갖는다([`work-tracking.md`](work-tracking.md) §계층·연관). 어느 일감을 부모로 삼는지도 그 절이 정본이다.
+	- **생성 직후 `GET /issues/<id>.json` 으로 `parent` 를 실측 확인**한다. 누락하면 오류 없이 루트 일감이 되므로(§도구 함정) 응답만 보고는 알 수 없다.
+	- **부모 교정**: `PUT /issues/<id>.json` 본문 `{"issue":{"parent_issue_id":<부모>}}`. 루트로 떨어진 일감을 발견하면 이 방법으로 제자리에 붙인다.
 - **연관 추가**: POST `/issues/<id>/relations.json` `{"relation":{"issue_to_id":<대상 이슈>,"relation_type":"relates"}}` — build·qa 일감 → 참조 `사양` 일감.
 - **노트·상태·담당자 변경**: MCP `update_issue`(`notes`·`status_id`·`assigned_to_id`) 또는 `redmine_request` PUT `/issues/<id>.json`.
 
@@ -87,6 +90,7 @@ docker exec -e SECRET_KEY_BASE_DUMMY=1 redmine bin/rails runner /tmp/<script>.rb
 ## 도구 함정 (Redmine MCP)
 
 - **`create_issue` 가 `tracker_id`·`status_id` 무시**(priority·assignee 는 반영) → `redmine_request` 로 생성하거나 생성 후 PUT 으로 교정.
+- **`parent_issue_id` 누락이 조용히 루트 일감을 만든다** — 부모를 빠뜨려도 Redmine 은 오류를 내지 않고 그냥 프로젝트 루트 일감으로 생성한다. 응답만 보면 정상 생성과 구분되지 않으므로 **생성 후 `GET` 으로 `parent` 를 실측**한다([`work-tracking.md`](work-tracking.md) §계층·연관 — 루트에 일감을 만들지 않는다). MCP `create_issue` 는 부모 지정도 신뢰할 수 없으니 `redmine_request` 로 생성한다.
 - **`update_issue` 가 부분 실패를 성공으로 삼킴** — `notes`+`status_id` 를 함께 보냈는데 Redmine 이 상태 전이만 거부해도 응답은 `{"ok":true}` 다(노트만 남고 상태는 그대로). → **상태 전이는 응답을 믿지 말고 `GET /issues/<id>.json` 의 `status`·`closed_on` 으로 실측 검증**한다. 특히 `해결`→`완료`(닫힘).
 - **열린 하위가 있으면 부모 close 가 거부된다** → 종결은 **하위 먼저, 부모 나중** 순서로 수행한다(위 함정과 겹치면 부모가 안 닫힌 채 성공으로 보인다). 닫기 전에 §전이 사전 확인으로 `Closed` 가 후보에 있는지 보면 이 상황을 미리 잡을 수 있다.
 - **`create_project` 는 기본 트래커만 활성** → §프로젝트 생성 표준 절차 2번으로 보완.

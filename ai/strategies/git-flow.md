@@ -13,7 +13,7 @@
 - **생성** — 단계 오케스트레이터(directing 은 ai-pm)가 착수 시 최신 main 에서 분기한다. 질의·승인 릴레이 후 재디스패치(재개)면 새로 만들지 않고 기존 브랜치를 이어 쓴다.
 - **명명** — `<구간>/<이슈번호>-<주제>`
 	- `<구간>` = `directing` / `loop`(제품 루프 spec·build·qa — §제품 루프 브랜치). 제품 루프는 단계별로 브랜치를 나누지 않고 **단일 루프 브랜치** 하나를 쓴다.
-	- `<이슈번호>` = 디스패치 기준 Redmine 일감 번호 — 그룹 일감 우선, 없으면 단계 대표 일감([`work-tracking.md`](work-tracking.md) §티켓 ID).
+	- `<이슈번호>` = 디스패치 기준 Redmine 일감 번호 — **제품 루프는 그룹 일감**, **directing 은 작업세션 이슈**(그룹 일감을 두지 않는다), 둘 다 없으면 단계 대표 일감([`work-tracking.md`](work-tracking.md) §티켓 ID·§계층·연관).
 	- `<주제>` = 영문 소문자 kebab-case 요약.
 	- 예: `directing/130-new-project` · `loop/140-order-domain`.
 - **핫픽스** — 유지보수 경로([`delivery.md`](delivery.md) §유지보수·핫픽스 경로)는 build 부분 착수이므로 `build/<오류일감번호>-<주제>` 를 쓴다(별도 접두 없음).
