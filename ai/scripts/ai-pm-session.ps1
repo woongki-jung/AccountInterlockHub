@@ -277,8 +277,9 @@ function Test-AiPmWork {
     $url = "$Base/issues.json?project_id=$proj&tracker_id=$wsTrackerId&status_id=*&limit=100"
     $list = Invoke-RestMethod -Uri $url -Headers $h -TimeoutSec 20
     foreach ($i in $list.issues) {
-      # ② 담당자 차례로 넘어온 작업세션 이슈(미착수)
-      if ($i.status.name -eq '신규' -or $i.status.name -eq '의견') { return "#$($i.id) 상태=$($i.status.name)" }
+      # ② 담당자 차례로 넘어온 작업세션 이슈(미착수). 상태명은 인스턴스 실측 표시명(영문)으로 비교한다 —
+      #    'New'=정책 이름 신규. 대응표는 ai/strategies/work-tracking-redmine.md §요소 식별자 레퍼런스.
+      if ($i.status.name -eq 'New') { return "#$($i.id) 상태=$($i.status.name)" }
       # ③ 워터마크 이후 '담당자(=봇 아님)' 노트가 추가된 이슈
       $d = Invoke-RestMethod -Uri "$Base/issues/$($i.id).json?include=journals" -Headers $h -TimeoutSec 20
       foreach ($j in $d.issue.journals) {

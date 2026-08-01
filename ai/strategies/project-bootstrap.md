@@ -75,7 +75,7 @@
 
 세션이 Redmine 을 조작하는 통로. 서버는 의존성 0 의 Node 단일 파일이다.
 
-- **등록** — MCP 서버 파일(`redmine-mcp-server.mjs`)을 PC 로컬 위치에 두고 `claude mcp add redmine -s user -- node "<MCP 서버 파일 경로>"` 로 등록한다. 접속 값은 환경변수 `REDMINE_BASE_URL`·`REDMINE_API_KEY` 로 주입하거나 서버 파일과 같은 위치의 `.env`(외부 공유 금지)에 둔다([`work-tracking-redmine.md`](work-tracking-redmine.md) §접속).
+- **등록** — MCP 서버는 저장소에 포함돼 있다([`redmine-mcp-server.mjs`](../scripts/redmine-mcp-server.mjs) — 의존성 0 Node 단일 파일). `claude mcp add redmine -s user -- node "<WORK_ROOT>/ai/scripts/redmine-mcp-server.mjs"` 로 등록한다 — **서버 이름은 반드시 `redmine`** 이어야 한다(`mcp-curate.js` 가 그 키로 추려 ai-pm 세션에 싣는다). 접속 값은 환경변수 `REDMINE_BASE_URL`·`REDMINE_API_KEY` 로 주입하거나 서버 파일과 같은 위치의 `.env`(git 비관리·외부 공유 금지)에 둔다([`work-tracking-redmine.md`](work-tracking-redmine.md) §접속).
 - **연결 확인** — **새** Claude Code 세션에서 `/mcp` → `redmine ✔ connected`(등록은 실행 중 세션에 반영되지 않는다).
 
 ### C. 프로젝트 생성
@@ -144,7 +144,7 @@ ai-pm 은 Redmine 작업세션 이슈를 폴링해 담당자와 협업하는 단
 
 - §1 전체 — 도구 설치·`npm install`·OS 환경변수.
 - §2 의 `CLAUDE.local.md` 생성 — git 비관리라 PC 마다 필요(§준비 상태 플래그·§준비 체크리스트 포함).
-- §3 의 접속 정보 기입(`CLAUDE.local.md` 재생성분)·MCP 서버 등록 — PC 로컬. 공용 서비스·프로젝트는 그대로라 재구축·재생성 불필요.
+- §3 의 접속 정보 기입(`CLAUDE.local.md` 재생성분)·MCP 서버 등록 — PC 로컬. 서버 파일은 저장소에 포함되므로 **등록 명령과 `.env` 기입만** 재수행한다. 공용 서비스·프로젝트는 그대로라 재구축·재생성 불필요.
 - §4-C 의 `.env` 토큰 파일 — git 비관리. 앱은 재생성 불필요, 기존 토큰 재사용.
 - §4-C 의 실행 장비 지정 — 봇 실행 장비를 그 PC 로 옮기면 `config.json` 의 `exec_machine` 과 봇 정의 frontmatter 를 새 MachineName 으로 갱신·커밋한다(git 관리 — 전 PC 에 공유되어 이전 장비의 기동이 차단된다). 옮기지 않으면 그대로 둔다([`ai-pm.md`](ai-pm.md) §운영 모델).
 - §6 의 도구 설치·MCP 등록·연결 검증 — PC 로컬(식별자 수집 결과는 문서로 공유되므로 재수집 불필요).
