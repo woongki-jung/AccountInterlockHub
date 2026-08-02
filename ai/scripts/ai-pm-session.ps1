@@ -333,6 +333,28 @@ if ($effort -and ($validEffort -notcontains $effort)) {
   $effort = ''
 }
 
+# --- claude 실행 파일 해석 — PATH 로만 부르지 않는다. CLI 설치 경로가 사용자 PATH 에만 등록돼 있으면,
+#     그 등록 이전부터 떠 있던 부모(탐색기·터미널)에서 상속된 환경에는 반영되지 않아 `claude` 가 해석되지
+#     않는다. 이 스크립트는 $ErrorActionPreference='Stop' 이므로 그 경우 `& claude` 가 터미널 오류를 던져
+#     래퍼가 그 자리에서 죽는다 — 워처 대기 중에는 멀쩡하다가 '세션 기동' 시점에만 조용히 종료되는
+#     증상으로 나타난다(2026-08-02 실측). 기동 전에 실행 파일을 확정해 이 경로를 없앤다. ---
+$claudeExe = (Get-Command claude -CommandType Application -ErrorAction SilentlyContinue | Select-Object -First 1).Source
+if (-not $claudeExe) {
+  $candidates = @(
+    (Join-Path $env:USERPROFILE '.local\bin\claude.exe'),
+    (Join-Path $env:LOCALAPPDATA 'Programs\claude\claude.exe')
+  )
+  $candidates += @(
+    Get-ChildItem (Join-Path $env:APPDATA 'Claude\claude-code') -Filter 'claude.exe' -Recurse -ErrorAction SilentlyContinue |
+      Sort-Object LastWriteTime -Descending | Select-Object -ExpandProperty FullName
+  )
+  $claudeExe = $candidates | Where-Object { $_ -and (Test-Path $_) } | Select-Object -First 1
+}
+if (-not $claudeExe) {
+  throw "[ai-pm-session] claude 실행 파일을 찾지 못했다 — PATH 에도, 알려진 설치 경로에도 없다. Claude Code CLI 설치 상태를 확인한다."
+}
+Write-Host "[ai-pm-session] claude: $claudeExe" -ForegroundColor DarkGray
+
 try {
   $noAdvanceCount = 0   # 세션이 워터마크를 못 올린 채 연속 기동된 횟수(무한 재기동 방지)
   while ($true) {
@@ -375,7 +397,7 @@ try {
     Write-Host ""
 
     $launchStart = Get-Date
-    & claude @claudeArgs
+    & $claudeExe @claudeArgs
     $claudeExit = $LASTEXITCODE
     $elapsedSec = ((Get-Date) - $launchStart).TotalSeconds
     Write-Host ""
