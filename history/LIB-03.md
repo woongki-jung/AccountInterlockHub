@@ -4,6 +4,7 @@
 
 | 일시 (KST) | 단계 | 산출물·결과 | 관련 일감 | 상태 |
 |---|---|---|---|---|
+| 2026-08-02 12:50 | qa ⓒ | (공통 반영) 전체 기능 품질검수 재수행 — 254 TC 전건 처리(🟢 55 · 🟣 2 · 🔴 0 · 🟠 195). 미해소 Fail 0 · 🟠 주 사유 = PostgreSQL 다운(#516). 구현↔검증 공백 2건 spec 보완 제안(#604·#605) — common.md | `accountinterlockhub#514` | ℹ️ |
 | 2026-08-02 12:20 | build ⓒ | (공통 반영) 배포 산출물 산출·런타임 게이트(부분 확보 — DB 미가용분 qa 이월)·qa 인계 문서 신규 — common.md | `accountinterlockhub#514` | ℹ️ |
 | 2026-07-26 19:40 | spec ⓒ | (공통 반영) `process_PROC-403.md` `:77`·`:238` · `service_SVC-008.md` `:94` · `tc_LIB-03.md` `:7` — `OPS-002-06` 전파(E7-5). *경로 비공개가 유일한 완화 장치* 근거절을 **노출 범위를 줄이는 장치**로 교체했다. **규범 무변경** — 자가진단 경로 값을 패키지·문서·TC 에 담지 않는다는 요구와 그 검증은 그대로다 — common.md | `accountinterlockhub#486`·`#493`·`#489`·`#469` | ℹ️ |
 | 2026-07-26 15:54 | build | `apps/sender-sdk/verify-roundtrip.js`(구조분해 시정 + 헤더·`decryptPlainBytesViaHubPrimitives` 주석 정정) — **P09(`#486`) `judgeDecryption()` 반환형 확장(`a49093f`)의 부수 파손 복구**. `PROC-404` `C2` 왕복 검증(`SVC-009` F-004)이 `a49093f`~`1ccda0b` 구간 **6/6 전건 구조 불일치·`exit 1`** 로 무력화돼 있었다(순수 JS 로 `dist/crypto` 를 require 하는 자산이라 `npm run build` 로는 원리적으로 미검출). `judgeDecryption(...).payload` 구조분해로 시정 후 재실측 **6/6 `[MATCH]`(구조+바이트)·`exit 0` 회복**(독립 재리뷰가 음성대조로 인과 확정: 시정 전 0/6 · 시정 후 6/6). 바이트 비교는 `rawPlaintext` 로 단순화하지 않고 **독립 재구성 유지**(S-4·S-c 가 세운 검증 강도 보존). 상세 경위는 `USR-02.md` 2026-07-26 15:38 항목 | `accountinterlockhub#486`·`#495`·`#469` | 🚧 |
