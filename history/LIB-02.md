@@ -4,6 +4,8 @@
 
 | 일시 (KST) | 단계 | 산출물·결과 | 관련 일감 | 상태 |
 |---|---|---|---|---|
+| 2026-08-02 12:50 | qa ⓒ | (공통 반영) 전체 기능 품질검수 재수행 — 254 TC 전건 처리(🟢 55 · 🟣 2 · 🔴 0 · 🟠 195). 미해소 Fail 0 · 🟠 주 사유 = PostgreSQL 다운(#516). 구현↔검증 공백 2건 spec 보완 제안(#604·#605) — common.md | `accountinterlockhub#514` | ℹ️ |
+| 2026-08-02 12:20 | build ⓒ | (공통 반영) 배포 산출물 산출·런타임 게이트(부분 확보 — DB 미가용분 qa 이월)·qa 인계 문서 신규 — common.md | `accountinterlockhub#514` | ℹ️ |
 | 2026-07-26 01:35 | build | `apps/sender-sdk/AccountInterlockHub.SenderSdk/InterlockRequestBuilder.cs` — **PROC-402 요청 URL 생성 구현**(`BuildRequestUrl`). 진입 경로 `/interlock/entry` 는 내부 상수로 고정(호출 인자 아님)·기준 URL 은 `Uri.TryCreate(..., UriKind.Absolute)` 로 절대 URL 형태만 판정하고 조립은 파싱된 `Uri` 가 아닌 원본 문자열 기준(재직렬화로 값이 안 흔들리게)·끝 구분자 `TrimEnd('/')`·파라미터 `encX`·`encY` 고정 순서·길이 상한 2,000자 초과 시 `InterlockProtocolException(EX-SEC-004)` 로 URL 미반환(부분 URL 없음). csc.exe 컴파일 성공(빌드 에러 0)·자가 검증(끝 구분자 0/1/2개 동일 결과·이중 퍼센트 인코딩 미적용·URL 길이 2000/2001자 경계·`hubBaseUrl`/`pair` 인자 오류 3종) 전건 통과. 같은 커밋의 C# 콘솔 검증 하네스(`AccountInterlockHub.SenderSdk.Harness`)가 LIB-01·LIB-02 공통 대조 도구 — 코드리뷰·기능검증 대기 | `accountinterlockhub#494`·`#469` | 🚧 |
 | 2026-07-26 00:45 | spec ⓒ | (공통 반영) 요구사항 회귀의 연쇄 반영 — 라이브러리 계약·판정·검증 TC 는 **무변경**이다. `process_PROC-402.md` §분기 및 예외 흐름의 교차 참조 한 줄만 정정 — 같은 사유 코드가 진입 시점(`PROC-101` `B2`)에 나타나는 자리가 **결과 경로 ③ → ②** 로 당겨졌다(결과 경로 4→3 재번호) — common.md | `accountinterlockhub#469`·`#475` | ℹ️ |
 | 2026-07-25 16:19 | spec ⓒ | (공통 반영) 검증 TC 도메인 신규 작성 — `docs/specs/qa/` **TC 232건**(커버리지 SVC 18/18 · PROC 18/18 · BR 24/24 · EX 13/13 · 정책 17/17 · 접점 11/11 — 미검증 0)·**횡단 시나리오 `SCEN_001`~`SCEN_023`**(여정 6 · 규약 대칭 왕복 3 · 기동·상수 검증 5 · 무저장 원칙 2 · 설계된 부재·수용 리스크 7)·**AUTH 치환 12건**·모의 수신처·C# 하네스·시드 카탈로그 37항·미해소 1건(성공률 정의 이월) — common.md | `accountinterlockhub#476`·`#469` | ℹ️ |
