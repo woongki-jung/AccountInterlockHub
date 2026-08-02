@@ -4,6 +4,7 @@
 
 | 일시 (KST) | 단계 | 산출물·결과 | 관련 일감 | 상태 |
 |---|---|---|---|---|
+| 2026-08-02 12:20 | build ⓒ | (공통 반영) 배포 산출물 산출·런타임 게이트(부분 확보 — DB 미가용분 qa 이월)·qa 인계 문서 신규 — common.md | `accountinterlockhub#514` | ℹ️ |
 | 2026-07-25 10:05 | directing ⓒ | (공통 반영) 리셋 방향 담당자 확정분 반영 — 처리상태 저장 기능 **폐지** — `BAT-04` 단일 추적 레코드로 통합, `ia-code` 미사용 등재. 구 사양·구현 삭제 — common.md | `accountinterlockhub#468`·`#467` | ℹ️ |
 | 2026-07-18 23:16 | qa ⓒ | (공통 반영) `#416` Wave 3(최종) SCEN_001~006 E2E 여정 재검증 6/6 Pass(🟢3·🔵3, 처리상태 저장 경유) — common.md | `accountinterlockhub#416` | ℹ️ |
 | 2026-07-12 22:00 | qa | BAT-01_001~009 검증 → 9/9 Pass. 상태저장 PROC-401·CHECK 정합·재사용 최신1건·surrogate PK | `accountinterlockhub#236` | ✅ |
